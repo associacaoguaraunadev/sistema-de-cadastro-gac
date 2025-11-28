@@ -24,7 +24,19 @@ const limitador = rateLimit({
 app.use('/api/', limitador);
 
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    const origensPermitidas = [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      process.env.CORS_ORIGIN
+    ].filter(Boolean);
+    
+    if (!origin || origensPermitidas.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS não permitido'));
+    }
+  },
   credentials: true,
   optionsSuccessStatus: 200
 }));
