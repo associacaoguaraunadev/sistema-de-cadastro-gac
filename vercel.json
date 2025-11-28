@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd backend && npx prisma generate && cd ../frontend && npm install && npm run build",
+  "buildCommand": "cd backend && npx prisma generate --schema=./prisma/schema.prisma && cd ../frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install && cd backend && npm install && cd ../frontend && npm install"
 }
