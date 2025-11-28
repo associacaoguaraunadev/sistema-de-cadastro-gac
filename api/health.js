@@ -1,10 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { getPrismaInstance } from './_lib/prisma-singleton.js';
 
 let prismaInstance;
 
 function getPrisma() {
   if (!prismaInstance) {
-    prismaInstance = new PrismaClient();
+    prismaInstance = getPrismaInstance();
   }
   return prismaInstance;
 }

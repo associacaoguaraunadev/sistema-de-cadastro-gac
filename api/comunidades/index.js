@@ -1,14 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { getPrismaInstance } from '../_lib/prisma-singleton.js';
 import jwt from 'jsonwebtoken';
-
-let prismaInstance;
-
-function getPrisma() {
-  if (!prismaInstance) {
-    prismaInstance = new PrismaClient();
-  }
-  return prismaInstance;
-}
 
 function extrairToken(req) {
   const cabecalhoAuth = req.headers['authorization'];
@@ -21,7 +12,12 @@ function verificarAutenticacao(token) {
 }
 
 export default async function handler(req, res) {
-  const prisma = getPrisma();
+  const prisma = getPrismaInstance();
+  
+  if (!prisma) {
+    console.error('[ERRO] getPrismaInstance() retornou falsy');
+    return res.status(500).json({ erro: 'Falha ao inicializar banco de dados' });
+  }
   
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');

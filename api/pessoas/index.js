@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { getPrismaInstance } from '../_lib/prisma-singleton.js';
 import { validarDadosPessoa, validarCPF } from '../middleware/validacao.js';
 import { tratarErroAssincrono } from '../middleware/manipuladorErro.js';
 import jwt from 'jsonwebtoken';
@@ -7,7 +7,7 @@ let prismaInstance;
 
 function getPrisma() {
   if (!prismaInstance) {
-    prismaInstance = new PrismaClient();
+    prismaInstance = getPrismaInstance();
   }
   return prismaInstance;
 }
