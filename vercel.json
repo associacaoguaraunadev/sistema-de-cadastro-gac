@@ -2,13 +2,6 @@
   "version": 2,
   "buildCommand": "npm run prisma:generate && npm run build",
   "outputDirectory": "frontend/dist",
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "DIRECT_URL": "@direct_url",
-    "JWT_SECRET": "@jwt_secret",
-    "CORS_ORIGIN": "@cors_origin",
-    "NODE_ENV": "production"
-  },
   "functions": {
     "api/**/*.js": {
       "runtime": "nodejs18.x"
