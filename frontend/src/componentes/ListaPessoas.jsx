@@ -118,12 +118,39 @@ export const ListaPessoas = () => {
   };
 
   // Comunidades pré-cadastradas
-  const comunidades = [
+  const comunidadesFixas = [
     { nome: 'Vila Cheba', cor: '#3b82f6', icon: '🏘️' },
     { nome: 'Morro da Vila', cor: '#ef4444', icon: '🏔️' },
     { nome: 'Barragem', cor: '#8b5cf6', icon: '💧' },
     { nome: 'Parque Centenario', cor: '#10b981', icon: '🌳' },
     { nome: 'Jardim Apura', cor: '#f59e0b', icon: '🌼' }
+  ];
+
+  // Carregar comunidades customizadas do localStorage
+  const [comunidadesCustomizadas] = useState(() => {
+    const salvas = localStorage.getItem('comunidadesCustomizadas');
+    return salvas ? JSON.parse(salvas) : [];
+  });
+
+  // Função para gerar cor consistente a partir do nome
+  const gerarCorDeComunidade = (nomeComun) => {
+    const cores = ['#ec4899', '#f43f5e', '#06b6d4', '#14b8a6', '#84cc16', '#a78bfa'];
+    let hash = 0;
+    for (let i = 0; i < nomeComun.length; i++) {
+      hash = ((hash << 5) - hash) + nomeComun.charCodeAt(i);
+      hash = hash & hash;
+    }
+    return cores[Math.abs(hash) % cores.length];
+  };
+
+  // Combinar comunidades fixas com customizadas
+  const comunidades = [
+    ...comunidadesFixas,
+    ...comunidadesCustomizadas.map(nome => ({
+      nome,
+      cor: gerarCorDeComunidade(nome),
+      icon: '⭐'
+    }))
   ];
 
   // Agrupar pessoas por comunidade E por faixa etária

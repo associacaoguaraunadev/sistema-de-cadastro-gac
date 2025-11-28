@@ -251,6 +251,51 @@
   color: #2e7d32;
 }
 
+.campo-com-botao {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.campo-com-botao input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.campo-com-botao input:focus {
+  outline: none;
+  border-color: #2e7d32;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+}
+
+.btn-adicionar {
+  padding: 10px 20px;
+  background: #2e7d32;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.btn-adicionar:hover:not(:disabled) {
+  background: #1b5e20;
+  box-shadow: 0 2px 8px rgba(43, 125, 50, 0.3);
+}
+
+.btn-adicionar:disabled {
+  background: #c0c0c0;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 @media (max-width: 768px) {
   .campo-duplo {
     grid-template-columns: 1fr;
@@ -270,5 +315,15 @@
 
   .acoes-formulario {
     flex-direction: column-reverse;
+  }
+
+  .campo-com-botao {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .campo-com-botao input,
+  .btn-adicionar {
+    width: 100%;
   }
 }

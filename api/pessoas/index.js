@@ -222,10 +222,10 @@ export default async function handler(req, res) {
           estado: req.body.estado ? req.body.estado.toUpperCase() : null,
           cep: req.body.cep ? normalizarCEP(req.body.cep) : null,
           idade: req.body.idade || null,
+          comunidade: req.body.comunidade ? normalizarTexto(req.body.comunidade) : null,
           tipoBeneficio: normalizarNome(req.body.tipoBeneficio),
           dataBeneficio: req.body.dataBeneficio ? new Date(req.body.dataBeneficio) : null,
           observacoes: req.body.observacoes ? normalizarTexto(req.body.observacoes) : null,
-          comunidadeId: req.body.comunidadeId || null,
           usuarioId: usuario.id
         }
       });

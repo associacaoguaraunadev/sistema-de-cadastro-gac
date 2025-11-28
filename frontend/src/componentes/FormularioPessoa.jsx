@@ -27,6 +27,12 @@ export const FormularioPessoa = () => {
     observacoes: ''
   });
   
+  const [comunidadeCustomizada, setComunidadeCustomizada] = useState('');
+  const [comunidadesCustomizadas, setComunidadesCustomizadas] = useState(() => {
+    const salvas = localStorage.getItem('comunidadesCustomizadas');
+    return salvas ? JSON.parse(salvas) : [];
+  });
+  
   const [carregando, setCarregando] = useState(!!id);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
@@ -111,6 +117,46 @@ export const FormularioPessoa = () => {
       [name]: novoValor
     }));
   };
+
+  const handleMudarComunidadeCustomizada = (e) => {
+    setComunidadeCustomizada(e.target.value);
+  };
+
+  const adicionarComunidadeCustomizada = () => {
+    const comunidadeNormalizada = comunidadeCustomizada.trim().toLowerCase();
+    
+    if (!comunidadeNormalizada) {
+      setErro('Digite o nome da comunidade');
+      return;
+    }
+
+    const todasAsComunidades = [
+      'Vila Cheba',
+      'Morro da Vila',
+      'Barragem',
+      'Parque Centenario',
+      'Jardim Apura',
+      ...comunidadesCustomizadas
+    ].map(c => c.toLowerCase());
+
+    if (todasAsComunidades.includes(comunidadeNormalizada)) {
+      setErro('Esta comunidade já existe');
+      return;
+    }
+
+    const novasComunidades = [...comunidadesCustomizadas, comunidadeCustomizada.trim()];
+    setComunidadesCustomizadas(novasComunidades);
+    localStorage.setItem('comunidadesCustomizadas', JSON.stringify(novasComunidades));
+
+    setFormulario(prev => ({
+      ...prev,
+      comunidade: comunidadeCustomizada.trim()
+    }));
+    
+    setComunidadeCustomizada('');
+    setErro('');
+  };
+
 
   const aoEnviar = async (e) => {
     e.preventDefault();
@@ -368,22 +414,52 @@ export const FormularioPessoa = () => {
             <h2>Comunidade</h2>
             
             <div className="campo">
-              <label htmlFor="comunidade">Comunidade</label>
+              <label htmlFor="comunidade">Comunidade *</label>
               <select
                 id="comunidade"
                 name="comunidade"
                 value={formulario.comunidade}
                 onChange={handleMudar}
+                required
                 disabled={salvando}
               >
-                <option value="">Sem comunidade</option>
+                <option value="">Selecione uma comunidade</option>
                 <option value="Vila Cheba">🏘️ Vila Cheba</option>
                 <option value="Morro da Vila">🏔️ Morro da Vila</option>
                 <option value="Barragem">💧 Barragem</option>
                 <option value="Parque Centenario">🌳 Parque Centenario</option>
                 <option value="Jardim Apura">🌼 Jardim Apura</option>
+                {comunidadesCustomizadas.map(com => (
+                  <option key={com} value={com}>⭐ {com}</option>
+                ))}
+                <option value="Outra">➕ Outra</option>
               </select>
             </div>
+
+            {formulario.comunidade === 'Outra' && (
+              <div className="campo">
+                <label htmlFor="comunidadeCustomizada">Nome da Comunidade</label>
+                <div className="campo-com-botao">
+                  <input
+                    id="comunidadeCustomizada"
+                    type="text"
+                    value={comunidadeCustomizada}
+                    onChange={handleMudarComunidadeCustomizada}
+                    placeholder="Digite o nome da comunidade"
+                    disabled={salvando}
+                    onKeyPress={(e) => e.key === 'Enter' && adicionarComunidadeCustomizada()}
+                  />
+                  <button
+                    type="button"
+                    onClick={adicionarComunidadeCustomizada}
+                    disabled={salvando || !comunidadeCustomizada.trim()}
+                    className="btn-adicionar"
+                  >
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
 
           <section className="secao-formulario">
