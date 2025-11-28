@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import { validarDadosPessoa, validarCPF } from '../../middleware/validacao.js';
-import { tratarErroAssincrono } from '../../middleware/manipuladorErro.js';
+import { validarDadosPessoa, validarCPF } from '../middleware/validacao.js';
+import { tratarErroAssincrono } from '../middleware/manipuladorErro.js';
 import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
