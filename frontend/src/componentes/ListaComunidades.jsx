@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
-import { obterComunidades, obterPessoas } from '../servicos/api';
-import { Users, Baby, User, Heart, LogOut, Plus, ChevronDown, ChevronUp } from 'lucide-react';
+import { obterComunidades } from '../servicos/api';
+import { LogOut, Plus, ChevronDown, ChevronUp, Baby, User, Heart } from 'lucide-react';
 import './ListaComunidades.css';
 
 export const ListaComunidades = () => {
   const [comunidades, setComunidades] = useState([]);
-  const [pessoasPorComunidade, setPessoasPorComunidade] = useState({});
-  const [comunidadesExpandidas, setComunidadesExpandidas] = useState({});
+  const [expandidas, setExpandidas] = useState({});
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   
@@ -24,26 +23,12 @@ export const ListaComunidades = () => {
   const carregarComunidades = async () => {
     try {
       setCarregando(true);
-      const comunidadesData = await obterComunidades(token);
-      setComunidades(comunidadesData);
-      
-      // Carregar pessoas para cada comunidade
-      const pessoas = {};
-      for (const comunidade of comunidadesData) {
-        const pessoasData = await obterPessoas(token, {
-          pagina: 1,
-          limite: 1000,
-          status: 'ativo'
-        });
-        
-        pessoas[comunidade.id] = pessoasData.pessoas.filter(p => p.comunidadeId === comunidade.id);
-        // Expande a primeira comunidade por padrão
-        if (comunidades.length === 0) {
-          setComunidadesExpandidas(prev => ({...prev, [comunidade.id]: true}));
-        }
+      const data = await obterComunidades(token);
+      setComunidades(data);
+      // Expande a primeira comunidade por padrão
+      if (data.length > 0) {
+        setExpandidas({ [data[0].id]: true });
       }
-      
-      setPessoasPorComunidade(pessoas);
     } catch (erro) {
       setErro('Erro ao carregar comunidades: ' + erro.message);
     } finally {
@@ -52,19 +37,13 @@ export const ListaComunidades = () => {
   };
 
   const toggleComunidade = (comunidadeId) => {
-    setComunidadesExpandidas(prev => ({
+    setExpandidas(prev => ({
       ...prev,
       [comunidadeId]: !prev[comunidadeId]
     }));
   };
 
-  const obterFaixaEtaria = (idade) => {
-    if (idade < 18) return 'criancas';
-    if (idade < 60) return 'adultos';
-    return 'idosos';
-  };
-
-  const segmentarPessoas = (pessoas) => {
+  const agruparPorFaixaEtaria = (pessoas) => {
     return {
       criancas: pessoas.filter(p => p.idade !== null && p.idade < 18),
       adultos: pessoas.filter(p => p.idade !== null && p.idade >= 18 && p.idade < 60),
@@ -118,16 +97,17 @@ export const ListaComunidades = () => {
 
         {comunidades.length === 0 ? (
           <div className="vazio-comunidades">
-            <Users size={48} />
+            <Plus size={48} />
             <h3>Nenhuma comunidade cadastrada</h3>
             <p>Comece criando uma comunidade para organizar seus beneficiários</p>
           </div>
         ) : (
           <div className="lista-comunidades">
             {comunidades.map(comunidade => {
-              const pessoas = pessoasPorComunidade[comunidade.id] || [];
-              const segmentado = segmentarPessoas(pessoas);
-              const expandida = comunidadesExpandidas[comunidade.id];
+              const pessoas = comunidade.pessoas || [];
+              const faixas = agruparPorFaixaEtaria(pessoas);
+              const expandida = expandidas[comunidade.id];
+              const totalPessoas = pessoas.length;
 
               return (
                 <div key={comunidade.id} className="card-comunidade">
@@ -137,109 +117,115 @@ export const ListaComunidades = () => {
                   >
                     <div className="info-comunidade">
                       <div className="icone-comunidade" style={{ backgroundColor: comunidade.cor }}>
-                        <Users size={24} color="white" />
+                        {comunidade.icon}
                       </div>
                       <div className="titulo-comunidade">
                         <h3>{comunidade.nome}</h3>
-                        {comunidade.descricao && <p className="desc-comunidade">{comunidade.descricao}</p>}
+                        {comunidade.descricao && (
+                          <p className="desc-comunidade">{comunidade.descricao}</p>
+                        )}
                       </div>
                     </div>
                     <div className="stats-comunidade">
-                      <span className="badge-total">{pessoas.length} beneficiários</span>
+                      <span className="badge-total">
+                        {totalPessoas} {totalPessoas === 1 ? 'beneficiário' : 'beneficiários'}
+                      </span>
                       {expandida ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </div>
                   </button>
 
                   {expandida && (
                     <div className="conteudo-comunidade">
-                      {/* Crianças e Adolescentes */}
-                      {segmentado.criancas.length > 0 && (
-                        <section className="secao-faixa-etaria">
-                          <div className="header-faixa-etaria">
-                            <Baby size={20} />
-                            <h4>Crianças e Adolescentes (0-17 anos)</h4>
-                            <span className="contador-faixa">{segmentado.criancas.length}</span>
-                          </div>
-                          <div className="lista-faixa-etaria">
-                            {segmentado.criancas.map(pessoa => (
-                              <div 
-                                key={pessoa.id} 
-                                className="card-pessoa-mini"
-                                onClick={() => navegar(`/pessoas/${pessoa.id}`)}
-                              >
-                                <div className="avatar-mini">
-                                  {pessoa.nome.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="info-pessoa-mini">
-                                  <strong>{pessoa.nome}</strong>
-                                  <small>{pessoa.idade} anos • {pessoa.tipoBeneficio}</small>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      )}
-
-                      {/* Adultos */}
-                      {segmentado.adultos.length > 0 && (
-                        <section className="secao-faixa-etaria">
-                          <div className="header-faixa-etaria">
-                            <User size={20} />
-                            <h4>Adultos (18-59 anos)</h4>
-                            <span className="contador-faixa">{segmentado.adultos.length}</span>
-                          </div>
-                          <div className="lista-faixa-etaria">
-                            {segmentado.adultos.map(pessoa => (
-                              <div 
-                                key={pessoa.id} 
-                                className="card-pessoa-mini"
-                                onClick={() => navegar(`/pessoas/${pessoa.id}`)}
-                              >
-                                <div className="avatar-mini">
-                                  {pessoa.nome.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="info-pessoa-mini">
-                                  <strong>{pessoa.nome}</strong>
-                                  <small>{pessoa.idade} anos • {pessoa.tipoBeneficio}</small>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      )}
-
-                      {/* Idosos */}
-                      {segmentado.idosos.length > 0 && (
-                        <section className="secao-faixa-etaria">
-                          <div className="header-faixa-etaria">
-                            <Heart size={20} />
-                            <h4>Idosos (60+ anos)</h4>
-                            <span className="contador-faixa">{segmentado.idosos.length}</span>
-                          </div>
-                          <div className="lista-faixa-etaria">
-                            {segmentado.idosos.map(pessoa => (
-                              <div 
-                                key={pessoa.id} 
-                                className="card-pessoa-mini"
-                                onClick={() => navegar(`/pessoas/${pessoa.id}`)}
-                              >
-                                <div className="avatar-mini">
-                                  {pessoa.nome.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="info-pessoa-mini">
-                                  <strong>{pessoa.nome}</strong>
-                                  <small>{pessoa.idade} anos • {pessoa.tipoBeneficio}</small>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      )}
-
-                      {pessoas.length === 0 && (
-                        <div className="vazio-faixa">
+                      {totalPessoas === 0 ? (
+                        <div className="secao-vazia">
                           <p>Nenhuma pessoa cadastrada nesta comunidade</p>
                         </div>
+                      ) : (
+                        <>
+                          {/* Crianças e Adolescentes */}
+                          {faixas.criancas.length > 0 && (
+                            <section className="secao-faixa-etaria">
+                              <div className="header-faixa-etaria">
+                                <Baby size={20} color="#3b82f6" />
+                                <h4>Crianças e Adolescentes (0-17 anos)</h4>
+                                <span className="contador-faixa">{faixas.criancas.length}</span>
+                              </div>
+                              <div className="lista-faixa-etaria">
+                                {faixas.criancas.map(pessoa => (
+                                  <div 
+                                    key={pessoa.id} 
+                                    className="card-pessoa-mini"
+                                    onClick={() => navegar(`/pessoas/${pessoa.id}`)}
+                                  >
+                                    <div className="avatar-mini">
+                                      {pessoa.nome.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="info-pessoa-mini">
+                                      <strong>{pessoa.nome}</strong>
+                                      <small>{pessoa.idade} anos • {pessoa.tipoBeneficio}</small>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+                          )}
+
+                          {/* Adultos */}
+                          {faixas.adultos.length > 0 && (
+                            <section className="secao-faixa-etaria">
+                              <div className="header-faixa-etaria">
+                                <User size={20} color="#10b981" />
+                                <h4>Adultos (18-59 anos)</h4>
+                                <span className="contador-faixa">{faixas.adultos.length}</span>
+                              </div>
+                              <div className="lista-faixa-etaria">
+                                {faixas.adultos.map(pessoa => (
+                                  <div 
+                                    key={pessoa.id} 
+                                    className="card-pessoa-mini"
+                                    onClick={() => navegar(`/pessoas/${pessoa.id}`)}
+                                  >
+                                    <div className="avatar-mini">
+                                      {pessoa.nome.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="info-pessoa-mini">
+                                      <strong>{pessoa.nome}</strong>
+                                      <small>{pessoa.idade} anos • {pessoa.tipoBeneficio}</small>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+                          )}
+
+                          {/* Idosos */}
+                          {faixas.idosos.length > 0 && (
+                            <section className="secao-faixa-etaria">
+                              <div className="header-faixa-etaria">
+                                <Heart size={20} color="#ef4444" />
+                                <h4>Idosos (60+ anos)</h4>
+                                <span className="contador-faixa">{faixas.idosos.length}</span>
+                              </div>
+                              <div className="lista-faixa-etaria">
+                                {faixas.idosos.map(pessoa => (
+                                  <div 
+                                    key={pessoa.id} 
+                                    className="card-pessoa-mini"
+                                    onClick={() => navegar(`/pessoas/${pessoa.id}`)}
+                                  >
+                                    <div className="avatar-mini">
+                                      {pessoa.nome.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="info-pessoa-mini">
+                                      <strong>{pessoa.nome}</strong>
+                                      <small>{pessoa.idade} anos • {pessoa.tipoBeneficio}</small>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
@@ -252,3 +238,5 @@ export const ListaComunidades = () => {
     </div>
   );
 };
+
+export default ListaComunidades;

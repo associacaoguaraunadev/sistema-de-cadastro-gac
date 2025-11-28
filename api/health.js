@@ -42,7 +42,5 @@ export default async function handler(req, res) {
       database: 'disconnected',
       erro: erro.message
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

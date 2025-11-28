@@ -36,41 +36,15 @@ export default async function handler(req, res) {
     const token = extrairToken(req);
     const usuario = verificarAutenticacao(token);
 
-    // GET - Listar todas as comunidades do usuário com contagem de pessoas
+    // GET - Listar todas as comunidades do usuário
     if (req.method === 'GET') {
       const comunidades = await prisma.comunidade.findMany({
         where: { usuarioId: usuario.id },
         orderBy: { orderIndex: 'asc' },
-        include: {
-          _count: {
-            select: { pessoas: true }
-          }
-        }
+        include: { pessoas: true }
       });
 
-      // Estruturar comunidades com contagem por faixa etária
-      const comunidadesComEstatisticas = await Promise.all(
-        comunidades.map(async (comunidade) => {
-          const pessoas = await prisma.pessoa.findMany({
-            where: { comunidadeId: comunidade.id, status: 'ativo' },
-            select: { idade: true }
-          });
-
-          const criancas = pessoas.filter(p => p.idade !== null && p.idade < 18).length;
-          const adultos = pessoas.filter(p => p.idade !== null && p.idade >= 18 && p.idade < 60).length;
-          const idosos = pessoas.filter(p => p.idade !== null && p.idade >= 60).length;
-
-          return {
-            ...comunidade,
-            totalPessoas: pessoas.length,
-            criancas,
-            adultos,
-            idosos
-          };
-        })
-      );
-
-      return res.json(comunidadesComEstatisticas);
+      return res.json(comunidades);
     }
 
     // POST - Criar nova comunidade

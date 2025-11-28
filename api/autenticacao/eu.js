@@ -64,7 +64,5 @@ export default async function handler(req, res) {
     
     const { status, erro: mensagem } = tratarErroAssincrono(erro);
     res.status(status).json({ erro: mensagem });
-  } finally {
-    await prisma.$disconnect();
   }
 }
