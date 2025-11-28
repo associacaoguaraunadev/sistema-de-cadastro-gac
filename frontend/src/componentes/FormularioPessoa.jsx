@@ -21,6 +21,7 @@ export const FormularioPessoa = () => {
     estado: '',
     cep: '',
     idade: '',
+    comunidade: '',
     tipoBeneficio: 'Cesta Básica',
     dataBeneficio: '',
     observacoes: ''
@@ -129,6 +130,7 @@ export const FormularioPessoa = () => {
         estado: formulario.estado?.trim() || null,
         cep: formulario.cep?.trim() || null,
         idade: formulario.idade ? parseInt(formulario.idade) : null,
+        comunidade: formulario.comunidade?.trim() || null,
         tipoBeneficio: formulario.tipoBeneficio.trim(),
         dataBeneficio: formulario.dataBeneficio || null,
         observacoes: formulario.observacoes?.trim() || null
@@ -359,6 +361,28 @@ export const FormularioPessoa = () => {
                   disabled={salvando}
                 />
               </div>
+            </div>
+          </section>
+
+          <section className="secao-formulario">
+            <h2>Comunidade</h2>
+            
+            <div className="campo">
+              <label htmlFor="comunidade">Comunidade</label>
+              <select
+                id="comunidade"
+                name="comunidade"
+                value={formulario.comunidade}
+                onChange={handleMudar}
+                disabled={salvando}
+              >
+                <option value="">Sem comunidade</option>
+                <option value="Vila Cheba">🏘️ Vila Cheba</option>
+                <option value="Morro da Vila">🏔️ Morro da Vila</option>
+                <option value="Barragem">💧 Barragem</option>
+                <option value="Parque Centenario">🌳 Parque Centenario</option>
+                <option value="Jardim Apura">🌼 Jardim Apura</option>
+              </select>
             </div>
           </section>
 

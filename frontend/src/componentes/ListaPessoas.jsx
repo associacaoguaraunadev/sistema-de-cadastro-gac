@@ -117,20 +117,49 @@ export const ListaPessoas = () => {
     return 'idosos';
   };
 
-  // Segmentar pessoas por faixa etária
-  const pessoasSegmentadas = {
-    criancas: pessoas.filter(p => obterFaixaEtaria(calcularIdade(p)) === 'criancas'),
-    adultos: pessoas.filter(p => obterFaixaEtaria(calcularIdade(p)) === 'adultos'),
-    idosos: pessoas.filter(p => obterFaixaEtaria(calcularIdade(p)) === 'idosos')
-  };
+  // Comunidades pré-cadastradas
+  const comunidades = [
+    { nome: 'Vila Cheba', cor: '#3b82f6', icon: '🏘️' },
+    { nome: 'Morro da Vila', cor: '#ef4444', icon: '🏔️' },
+    { nome: 'Barragem', cor: '#8b5cf6', icon: '💧' },
+    { nome: 'Parque Centenario', cor: '#10b981', icon: '🌳' },
+    { nome: 'Jardim Apura', cor: '#f59e0b', icon: '🌼' }
+  ];
 
-  // Obter tipos de benefício únicos
-  const tiposBeneficio = [...new Set(pessoas.map(p => p.tipoBeneficio))].sort();
+  // Agrupar pessoas por comunidade E por faixa etária
+  const pessoasAgrupadas = {};
+  
+  comunidades.forEach(comunidade => {
+    pessoasAgrupadas[comunidade.nome] = {
+      ...comunidade,
+      criancas: pessoas.filter(p => 
+        p.comunidade === comunidade.nome && 
+        obterFaixaEtaria(calcularIdade(p)) === 'criancas'
+      ),
+      adultos: pessoas.filter(p => 
+        p.comunidade === comunidade.nome && 
+        obterFaixaEtaria(calcularIdade(p)) === 'adultos'
+      ),
+      idosos: pessoas.filter(p => 
+        p.comunidade === comunidade.nome && 
+        obterFaixaEtaria(calcularIdade(p)) === 'idosos'
+      )
+    };
+  });
+
+  // Contar total por comunidade
+  const totalPorComunidade = Object.entries(pessoasAgrupadas).reduce((acc, [nome, grupo]) => {
+    acc[nome] = grupo.criancas.length + grupo.adultos.length + grupo.idosos.length;
+    return acc;
+  }, {});
 
   // Filtrar por tipo de benefício se selecionado
-  const pessoasFiltradas = tipoBeneficioFiltro
-    ? pessoas.filter(p => p.tipoBeneficio === tipoBeneficioFiltro)
-    : pessoas;
+  const aplicarFiltro = (pessoa) => {
+    if (tipoBeneficioFiltro && pessoa.tipoBeneficio !== tipoBeneficioFiltro) return false;
+    return true;
+  };
+
+  const pessoasFiltradas = pessoas.filter(aplicarFiltro);
 
   const paginas = Math.ceil(total / LIMITE);
 
@@ -219,71 +248,89 @@ export const ListaPessoas = () => {
 
         {!carregando && pessoasFiltradas.length > 0 && (
           <>
-            {/* SEÇÃO CRIANÇAS E ADOLESCENTES */}
-            {pessoasSegmentadas.criancas.length > 0 && (
-              <div className="secao-faixa-etaria">
-                <div className="cabecalho-secao">
-                  <Baby size={20} />
-                  <h2>Crianças e Adolescentes (0-17 anos)</h2>
-                  <span className="badge-quantidade">{pessoasSegmentadas.criancas.length}</span>
-                </div>
-                <div className="grid-pessoas">
-                  {pessoasSegmentadas.criancas.map((pessoa) => (
-                    <CartaoPessoa
-                      key={pessoa.id}
-                      pessoa={pessoa}
-                      idade={calcularIdade(pessoa)}
-                      onEditar={() => navegar(`/pessoas/${pessoa.id}`)}
-                      onDeletar={() => handleDeletar(pessoa.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* RENDERIZAR POR COMUNIDADE */}
+            {comunidades.map(comunidade => {
+              const gruposComunidade = pessoasAgrupadas[comunidade.nome];
+              const totalComunidade = totalPorComunidade[comunidade.nome] || 0;
 
-            {/* SEÇÃO ADULTOS */}
-            {pessoasSegmentadas.adultos.length > 0 && (
-              <div className="secao-faixa-etaria">
-                <div className="cabecalho-secao">
-                  <User size={20} />
-                  <h2>Adultos (18-59 anos)</h2>
-                  <span className="badge-quantidade">{pessoasSegmentadas.adultos.length}</span>
-                </div>
-                <div className="grid-pessoas">
-                  {pessoasSegmentadas.adultos.map((pessoa) => (
-                    <CartaoPessoa
-                      key={pessoa.id}
-                      pessoa={pessoa}
-                      idade={calcularIdade(pessoa)}
-                      onEditar={() => navegar(`/pessoas/${pessoa.id}`)}
-                      onDeletar={() => handleDeletar(pessoa.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+              if (totalComunidade === 0) return null; // Não mostrar comunidades vazias
 
-            {/* SEÇÃO IDOSOS */}
-            {pessoasSegmentadas.idosos.length > 0 && (
-              <div className="secao-faixa-etaria">
-                <div className="cabecalho-secao">
-                  <Heart size={20} />
-                  <h2>Idosos (60+ anos)</h2>
-                  <span className="badge-quantidade">{pessoasSegmentadas.idosos.length}</span>
+              return (
+                <div key={comunidade.nome} className="secao-comunidade" style={{ borderLeftColor: comunidade.cor }}>
+                  <div className="cabecalho-comunidade" style={{ backgroundColor: comunidade.cor }}>
+                    <span className="icon-comunidade">{comunidade.icon}</span>
+                    <h2>{comunidade.nome}</h2>
+                    <span className="badge-quantidade">{totalComunidade}</span>
+                  </div>
+
+                  {/* CRIANÇAS */}
+                  {gruposComunidade.criancas.length > 0 && (
+                    <div className="secao-faixa-etaria">
+                      <div className="cabecalho-faixa">
+                        <Baby size={18} />
+                        <h3>Crianças e Adolescentes (0-17 anos)</h3>
+                        <span className="badge-pequeno">{gruposComunidade.criancas.length}</span>
+                      </div>
+                      <div className="grid-pessoas">
+                        {gruposComunidade.criancas.map((pessoa) => (
+                          <CartaoPessoa
+                            key={pessoa.id}
+                            pessoa={pessoa}
+                            idade={calcularIdade(pessoa)}
+                            onEditar={() => navegar(`/pessoas/${pessoa.id}`)}
+                            onDeletar={() => handleDeletar(pessoa.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ADULTOS */}
+                  {gruposComunidade.adultos.length > 0 && (
+                    <div className="secao-faixa-etaria">
+                      <div className="cabecalho-faixa">
+                        <User size={18} />
+                        <h3>Adultos (18-59 anos)</h3>
+                        <span className="badge-pequeno">{gruposComunidade.adultos.length}</span>
+                      </div>
+                      <div className="grid-pessoas">
+                        {gruposComunidade.adultos.map((pessoa) => (
+                          <CartaoPessoa
+                            key={pessoa.id}
+                            pessoa={pessoa}
+                            idade={calcularIdade(pessoa)}
+                            onEditar={() => navegar(`/pessoas/${pessoa.id}`)}
+                            onDeletar={() => handleDeletar(pessoa.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* IDOSOS */}
+                  {gruposComunidade.idosos.length > 0 && (
+                    <div className="secao-faixa-etaria">
+                      <div className="cabecalho-faixa">
+                        <Heart size={18} />
+                        <h3>Idosos (60+ anos)</h3>
+                        <span className="badge-pequeno">{gruposComunidade.idosos.length}</span>
+                      </div>
+                      <div className="grid-pessoas">
+                        {gruposComunidade.idosos.map((pessoa) => (
+                          <CartaoPessoa
+                            key={pessoa.id}
+                            pessoa={pessoa}
+                            idade={calcularIdade(pessoa)}
+                            onEditar={() => navegar(`/pessoas/${pessoa.id}`)}
+                            onDeletar={() => handleDeletar(pessoa.id)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="grid-pessoas">
-                  {pessoasSegmentadas.idosos.map((pessoa) => (
-                    <CartaoPessoa
-                      key={pessoa.id}
-                      pessoa={pessoa}
-                      idade={calcularIdade(pessoa)}
-                      onEditar={() => navegar(`/pessoas/${pessoa.id}`)}
-                      onDeletar={() => handleDeletar(pessoa.id)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+              );
+            })}
 
             {paginas > 1 && (
               <div className="paginacao">

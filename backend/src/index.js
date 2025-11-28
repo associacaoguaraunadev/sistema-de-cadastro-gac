@@ -8,8 +8,6 @@ import { manipuladorErro } from './middleware/manipuladorErro.js';
 import { middlewareLogging } from './middleware/logging.js';
 import rotasAutenticacao from './rotas/autenticacao.js';
 import rotasPessoas from './rotas/pessoas.js';
-import rotasComunidades from './rotas/comunidades.js';
-import rotasComunidadesId from './rotas/comunidadesId.js';
 
 dotenv.config();
 
@@ -49,8 +47,6 @@ app.use(middlewareLogging);
 
 app.use('/api/autenticacao', rotasAutenticacao);
 app.use('/api/pessoas', rotasPessoas);
-app.use('/api/comunidades', rotasComunidades);
-app.use('/api/comunidades/:id', rotasComunidadesId);
 
 app.get('/api/saude', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });

@@ -26,16 +26,15 @@ function App() {
         path="/" 
         element={
           <RotaPrivada>
-            <ListaComunidades />
+            <ListaPessoas />
           </RotaPrivada>
         } 
       />
       <Route 
-        path="/comunidades/nova" 
+        path="/comunidades" 
         element={
           <RotaPrivada>
-            {/* Placeholder - Criar FormularioComunidade depois */}
-            <div>Nova Comunidade</div>
+            <ListaComunidades />
           </RotaPrivada>
         } 
       />

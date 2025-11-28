@@ -215,9 +215,83 @@
   display: none;
 }
 
+/* Seções de Comunidade */
+.secao-comunidade {
+  background: white;
+  border-left: 6px solid;
+  border-radius: 8px;
+  margin-bottom: 32px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.cabecalho-comunidade {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  color: white;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.icon-comunidade {
+  font-size: 24px;
+}
+
+.cabecalho-comunidade h2 {
+  margin: 0;
+  flex: 1;
+  font-size: 18px;
+}
+
+.cabecalho-comunidade .badge-quantidade {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
 /* Seções de Faixa Etária */
 .secao-faixa-etaria {
-  margin-bottom: 32px;
+  padding: 20px 24px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.cabecalho-faixa {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.cabecalho-faixa h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #424242;
+  flex: 1;
+}
+
+.cabecalho-faixa svg {
+  color: #2e7d32;
+  flex-shrink: 0;
+}
+
+.badge-pequeno {
+  background: #e8f5e9;
+  color: #1b5e20;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.secao-faixa-etaria {
+  margin-bottom: 0;
 }
 
 .cabecalho-secao {
