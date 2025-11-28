@@ -4,19 +4,17 @@ import { PrismaClient } from '@prisma/client';
 import { validarDadosUsuario } from '../middleware/validacao.js';
 import { tratarErroAssincrono } from '../middleware/manipuladorErro.js';
 
-let prisma;
+let prismaInstance;
 
-function inicializarPrisma() {
-  if (!prisma) {
-    prisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    });
+function getPrisma() {
+  if (!prismaInstance) {
+    prismaInstance = new PrismaClient();
   }
-  return prisma;
+  return prismaInstance;
 }
 
 export default async function handler(req, res) {
-  const prisma = inicializarPrisma();
+  const prisma = getPrisma();
   
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
