@@ -1,16 +1,7 @@
-import { getPrismaInstance } from './_lib/prisma-singleton.js';
-
-let prismaInstance;
-
-function getPrisma() {
-  if (!prismaInstance) {
-    prismaInstance = getPrismaInstance();
-  }
-  return prismaInstance;
-}
+import { PrismaClient } from '@prisma/client';
 
 export default async function handler(req, res) {
-  const prisma = getPrisma();
+  const prisma = new PrismaClient();
   
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');

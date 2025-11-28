@@ -1,19 +1,10 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getPrismaInstance } from '../_lib/prisma-singleton.js';
+import { PrismaClient } from '@prisma/client';
 import { tratarErroAssincrono } from '../middleware/manipuladorErro.js';
 
-let prismaInstance;
-
-function getPrisma() {
-  if (!prismaInstance) {
-    prismaInstance = getPrismaInstance();
-  }
-  return prismaInstance;
-}
-
 export default async function handler(req, res) {
-  const prisma = getPrisma();
+  const prisma = new PrismaClient();
   
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');

@@ -1,16 +1,7 @@
-import { getPrismaInstance } from '../_lib/prisma-singleton.js';
+import { PrismaClient } from '@prisma/client';
 import { validarDadosPessoa, validarCPF } from '../middleware/validacao.js';
 import { tratarErroAssincrono } from '../middleware/manipuladorErro.js';
 import jwt from 'jsonwebtoken';
-
-let prismaInstance;
-
-function getPrisma() {
-  if (!prismaInstance) {
-    prismaInstance = getPrismaInstance();
-  }
-  return prismaInstance;
-}
 
 // Função para normalizar strings (trim, espaços múltiplos)
 function normalizarTexto(texto) {
@@ -62,7 +53,7 @@ function verificarAutenticacao(token) {
 }
 
 export default async function handler(req, res) {
-  const prisma = getPrisma();
+  const prisma = new PrismaClient();
   
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
