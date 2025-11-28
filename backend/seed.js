@@ -99,7 +99,6 @@ async function seed() {
 
     // Deletar dados existentes
     await prisma.pessoa.deleteMany({});
-    await prisma.comunidade.deleteMany({});
     await prisma.usuario.deleteMany({});
     console.log('🗑️  Banco de dados limpo');
 
@@ -116,121 +115,126 @@ async function seed() {
 
     console.log('✅ Usuário criado: admin@test.com / admin123\n');
 
-    // Criar comunidades
-    const comunidades = await Promise.all(
-      comunidadesConfig.map((config, index) =>
-        prisma.comunidade.create({
-          data: {
-            nome: config.nome,
-            descricao: config.descricao,
-            cor: config.cor,
-            icon: config.icon,
-            orderIndex: index,
-            usuarioId: usuario.id
-          }
-        })
-      )
-    );
+    // Definir comunidades (agora apenas como strings)
+    const comunidades = comunidadesConfig.map((config, index) => ({
+      id: index + 1,
+      nome: config.nome,
+      descricao: config.descricao,
+      cor: config.cor,
+      icon: config.icon,
+      orderIndex: index
+    }));
 
-    console.log(`✅ ${comunidades.length} comunidades criadas:`);
+    console.log(`✅ ${comunidades.length} comunidades definidas:`);
+    comunidades.forEach(c => console.log(`   • ${c.nome}`));
+    console.log('');
     comunidades.forEach(c => console.log(`   • ${c.nome}`));
     console.log('');
 
-    // Criar 50 pessoas: 10 adultos, 35 crianças, 20 idosos
+    // Criar 100 pessoas distribuídas uniformemente:
+    // 5 comunidades × 20 pessoas = 100
+    // Para cada comunidade: ~7 crianças, ~7 adultos, ~6 idosos
     const pessoas = [];
+    let pessoaIndex = 0;
+    
+    // Distribuir 100 pessoas igualmente entre comunidades e faixas etárias
+    for (let comunidadeIdx = 0; comunidadeIdx < comunidades.length; comunidadeIdx++) {
+      const comunidade = comunidades[comunidadeIdx];
+      
+      // 7 Crianças (0-17 anos) por comunidade
+      console.log(`👶 Criando 7 crianças em ${comunidade.nome}...`);
+      for (let i = 0; i < 7; i++) {
+        const genero = Math.random() > 0.5 ? 'feminino' : 'masculino';
+        const nomeIndex = (pessoaIndex + i) % Math.max(nomesFemininos.length, nomesMasculinos.length);
+        const nomeArray = genero === 'feminino' ? nomesFemininos : nomesMasculinos;
+        const nome = normalizarNome(
+          `${nomeArray[nomeIndex % nomeArray.length]} ${sobrenomes[(pessoaIndex + i) % sobrenomes.length]}`
+        );
+        const idade = Math.floor(Math.random() * 18); // 0-17
 
-    // 10 Adultos (18-59 anos)
-    console.log('👤 Criando 10 adultos...');
-    for (let i = 0; i < 10; i++) {
-      const genero = Math.random() > 0.5 ? 'feminino' : 'masculino';
-      const nome = normalizarNome(
-        `${genero === 'feminino' ? nomesFemininos[i] : nomesMasculinos[i]} ${sobrenomes[i]}`
-      );
-      const idade = Math.floor(Math.random() * 42) + 18; // 18-59
-      const comunidade = comunidades[Math.floor(Math.random() * comunidades.length)];
+        pessoas.push({
+          nome,
+          cpf: normalizarCPF(gerarCPF()),
+          email: gerarEmail(nome),
+          telefone: gerarTelefone(),
+          endereco: normalizarNome(gerarEndereco()),
+          bairro: comunidade.nome,
+          cidade: 'Sao Paulo',
+          estado: 'SP',
+          cep: String(Math.floor(Math.random() * 90000000) + 1000000),
+          idade,
+          comunidade: comunidade.nome,
+          tipoBeneficio: beneficios[Math.floor(Math.random() * beneficios.length)],
+          dataBeneficio: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+          observacoes: `Criança/adolescente de ${comunidade.nome}`,
+          status: 'ativo',
+          usuarioId: usuario.id
+        });
+      }
 
-      pessoas.push({
-        nome,
-        cpf: normalizarCPF(gerarCPF()),
-        email: gerarEmail(nome),
-        telefone: gerarTelefone(),
-        endereco: normalizarNome(gerarEndereco()),
-        bairro: 'Centro',
-        cidade: 'Sao Paulo',
-        estado: 'SP',
-        cep: String(Math.floor(Math.random() * 90000000) + 1000000),
-        idade,
-        tipoBeneficio: beneficios[Math.floor(Math.random() * beneficios.length)],
-        dataBeneficio: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-        observacoes: 'Beneficiario adulto da comunidade',
-        status: 'ativo',
-        comunidadeId: comunidade.id,
-        usuarioId: usuario.id
-      });
-    }
+      // 7 Adultos (18-59 anos) por comunidade
+      console.log(`👤 Criando 7 adultos em ${comunidade.nome}...`);
+      for (let i = 0; i < 7; i++) {
+        const genero = Math.random() > 0.5 ? 'feminino' : 'masculino';
+        const nomeIndex = (pessoaIndex + 7 + i) % Math.max(nomesFemininos.length, nomesMasculinos.length);
+        const nomeArray = genero === 'feminino' ? nomesFemininos : nomesMasculinos;
+        const nome = normalizarNome(
+          `${nomeArray[nomeIndex % nomeArray.length]} ${sobrenomes[(pessoaIndex + 7 + i) % sobrenomes.length]}`
+        );
+        const idade = Math.floor(Math.random() * 42) + 18; // 18-59
 
-    // 35 Crianças (0-17 anos)
-    console.log('👶 Criando 35 crianças/adolescentes...');
-    for (let i = 0; i < 35; i++) {
-      const genero = Math.random() > 0.5 ? 'feminino' : 'masculino';
-      const nomeIndex = (i + 10) % Math.max(nomesFemininos.length, nomesMasculinos.length);
-      const nomeArray = genero === 'feminino' ? nomesFemininos : nomesMasculinos;
-      const nome = normalizarNome(
-        `${nomeArray[nomeIndex % nomeArray.length]} ${sobrenomes[(i + 10) % sobrenomes.length]}`
-      );
-      const idade = Math.floor(Math.random() * 18); // 0-17
-      const comunidade = comunidades[Math.floor(Math.random() * comunidades.length)];
+        pessoas.push({
+          nome,
+          cpf: normalizarCPF(gerarCPF()),
+          email: gerarEmail(nome),
+          telefone: gerarTelefone(),
+          endereco: normalizarNome(gerarEndereco()),
+          bairro: comunidade.nome,
+          cidade: 'Sao Paulo',
+          estado: 'SP',
+          cep: String(Math.floor(Math.random() * 90000000) + 1000000),
+          idade,
+          comunidade: comunidade.nome,
+          tipoBeneficio: beneficios[Math.floor(Math.random() * beneficios.length)],
+          dataBeneficio: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+          observacoes: `Adulto de ${comunidade.nome}`,
+          status: 'ativo',
+          usuarioId: usuario.id
+        });
+      }
 
-      pessoas.push({
-        nome,
-        cpf: normalizarCPF(gerarCPF()),
-        email: gerarEmail(nome),
-        telefone: gerarTelefone(),
-        endereco: normalizarNome(gerarEndereco()),
-        bairro: 'Centro',
-        cidade: 'Sao Paulo',
-        estado: 'SP',
-        cep: String(Math.floor(Math.random() * 90000000) + 1000000),
-        idade,
-        tipoBeneficio: beneficios[Math.floor(Math.random() * beneficios.length)],
-        dataBeneficio: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-        observacoes: 'Crianca/adolescente da comunidade',
-        status: 'ativo',
-        comunidadeId: comunidade.id,
-        usuarioId: usuario.id
-      });
-    }
+      // 6 Idosos (60+ anos) por comunidade
+      console.log(`❤️  Criando 6 idosos em ${comunidade.nome}...\n`);
+      for (let i = 0; i < 6; i++) {
+        const genero = Math.random() > 0.5 ? 'feminino' : 'masculino';
+        const nomeIndex = (pessoaIndex + 14 + i) % Math.max(nomesFemininos.length, nomesMasculinos.length);
+        const nomeArray = genero === 'feminino' ? nomesFemininos : nomesMasculinos;
+        const nome = normalizarNome(
+          `${nomeArray[nomeIndex % nomeArray.length]} ${sobrenomes[(pessoaIndex + 14 + i) % sobrenomes.length]}`
+        );
+        const idade = Math.floor(Math.random() * 40) + 60; // 60-99
 
-    // 20 Idosos (60+ anos)
-    console.log('❤️  Criando 20 idosos...\n');
-    for (let i = 0; i < 20; i++) {
-      const genero = Math.random() > 0.5 ? 'feminino' : 'masculino';
-      const nomeIndex = (i + 45) % Math.max(nomesFemininos.length, nomesMasculinos.length);
-      const nomeArray = genero === 'feminino' ? nomesFemininos : nomesMasculinos;
-      const nome = normalizarNome(
-        `${nomeArray[nomeIndex % nomeArray.length]} ${sobrenomes[(i + 45) % sobrenomes.length]}`
-      );
-      const idade = Math.floor(Math.random() * 40) + 60; // 60-99
-      const comunidade = comunidades[Math.floor(Math.random() * comunidades.length)];
+        pessoas.push({
+          nome,
+          cpf: normalizarCPF(gerarCPF()),
+          email: gerarEmail(nome),
+          telefone: gerarTelefone(),
+          endereco: normalizarNome(gerarEndereco()),
+          bairro: comunidade.nome,
+          cidade: 'Sao Paulo',
+          estado: 'SP',
+          cep: String(Math.floor(Math.random() * 90000000) + 1000000),
+          idade,
+          comunidade: comunidade.nome,
+          tipoBeneficio: beneficios[Math.floor(Math.random() * beneficios.length)],
+          dataBeneficio: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
+          observacoes: `Idoso de ${comunidade.nome}`,
+          status: 'ativo',
+          usuarioId: usuario.id
+        });
+      }
 
-      pessoas.push({
-        nome,
-        cpf: normalizarCPF(gerarCPF()),
-        email: gerarEmail(nome),
-        telefone: gerarTelefone(),
-        endereco: normalizarNome(gerarEndereco()),
-        bairro: 'Centro',
-        cidade: 'Sao Paulo',
-        estado: 'SP',
-        cep: String(Math.floor(Math.random() * 90000000) + 1000000),
-        idade,
-        tipoBeneficio: beneficios[Math.floor(Math.random() * beneficios.length)],
-        dataBeneficio: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-        observacoes: 'Idoso da comunidade',
-        status: 'ativo',
-        comunidadeId: comunidade.id,
-        usuarioId: usuario.id
-      });
+      pessoaIndex += 20;
     }
 
     // Inserir todas as pessoas
@@ -239,15 +243,17 @@ async function seed() {
     });
 
     console.log(`✅ ${pessoasCriadas.count} pessoas criadas:`);
-    console.log(`   👤 10 Adultos`);
-    console.log(`   👶 35 Crianças/Adolescentes`);
-    console.log(`   ❤️  20 Idosos`);
+    console.log(`   👶 35 Crianças/Adolescentes (7 por comunidade)`);
+    console.log(`   👤 35 Adultos (7 por comunidade)`);
+    console.log(`   ❤️  30 Idosos (6 por comunidade)`);
 
     console.log('\n✨ Seed concluído com sucesso!');
     console.log('\n📊 Resumo Final:');
     console.log(`   ✓ 1 Usuário admin`);
     console.log(`   ✓ ${comunidades.length} Comunidades`);
-    console.log(`   ✓ ${pessoasCriadas.count} Beneficiários`);
+    console.log(`   ✓ ${pessoasCriadas.count} Beneficiários (distribuídos uniformemente)`);
+    console.log(`   ✓ 5 comunidades × 20 pessoas = ${pessoasCriadas.count}`);
+    console.log(`   ✓ Por comunidade: 7 crianças, 7 adultos, 6 idosos`);
 
   } catch (erro) {
     console.error('❌ Erro ao executar seed:', erro);
