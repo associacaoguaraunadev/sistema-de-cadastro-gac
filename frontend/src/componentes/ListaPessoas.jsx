@@ -153,6 +153,9 @@ export const ListaPessoas = () => {
     return acc;
   }, {});
 
+  // Obter tipos de benefício únicos
+  const tiposBeneficio = [...new Set(pessoas.map(p => p.tipoBeneficio))].sort();
+
   // Filtrar por tipo de benefício se selecionado
   const aplicarFiltro = (pessoa) => {
     if (tipoBeneficioFiltro && pessoa.tipoBeneficio !== tipoBeneficioFiltro) return false;
