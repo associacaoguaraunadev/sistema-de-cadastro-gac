@@ -4,16 +4,14 @@
   "description": "Sistema de Cadastro de Beneficiários - GAC",
   "private": true,
   "scripts": {
-    "build": "npm run build:api && npm run build:frontend",
-    "build:frontend": "cd frontend && npm install --legacy-peer-deps && npm run build",
-    "build:api": "cd api && npm install",
-    "vercel-build": "echo '🔨 Simulando build do Vercel (real)...' && npm install --prefix ./frontend --legacy-peer-deps && npm install --prefix ./api && npm run build:frontend && echo '✅ Build Vercel completo!'",
+    "build": "cd frontend && npm install --legacy-peer-deps && npm run build",
     "dev": "npm run dev:frontend & npm run dev:backend",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
     "start": "cd frontend && npm start",
     "start:backend": "cd backend && npm start",
-    "seed": "cd backend && node seed.js"
+    "seed": "cd backend && node seed.js",
+    "vercel-build": "echo '🔨 Build Local Test' && npm run build"
   },
   "keywords": ["beneficiarios", "cadastro", "gac"],
   "author": "Associação Guaraúna",

@@ -1,0 +1,12 @@
+node_modules
+.git
+.env
+.env.local
+backend
+api
+*.md
+DADOS_TESTE.txt
+run-seed.sh
+test-setup.sh
+seed.js
+build.sh
