@@ -4,7 +4,7 @@
   "description": "Sistema de Cadastro de Beneficiários - GAC",
   "private": true,
   "scripts": {
-    "build": "npm run build:frontend && npm run build:api",
+    "build": "bash build.sh",
     "build:frontend": "cd frontend && npm install --legacy-peer-deps && npm run build",
     "build:api": "cd api && npm install",
     "dev": "npm run dev:frontend & npm run dev:backend",
