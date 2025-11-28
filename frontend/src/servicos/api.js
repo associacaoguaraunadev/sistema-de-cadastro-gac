@@ -12,11 +12,14 @@ export const criarClienteAPI = (token) => {
   });
 };
 
-export const obterPessoas = async (token, { pagina = 1, limite = 10, busca = '', status = 'ativo' } = {}) => {
+export const obterPessoas = async (token, { pagina = 1, limite = 10, busca = '', status = 'ativo', filtrosAvancados = null } = {}) => {
   const cliente = criarClienteAPI(token);
-  const resposta = await cliente.get('/pessoas', {
-    params: { pagina, limite, busca, status }
-  });
+  const params = { pagina, limite, status };
+  
+  if (busca) params.busca = busca;
+  if (filtrosAvancados) params.filtros = JSON.stringify(filtrosAvancados);
+  
+  const resposta = await cliente.get('/pessoas', { params });
   return resposta.data;
 };
 

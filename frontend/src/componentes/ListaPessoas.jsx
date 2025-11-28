@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { obterPessoas, deletarPessoa } from '../servicos/api';
 import { Plus, Edit2, Trash2, Search, LogOut, Users, Baby, User, Heart } from 'lucide-react';
+import { FiltroAvancado } from './FiltroAvancado';
 import './ListaPessoas.css';
 
 export const ListaPessoas = () => {
@@ -12,6 +13,7 @@ export const ListaPessoas = () => {
   const [buscaInput, setBuscaInput] = useState('');
   const [busca, setBusca] = useState('');
   const [tipoBeneficioFiltro, setTipoBeneficioFiltro] = useState('');
+  const [filtrosAvancados, setFiltrosAvancados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const timeoutRef = useRef(null);
@@ -43,7 +45,7 @@ export const ListaPessoas = () => {
 
   useEffect(() => {
     carregarPessoas();
-  }, [pagina, busca, tipoBeneficioFiltro, token]);
+  }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
   const carregarPessoas = async () => {
     if (!token) return;
@@ -56,7 +58,8 @@ export const ListaPessoas = () => {
         pagina,
         limite: LIMITE,
         busca,
-        status: 'ativo'
+        status: 'ativo',
+        filtrosAvancados
       });
       
       setPessoas(dados.pessoas);
@@ -136,10 +139,12 @@ export const ListaPessoas = () => {
       <header className="cabecalho-lista">
         <div className="titulo-cabecalho">
           <div className="marca-pequena">GAC</div>
-          <h1>Sistema de Cadastro de Beneficiários</h1>
+        </div>
+        <div className="titulo-sistema">
+          <h2><b>Sistema de Cadastro de Beneficiários</b></h2>
         </div>
         <div className="info-usuario">
-          <span>{usuario?.nome}</span>
+          <span><b>{usuario?.nome}</b></span>
           <button onClick={handleSair} className="botao-sair" title="Sair do sistema">
             <LogOut size={18} />
           </button>
@@ -177,6 +182,17 @@ export const ListaPessoas = () => {
               ))}
             </select>
           )}
+
+          <FiltroAvancado
+            onAplicar={(config) => {
+              setFiltrosAvancados(config);
+              setPagina(1);
+            }}
+            onLimpar={() => {
+              setFiltrosAvancados(null);
+              setPagina(1);
+            }}
+          />
 
           <button 
             className="botao-novo"

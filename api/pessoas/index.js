@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const usuario = verificarAutenticacao(token);
 
     if (req.method === 'GET') {
-      const { pagina = 1, limite = 10, busca = '', status = 'ativo' } = req.query;
+      const { pagina = 1, limite = 10, busca = '', status = 'ativo', filtros = null } = req.query;
       
       const pular = (parseInt(pagina) - 1) * parseInt(limite);
       
@@ -45,6 +45,79 @@ export default async function handler(req, res) {
           { cpf: { contains: busca } },
           { email: { contains: busca, mode: 'insensitive' } }
         ];
+      }
+
+      // Processar filtros avançados
+      if (filtros) {
+        try {
+          const config = JSON.parse(filtros);
+          const { filtros: campos, operador = 'E' } = config;
+          
+          if (campos && Object.keys(campos).length > 0) {
+            const condicoes = Object.entries(campos).map(([campo, config]) => {
+              const { valor, operador: op } = config;
+              if (!valor) return null;
+              
+              const mapeoCampo = {
+                'nome': 'nome',
+                'email': 'email',
+                'cpf': 'cpf',
+                'telefone': 'telefone',
+                'tipoBeneficio': 'tipoBeneficio',
+                'endereco': 'endereco',
+                'bairro': 'bairro',
+                'cidade': 'cidade',
+                'estado': 'estado',
+                'cep': 'cep',
+                'dataNascimento': 'dataNascimento',
+                'observacoes': 'observacoes'
+              };
+              
+              const campoMapeado = mapeoCampo[campo];
+              if (!campoMapeado) return null;
+              
+              const condicao = {};
+              
+              switch (op) {
+                case 'exato':
+                  condicao[campoMapeado] = { equals: valor, mode: 'insensitive' };
+                  break;
+                case 'comeca':
+                  condicao[campoMapeado] = { startsWith: valor, mode: 'insensitive' };
+                  break;
+                case 'termina':
+                  condicao[campoMapeado] = { endsWith: valor, mode: 'insensitive' };
+                  break;
+                case 'igual': // para datas
+                  condicao[campoMapeado] = new Date(valor);
+                  break;
+                case 'antes':
+                  condicao[campoMapeado] = { lt: new Date(valor) };
+                  break;
+                case 'depois':
+                  condicao[campoMapeado] = { gt: new Date(valor) };
+                  break;
+                default: // 'contem'
+                  condicao[campoMapeado] = { contains: valor, mode: 'insensitive' };
+              }
+              
+              return condicao;
+            }).filter(Boolean);
+            
+            if (condicoes.length > 0) {
+              if (operador === 'OU') {
+                onde.OR = condicoes;
+              } else {
+                // Para AND, precisamos colocar cada condição diretamente no objeto 'onde'
+                condicoes.forEach(condicao => {
+                  Object.assign(onde, condicao);
+                });
+              }
+            }
+          }
+        } catch (erro) {
+          console.error('Erro ao processar filtros avançados:', erro);
+        }
       }
 
       const [pessoas, total] = await Promise.all([
