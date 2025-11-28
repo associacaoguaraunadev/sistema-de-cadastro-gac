@@ -1,14 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 
-const globalForPrisma = global;
-const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  });
+let prisma;
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+function inicializarPrisma() {
+  if (!prisma) {
+    prisma = new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    });
+  }
+  return prisma;
+}
 
 function extrairToken(req) {
   const cabecalhoAuth = req.headers['authorization'];
@@ -21,6 +23,8 @@ function verificarAutenticacao(token) {
 }
 
 export default async function handler(req, res) {
+  const prisma = inicializarPrisma();
+  
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
