@@ -5,15 +5,13 @@ import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
 
-// Função para normalizar strings (trim, espaços múltiplos, capitalização)
+// Função para normalizar strings (trim, espaços múltiplos)
 function normalizarTexto(texto) {
   if (!texto || typeof texto !== 'string') return texto;
   
   return texto
     .trim()
-    .replace(/\s+/g, ' ') // Remove espaços múltiplos
-    .normalize('NFD') // Normaliza caracteres acentuados
-    .replace(/[\u0300-\u036f]/g, ''); // Remove diacríticos
+    .replace(/\s+/g, ' '); // Remove espaços múltiplos
 }
 
 // Função para normalizar nome (primeira letra maiúscula de cada palavra)
