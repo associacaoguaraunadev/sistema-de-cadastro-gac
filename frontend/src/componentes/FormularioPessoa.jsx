@@ -424,15 +424,15 @@ export const FormularioPessoa = () => {
                 disabled={salvando}
               >
                 <option value="">Selecione uma comunidade</option>
-                <option value="Vila Cheba">🏘️ Vila Cheba</option>
-                <option value="Morro da Vila">🏔️ Morro da Vila</option>
-                <option value="Barragem">💧 Barragem</option>
-                <option value="Parque Centenario">🌳 Parque Centenario</option>
-                <option value="Jardim Apura">🌼 Jardim Apura</option>
+                <option value="Vila Cheba">Vila Cheba</option>
+                <option value="Morro da Vila">Morro da Vila</option>
+                <option value="Barragem">Barragem</option>
+                <option value="Parque Centenario">Parque Centenario</option>
+                <option value="Jardim Apura">Jardim Apura</option>
                 {comunidadesCustomizadas.map(com => (
-                  <option key={com} value={com}>⭐ {com}</option>
+                  <option key={com} value={com}>{com}</option>
                 ))}
-                <option value="Outra">➕ Outra</option>
+                <option value="Outra">Outra</option>
               </select>
             </div>
 

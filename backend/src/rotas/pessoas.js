@@ -17,23 +17,27 @@ rota.get('/', manipuladorAssincrono(async (req, res) => {
   
   const onde = {
     usuarioId: req.usuario.id,
-    status: status || undefined
+    status: status ? status : 'ativo'
   };
 
   if (busca) {
-    onde.OR = [
-      { nome: { contains: busca, mode: 'insensitive' } },
-      { cpf: { contains: busca, mode: 'insensitive' } },
-      { email: { contains: busca, mode: 'insensitive' } },
-      { telefone: { contains: busca, mode: 'insensitive' } },
-      { endereco: { contains: busca, mode: 'insensitive' } },
-      { bairro: { contains: busca, mode: 'insensitive' } },
-      { cidade: { contains: busca, mode: 'insensitive' } },
-      { estado: { contains: busca, mode: 'insensitive' } },
-      { cep: { contains: busca, mode: 'insensitive' } },
-      { comunidade: { contains: busca, mode: 'insensitive' } },
-      { tipoBeneficio: { contains: busca, mode: 'insensitive' } },
-      { observacoes: { contains: busca, mode: 'insensitive' } }
+    onde.AND = [
+      {
+        OR: [
+          { nome: { contains: busca, mode: 'insensitive' } },
+          { cpf: { contains: busca, mode: 'insensitive' } },
+          { email: { contains: busca, mode: 'insensitive' } },
+          { telefone: { contains: busca, mode: 'insensitive' } },
+          { endereco: { contains: busca, mode: 'insensitive' } },
+          { bairro: { contains: busca, mode: 'insensitive' } },
+          { cidade: { contains: busca, mode: 'insensitive' } },
+          { estado: { contains: busca, mode: 'insensitive' } },
+          { cep: { contains: busca, mode: 'insensitive' } },
+          { comunidade: { contains: busca, mode: 'insensitive' } },
+          { tipoBeneficio: { contains: busca, mode: 'insensitive' } },
+          { observacoes: { contains: busca, mode: 'insensitive' } }
+        ]
+      }
     ];
   }
 

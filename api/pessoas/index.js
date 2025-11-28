@@ -75,24 +75,28 @@ export default async function handler(req, res) {
       
       const onde = {
         usuarioId: usuario.id,
-        status: status || undefined
+        status: status ? status : 'ativo'
       };
 
       if (busca) {
         const buscaNormalizada = normalizarTexto(busca);
-        onde.OR = [
-          { nome: { contains: buscaNormalizada, mode: 'insensitive' } },
-          { cpf: { contains: normalizarCPF(busca) } },
-          { email: { contains: buscaNormalizada, mode: 'insensitive' } },
-          { telefone: { contains: buscaNormalizada, mode: 'insensitive' } },
-          { endereco: { contains: buscaNormalizada, mode: 'insensitive' } },
-          { bairro: { contains: buscaNormalizada, mode: 'insensitive' } },
-          { cidade: { contains: buscaNormalizada, mode: 'insensitive' } },
-          { estado: { contains: buscaNormalizada, mode: 'insensitive' } },
-          { cep: { contains: normalizarCEP(busca) } },
-          { comunidade: { contains: buscaNormalizada, mode: 'insensitive' } },
-          { tipoBeneficio: { contains: buscaNormalizada, mode: 'insensitive' } },
-          { observacoes: { contains: buscaNormalizada, mode: 'insensitive' } }
+        onde.AND = [
+          {
+            OR: [
+              { nome: { contains: buscaNormalizada, mode: 'insensitive' } },
+              { cpf: { contains: normalizarCPF(busca) } },
+              { email: { contains: buscaNormalizada, mode: 'insensitive' } },
+              { telefone: { contains: buscaNormalizada, mode: 'insensitive' } },
+              { endereco: { contains: buscaNormalizada, mode: 'insensitive' } },
+              { bairro: { contains: buscaNormalizada, mode: 'insensitive' } },
+              { cidade: { contains: buscaNormalizada, mode: 'insensitive' } },
+              { estado: { contains: buscaNormalizada, mode: 'insensitive' } },
+              { cep: { contains: normalizarCEP(busca) } },
+              { comunidade: { contains: buscaNormalizada, mode: 'insensitive' } },
+              { tipoBeneficio: { contains: buscaNormalizada, mode: 'insensitive' } },
+              { observacoes: { contains: buscaNormalizada, mode: 'insensitive' } }
+            ]
+          }
         ];
       }
 

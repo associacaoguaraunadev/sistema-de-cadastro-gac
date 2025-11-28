@@ -119,11 +119,11 @@ export const ListaPessoas = () => {
 
   // Comunidades pré-cadastradas
   const comunidadesFixas = [
-    { nome: 'Vila Cheba', cor: '#3b82f6', icon: '🏘️' },
-    { nome: 'Morro da Vila', cor: '#ef4444', icon: '🏔️' },
-    { nome: 'Barragem', cor: '#8b5cf6', icon: '💧' },
-    { nome: 'Parque Centenario', cor: '#10b981', icon: '🌳' },
-    { nome: 'Jardim Apura', cor: '#f59e0b', icon: '🌼' }
+    { nome: 'Vila Cheba', cor: '#3b82f6' },
+    { nome: 'Morro da Vila', cor: '#ef4444' },
+    { nome: 'Barragem', cor: '#8b5cf6' },
+    { nome: 'Parque Centenario', cor: '#10b981' },
+    { nome: 'Jardim Apura', cor: '#f59e0b' }
   ];
 
   // Carregar comunidades customizadas do localStorage
@@ -148,8 +148,7 @@ export const ListaPessoas = () => {
     ...comunidadesFixas,
     ...comunidadesCustomizadas.map(nome => ({
       nome,
-      cor: gerarCorDeComunidade(nome),
-      icon: '⭐'
+      cor: gerarCorDeComunidade(nome)
     }))
   ];
 
@@ -288,7 +287,6 @@ export const ListaPessoas = () => {
               return (
                 <div key={comunidade.nome} className="secao-comunidade" style={{ borderLeftColor: comunidade.cor }}>
                   <div className="cabecalho-comunidade" style={{ backgroundColor: comunidade.cor }}>
-                    <span className="icon-comunidade">{comunidade.icon}</span>
                     <h2>{comunidade.nome}</h2>
                     <span className="badge-quantidade">{totalComunidade}</span>
                   </div>
