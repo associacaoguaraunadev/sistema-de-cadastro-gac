@@ -170,6 +170,7 @@
   border-color: #1b5e20;
   box-shadow: 0 0 0 4px rgba(27, 94, 32, 0.15);
   background-color: #f1f8f6;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231b5e20' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='18 15 12 9 6 15'%3e%3c/polyline%3e%3c/svg%3e");
 }
 
 .filtro-beneficio option {
