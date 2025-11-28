@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 import { validarDadosPessoa, validarCPF } from '../middleware/validacao.js';
 import { tratarErroAssincrono } from '../middleware/manipuladorErro.js';
 import jwt from 'jsonwebtoken';
