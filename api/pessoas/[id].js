@@ -130,6 +130,7 @@ export default async function handler(req, res) {
           tipoBeneficio: req.body.tipoBeneficio ? normalizarNome(req.body.tipoBeneficio) : pessoa.tipoBeneficio,
           dataBeneficio: req.body.dataBeneficio ? new Date(req.body.dataBeneficio) : pessoa.dataBeneficio,
           observacoes: req.body.observacoes !== undefined ? (req.body.observacoes ? normalizarTexto(req.body.observacoes) : null) : pessoa.observacoes,
+          comunidadeId: req.body.comunidadeId !== undefined ? req.body.comunidadeId : pessoa.comunidadeId,
           status: req.body.status || pessoa.status
         }
       });

@@ -45,3 +45,28 @@ export const deletarPessoa = async (token, id) => {
   const cliente = criarClienteAPI(token);
   await cliente.delete(`/pessoas/${id}`);
 };
+
+// ========== COMUNIDADES ==========
+
+export const obterComunidades = async (token) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.get('/comunidades');
+  return resposta.data;
+};
+
+export const criarComunidade = async (token, dados) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.post('/comunidades', dados);
+  return resposta.data;
+};
+
+export const atualizarComunidade = async (token, id, dados) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.patch(`/comunidades/${id}`, dados);
+  return resposta.data;
+};
+
+export const deletarComunidade = async (token, id) => {
+  const cliente = criarClienteAPI(token);
+  await cliente.delete(`/comunidades/${id}`);
+};

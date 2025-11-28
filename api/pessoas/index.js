@@ -225,6 +225,7 @@ export default async function handler(req, res) {
           tipoBeneficio: normalizarNome(req.body.tipoBeneficio),
           dataBeneficio: req.body.dataBeneficio ? new Date(req.body.dataBeneficio) : null,
           observacoes: req.body.observacoes ? normalizarTexto(req.body.observacoes) : null,
+          comunidadeId: req.body.comunidadeId || null,
           usuarioId: usuario.id
         }
       });

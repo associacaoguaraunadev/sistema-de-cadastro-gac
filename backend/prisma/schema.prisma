@@ -21,6 +21,25 @@ model Usuario {
   dataAtualizacao DateTime @updatedAt
   
   pessoas      Pessoa[]
+  comunidades  Comunidade[]
+}
+
+model Comunidade {
+  id              Int      @id @default(autoincrement())
+  nome            String
+  descricao       String?
+  icon            String   @default("Building2") // Ícone Lucide
+  cor             String   @default("#16a34a") // Cor em hex
+  orderIndex      Int      @default(0)
+  usuarioId       Int
+  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  dataCriacao     DateTime @default(now())
+  dataAtualizacao DateTime @updatedAt
+  
+  pessoas         Pessoa[]
+  
+  @@unique([nome, usuarioId])
+  @@index([usuarioId])
 }
 
 model Pessoa {
@@ -39,11 +58,16 @@ model Pessoa {
   dataBeneficio   DateTime?
   observacoes     String?
   status          String   @default("ativo")
+  comunidadeId    Int?
   usuarioId       Int
+  
   usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  comunidade      Comunidade? @relation(fields: [comunidadeId], references: [id], onDelete: SetNull)
+  
   dataCriacao     DateTime @default(now())
   dataAtualizacao DateTime @updatedAt
   
   @@index([usuarioId])
+  @@index([comunidadeId])
   @@index([cpf])
 }

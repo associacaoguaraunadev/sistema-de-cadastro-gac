@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexto/AuthContext';
 import { RotaPrivada } from './componentes/RotaPrivada';
 import { FormularioLogin, FormularioRegistro } from './componentes/FormularioAutenticacao';
 import { ListaPessoas } from './componentes/ListaPessoas';
+import { ListaComunidades } from './componentes/ListaComunidades';
 import { FormularioPessoa } from './componentes/FormularioPessoa';
 import './index.css';
 
@@ -23,6 +24,23 @@ function App() {
       />
       <Route 
         path="/" 
+        element={
+          <RotaPrivada>
+            <ListaComunidades />
+          </RotaPrivada>
+        } 
+      />
+      <Route 
+        path="/comunidades/nova" 
+        element={
+          <RotaPrivada>
+            {/* Placeholder - Criar FormularioComunidade depois */}
+            <div>Nova Comunidade</div>
+          </RotaPrivada>
+        } 
+      />
+      <Route 
+        path="/pessoas" 
         element={
           <RotaPrivada>
             <ListaPessoas />
