@@ -187,9 +187,14 @@ export const ListaPessoas = () => {
             onAplicar={(config) => {
               setFiltrosAvancados(config);
               setPagina(1);
+              setBusca('');
+              setBuscaInput('');
             }}
             onLimpar={() => {
               setFiltrosAvancados(null);
+              setBusca('');
+              setBuscaInput('');
+              setTipoBeneficioFiltro('');
               setPagina(1);
             }}
           />

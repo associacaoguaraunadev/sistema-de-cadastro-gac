@@ -43,10 +43,28 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
     const novosFiltros = { ...filtros };
     delete novosFiltros[campoId];
     setFiltros(novosFiltros);
+    
+    // Aplicar filtro imediatamente com os filtros atualizados
+    const temValores = Object.values(novosFiltros).some(v => v && v.trim());
+    
+    if (temValores) {
+      // Se ainda há valores preenchidos, aplicar o filtro atualizado
+      const filtrosFormatados = {};
+      Object.entries(novosFiltros).forEach(([id, valor]) => {
+        if (valor && valor.trim()) {
+          filtrosFormatados[id] = { valor, operador: 'contem' };
+        }
+      });
+      onAplicar({ filtros: filtrosFormatados, operador: 'E' });
+    } else {
+      // Se não há mais valores, limpar tudo
+      onLimpar();
+    }
   };
 
   const limparTodos = () => {
     setFiltros({});
+    setAberto(false);
     onLimpar();
   };
 

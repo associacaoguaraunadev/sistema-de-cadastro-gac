@@ -108,10 +108,8 @@ export default async function handler(req, res) {
               if (operador === 'OU') {
                 onde.OR = condicoes;
               } else {
-                // Para AND, precisamos colocar cada condição diretamente no objeto 'onde'
-                condicoes.forEach(condicao => {
-                  Object.assign(onde, condicao);
-                });
+                // Para AND, usar a sintaxe correta do Prisma
+                onde.AND = condicoes;
               }
             }
           }
