@@ -1,0 +1,183 @@
+// Dados de exemplo para testar a aplicação
+// Copie e cole estes valores nos formulários
+
+// ============================================
+// DADOS DE USUÁRIO (PARA REGISTRAR)
+// ============================================
+
+// Conta 1 - Funcionário
+Nome: José da Silva
+Email: jose@gac.com.br
+Senha: GACsegura2025!
+
+// Conta 2 - Funcionário
+Nome: Maria Santos
+Email: maria@gac.com.br
+Senha: GACsegura2025!
+
+// ============================================
+// DADOS DE PESSOAS (PARA CADASTRAR)
+// ============================================
+
+// Pessoa 1 - Cesta Básica
+Nome: João Pedro da Silva
+CPF: 12345678901
+Email: joao@email.com
+Telefone: (11) 98765-4321
+Endereço: Rua Principal, 123
+Bairro: Centro
+Cidade: São Paulo
+Estado: SP
+CEP: 01310-100
+Tipo de Benefício: Cesta Básica
+Data do Benefício: 2025-11-27
+Observações: Beneficiário desde 2024
+
+// Pessoa 2 - Auxílio Alimentação
+Nome: Ana Maria dos Santos
+CPF: 98765432101
+Email: ana@email.com
+Telefone: (11) 91234-5678
+Endereço: Avenida Paulista, 456
+Bairro: Bela Vista
+Cidade: São Paulo
+Estado: SP
+CEP: 01310-200
+Tipo de Benefício: Auxílio Alimentação
+Data do Benefício: 2025-10-15
+Observações: Aprovada em reunião de setembro
+
+// Pessoa 3 - Bolsa Cultura
+Nome: Carlos Alberto Oliveira
+CPF: 55566677788
+Email: carlos@email.com
+Telefone: (21) 98888-7777
+Endereço: Rua das Flores, 789
+Bairro: Copacabana
+Cidade: Rio de Janeiro
+Estado: RJ
+CEP: 20060-010
+Tipo de Benefício: Bolsa Cultura
+Data do Benefício: 2025-11-01
+Observações: Artista plástico associado
+
+// Pessoa 4 - Auxílio Financeiro
+Nome: Roberto Fernandes Costa
+CPF: 44433322211
+Email: roberto@email.com
+Telefone: (31) 99999-1111
+Endereço: Rua Getúlio Vargas, 321
+Bairro: Funcionários
+Cidade: Belo Horizonte
+Estado: MG
+CEP: 30150-250
+Tipo de Benefício: Auxílio Financeiro
+Data do Benefício: 2025-09-20
+Observações: Necessidade justificada
+
+// Pessoa 5 - Cesta Básica
+Nome: Francisca Pereira Silva
+CPF: 77788899900
+Email: francisca@email.com
+Telefone: (85) 98777-6666
+Endereço: Av. José Bastos, 654
+Bairro: Aldeota
+Cidade: Fortaleza
+Estado: CE
+CEP: 60110-160
+Tipo de Benefício: Cesta Básica
+Data do Benefício: 2025-11-15
+Observações: Renovação mensal
+
+// ============================================
+// CPFS VÁLIDOS PARA TESTE (já passam em validação)
+// ============================================
+
+Estes CPFs são válidos para testes:
+- 123.456.789-09 (algoritmo válido)
+- 111.444.777-35
+- 362.274.644-51
+- 716.213.754-98
+- 892.137.462-74
+
+⚠️ EVITE usar todos iguais (111.111.111-11, 000.000.000-00)
+Estes serão rejeitados como inválidos.
+
+// ============================================
+// FLUXO DE TESTE RECOMENDADO
+// ============================================
+
+1. REGISTRE-SE
+   - Use email fictício (tipo: teste@gac.com)
+   - Senha: MinSenha2025! (mín 8 caracteres)
+
+2. CRIE PRIMEIRO CADASTRO
+   - Copie dados de "Pessoa 1"
+   - Clique "Novo Cadastro"
+   - Preencha todos os campos
+   - Clique "Salvar"
+
+3. LISTE PESSOAS
+   - Você verá a pessoa cadastrada
+   - Teste busca por nome/CPF
+
+4. EDITE PESSOA
+   - Clique ícone de lápis
+   - Mude observações
+   - Salve alteração
+
+5. CRIE MAIS PESSOAS
+   - Use dados de Pessoa 2, 3, 4, 5
+
+6. TESTE PAGINAÇÃO
+   - Com 5+ pessoas, veja botões de página
+
+7. DELETE PESSOA
+   - Clique ícone de lixeira
+   - Confirme deleção
+
+8. SAIA DO SISTEMA
+   - Clique seu nome → sair
+   - Faça login novamente
+
+// ============================================
+// TIPOS DE BENEFÍCIO DISPONÍVEIS
+// ============================================
+
+✅ Cesta Básica (padrão)
+✅ Auxílio Alimentação
+✅ Auxílio Financeiro
+✅ Bolsa Cultura
+✅ Outro
+
+// ============================================
+// ESTADOS BRASILEIROS (27 opções)
+// ============================================
+
+AC - Acre
+AL - Alagoas
+AP - Amapá
+AM - Amazonas
+BA - Bahia
+CE - Ceará
+DF - Distrito Federal
+ES - Espírito Santo
+GO - Goiás
+MA - Maranhão
+MT - Mato Grosso
+MS - Mato Grosso do Sul
+MG - Minas Gerais
+PA - Pará
+PB - Paraíba
+PR - Paraná
+PE - Pernambuco
+PI - Piauí
+RJ - Rio de Janeiro
+RN - Rio Grande do Norte
+RS - Rio Grande do Sul
+RO - Rondônia
+RR - Roraima
+SC - Santa Catarina
+SP - São Paulo
+SE - Sergipe
+TO - Tocantins

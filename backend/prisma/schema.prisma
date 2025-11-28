@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Usuario {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  senha        String
+  nome         String
+  funcao       String   @default("funcionario")
+  ativo        Boolean  @default(true)
+  dataCriacao  DateTime @default(now())
+  dataAtualizacao DateTime @updatedAt
+  
+  pessoas      Pessoa[]
+}
+
+model Pessoa {
+  id              Int      @id @default(autoincrement())
+  nome            String
+  cpf             String   @unique
+  email           String?
+  telefone        String?
+  endereco        String
+  bairro          String?
+  cidade          String?
+  estado          String?
+  cep             String?
+  idade           Int?
+  tipoBeneficio   String
+  dataBeneficio   DateTime?
+  observacoes     String?
+  status          String   @default("ativo")
+  usuarioId       Int
+  usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  dataCriacao     DateTime @default(now())
+  dataAtualizacao DateTime @updatedAt
+  
+  @@index([usuarioId])
+  @@index([cpf])
+}
