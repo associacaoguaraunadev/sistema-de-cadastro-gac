@@ -11,6 +11,7 @@ rota.use(autenticarToken);
 
 rota.get('/', manipuladorAssincrono(async (req, res) => {
   const { status = 'ativo', pagina = 1, limite = 10, busca } = req.query;
+  console.log(`   👥 Listando pessoas | Status: ${status} | Busca: ${busca || 'nenhuma'}`);
   
   const pular = (parseInt(pagina) - 1) * parseInt(limite);
   
@@ -37,6 +38,7 @@ rota.get('/', manipuladorAssincrono(async (req, res) => {
     prisma.pessoa.count({ where: onde })
   ]);
 
+  console.log(`   ✅ Retornando ${pessoas.length} de ${total} pessoas`);
   res.json({
     pessoas,
     total,
@@ -61,8 +63,10 @@ rota.get('/:id', manipuladorAssincrono(async (req, res) => {
 }));
 
 rota.post('/', manipuladorAssincrono(async (req, res) => {
+  console.log(`   ➕ Criando nova pessoa: ${req.body.nome}`);
   const errosValidacao = validarDadosPessoa(req.body);
   if (errosValidacao.length > 0) {
+    console.log(`   ⚠️ Validação falhou: ${errosValidacao.join(', ')}`);
     return res.status(400).json({ erros: errosValidacao });
   }
 
@@ -71,6 +75,7 @@ rota.post('/', manipuladorAssincrono(async (req, res) => {
   });
 
   if (cpfExistente) {
+    console.log(`   ⚠️ CPF já cadastrado: ${req.body.cpf}`);
     return res.status(409).json({ erro: 'Pessoa com este CPF já cadastrada' });
   }
 
@@ -93,6 +98,7 @@ rota.post('/', manipuladorAssincrono(async (req, res) => {
     }
   });
 
+  console.log(`   ✅ Pessoa criada com ID: ${pessoa.id}`);
   res.status(201).json(pessoa);
 }));
 

@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { manipuladorErro } from './middleware/manipuladorErro.js';
+import { middlewareLogging } from './middleware/logging.js';
 import rotasAutenticacao from './rotas/autenticacao.js';
 import rotasPessoas from './rotas/pessoas.js';
 
@@ -30,6 +31,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(middlewareLogging);
 
 app.use('/api/autenticacao', rotasAutenticacao);
 app.use('/api/pessoas', rotasPessoas);

@@ -11,14 +11,17 @@ const prisma = new PrismaClient();
 
 rota.post('/registrar', manipuladorAssincrono(async (req, res) => {
   const { email, senha, nome } = req.body;
+  console.log(`   📝 Tentando registrar novo usuário: ${email}`);
 
   const errosValidacao = validarDadosUsuario(req.body);
   if (errosValidacao.length > 0) {
+    console.log(`   ⚠️ Validação falhou: ${errosValidacao.join(', ')}`);
     return res.status(400).json({ erros: errosValidacao });
   }
 
   const usuarioExistente = await prisma.usuario.findUnique({ where: { email } });
   if (usuarioExistente) {
+    console.log(`   ⚠️ Email já registrado: ${email}`);
     return res.status(409).json({ erro: 'Email já está registrado' });
   }
 
@@ -52,18 +55,22 @@ rota.post('/registrar', manipuladorAssincrono(async (req, res) => {
 
 rota.post('/entrar', manipuladorAssincrono(async (req, res) => {
   const { email, senha } = req.body;
+  console.log(`   🔐 Tentando login: ${email}`);
 
   if (!email || !senha) {
+    console.log(`   ⚠️ Credenciais incompletas`);
     return res.status(400).json({ erro: 'Email e senha são obrigatórios' });
   }
 
   const usuario = await prisma.usuario.findUnique({ where: { email } });
   if (!usuario || !usuario.ativo) {
+    console.log(`   ❌ Usuário não encontrado ou inativo: ${email}`);
     return res.status(401).json({ erro: 'Email ou senha inválidos' });
   }
 
   const senhaCorresponde = await bcrypt.compare(senha, usuario.senha);
   if (!senhaCorresponde) {
+    console.log(`   ❌ Senha incorreta para: ${email}`);
     return res.status(401).json({ erro: 'Email ou senha inválidos' });
   }
 
@@ -73,6 +80,7 @@ rota.post('/entrar', manipuladorAssincrono(async (req, res) => {
     { expiresIn: '24h' }
   );
 
+  console.log(`   ✅ Login bem-sucedido para: ${email}`);
   res.json({
     usuario: {
       id: usuario.id,
@@ -85,6 +93,7 @@ rota.post('/entrar', manipuladorAssincrono(async (req, res) => {
 }));
 
 rota.get('/eu', autenticarToken, manipuladorAssincrono(async (req, res) => {
+  console.log(`   👤 Buscando dados do usuário: ${req.usuario.email}`);
   const usuario = await prisma.usuario.findUnique({
     where: { id: req.usuario.id },
     select: {
