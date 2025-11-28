@@ -1,5 +1,12 @@
 {
   "buildCommand": "npm run prisma:generate && cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "env": ["DATABASE_URL", "DIRECT_URL", "JWT_SECRET", "CORS_ORIGIN", "NODE_ENV", "VITE_API_URL"]
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "DIRECT_URL": "@direct_url",
+    "JWT_SECRET": "@jwt_secret",
+    "CORS_ORIGIN": "@cors_origin",
+    "NODE_ENV": "production",
+    "VITE_API_URL": "@vite_api_url"
+  }
 }
