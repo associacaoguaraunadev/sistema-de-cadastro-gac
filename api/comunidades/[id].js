@@ -1,5 +1,14 @@
-import prisma from '../lib/prisma.js';
+import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+
+const globalForPrisma = global;
+const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 function extrairToken(req) {
   const cabecalhoAuth = req.headers['authorization'];

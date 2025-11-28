@@ -1,9 +1,16 @@
-import prisma from '../lib/prisma.js';
+import { PrismaClient } from '@prisma/client';
 import { validarDadosPessoa, validarCPF } from '../middleware/validacao.js';
 import { tratarErroAssincrono } from '../middleware/manipuladorErro.js';
 import jwt from 'jsonwebtoken';
 
-const prisma = new PrismaClient();
+const globalForPrisma = global;
+const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // Função para normalizar strings (trim, espaços múltiplos)
 function normalizarTexto(texto) {

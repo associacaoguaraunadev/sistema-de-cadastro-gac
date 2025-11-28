@@ -2,7 +2,14 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { tratarErroAssincrono } from '../middleware/manipuladorErro.js';
 
-const prisma = new PrismaClient();
+const globalForPrisma = global;
+const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 function extrairToken(req) {
   const cabecalhoAuth = req.headers['authorization'];
