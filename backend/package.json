@@ -8,25 +8,26 @@
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
     "seed": "node seed.js",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:reset": "prisma migrate reset --force",
     "build": "prisma generate"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "@prisma/client": "^5.0.0",
+    "@prisma/client": "^5.22.0",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.0",
-    "validator": "^13.11.0",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.0.0",
     "helmet": "^7.0.0",
-    "express-rate-limit": "^7.0.0"
+    "jsonwebtoken": "^9.0.0",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",
-    "prisma": "^5.0.0"
+    "prisma": "^5.22.0"
   },
   "prisma": {
     "schema": "./prisma/schema.prisma"
