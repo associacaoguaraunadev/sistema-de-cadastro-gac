@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "prisma:generate": "cd api && npm install && npx prisma generate",
+    "build:all": "cd backend && npm install && npx prisma generate && cd ../frontend && npm install && npm run build",
+    "prisma:generate": "cd backend && npm install && npx prisma generate",
     "dev": "npm run dev:frontend & npm run dev:backend",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
