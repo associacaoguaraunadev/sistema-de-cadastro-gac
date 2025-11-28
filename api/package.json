@@ -10,7 +10,6 @@
     "@prisma/client": "^5.0.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.0",
-    "sistema-cadastro-gac": "file:..",
     "validator": "^13.11.0"
   },
   "devDependencies": {
