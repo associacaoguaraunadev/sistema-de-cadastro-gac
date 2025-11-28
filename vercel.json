@@ -1,0 +1,28 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "npm install --legacy-peer-deps",
+  "env": {
+    "DATABASE_URL": "@database_url",
+    "DIRECT_URL": "@direct_url",
+    "JWT_SECRET": "@jwt_secret",
+    "CORS_ORIGIN": "@cors_origin",
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "api/**/*.js": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

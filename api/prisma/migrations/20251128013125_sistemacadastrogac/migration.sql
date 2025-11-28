@@ -1,18 +1,20 @@
 -- CreateTable
 CREATE TABLE "Usuario" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
     "senha" TEXT NOT NULL,
     "nome" TEXT NOT NULL,
     "funcao" TEXT NOT NULL DEFAULT 'funcionario',
     "ativo" BOOLEAN NOT NULL DEFAULT true,
-    "dataCriacao" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "dataAtualizacao" DATETIME NOT NULL
+    "dataCriacao" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "dataAtualizacao" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Usuario_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Pessoa" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "nome" TEXT NOT NULL,
     "cpf" TEXT NOT NULL,
     "email" TEXT,
@@ -22,14 +24,16 @@ CREATE TABLE "Pessoa" (
     "cidade" TEXT,
     "estado" TEXT,
     "cep" TEXT,
+    "idade" INTEGER,
     "tipoBeneficio" TEXT NOT NULL,
-    "dataBeneficio" DATETIME,
+    "dataBeneficio" TIMESTAMP(3),
     "observacoes" TEXT,
     "status" TEXT NOT NULL DEFAULT 'ativo',
     "usuarioId" INTEGER NOT NULL,
-    "dataCriacao" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "dataAtualizacao" DATETIME NOT NULL,
-    CONSTRAINT "Pessoa_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "Usuario" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "dataCriacao" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "dataAtualizacao" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Pessoa_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateIndex
@@ -43,3 +47,6 @@ CREATE INDEX "Pessoa_usuarioId_idx" ON "Pessoa"("usuarioId");
 
 -- CreateIndex
 CREATE INDEX "Pessoa_cpf_idx" ON "Pessoa"("cpf");
+
+-- AddForeignKey
+ALTER TABLE "Pessoa" ADD CONSTRAINT "Pessoa_usuarioId_fkey" FOREIGN KEY ("usuarioId") REFERENCES "Usuario"("id") ON DELETE CASCADE ON UPDATE CASCADE;
