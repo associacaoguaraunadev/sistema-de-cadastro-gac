@@ -56,6 +56,12 @@
   font-size: 14px;
 }
 
+.container-senha {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
 .grupo-entrada input {
   width: 100%;
   padding: 12px;
@@ -64,6 +70,35 @@
   font-size: 14px;
   transition: all 0.3s ease;
   box-sizing: border-box;
+}
+
+.container-senha input {
+  padding-right: 45px;
+}
+
+.botao-toggle-senha {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #666;
+}
+
+.botao-toggle-senha:hover:not(:disabled) {
+  color: #2e7d32;
+  transform: scale(1.1);
+}
+
+.botao-toggle-senha:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .grupo-entrada input:focus {

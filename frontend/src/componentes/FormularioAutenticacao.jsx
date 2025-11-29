@@ -8,6 +8,7 @@ export const FormularioLogin = () => {
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   
   const { entrar } = useAuth();
   const navegar = useNavigate();
@@ -55,15 +56,26 @@ export const FormularioLogin = () => {
 
           <div className="grupo-entrada">
             <label htmlFor="senha">Senha</label>
-            <input
-              id="senha"
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              placeholder="Sua senha"
-              required
-              disabled={carregando}
-            />
+            <div className="container-senha">
+              <input
+                id="senha"
+                type={mostrarSenha ? 'text' : 'password'}
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="Sua senha"
+                required
+                disabled={carregando}
+              />
+              <button
+                type="button"
+                className="botao-toggle-senha"
+                onClick={() => setMostrarSenha(!mostrarSenha)}
+                disabled={carregando}
+                title={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {mostrarSenha ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
 
           <button 
@@ -89,6 +101,7 @@ export const FormularioRegistro = () => {
   const [nome, setNome] = useState('');
   const [erro, setErro] = useState('');
   const [carregando, setCarregando] = useState(false);
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   
   const { registrar } = useAuth();
   const navegar = useNavigate();
@@ -149,15 +162,26 @@ export const FormularioRegistro = () => {
 
           <div className="grupo-entrada">
             <label htmlFor="senha">Senha</label>
-            <input
-              id="senha"
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              placeholder="Mínimo 8 caracteres"
-              required
-              disabled={carregando}
-            />
+            <div className="container-senha">
+              <input
+                id="senha"
+                type={mostrarSenha ? 'text' : 'password'}
+                value={senha}
+                onChange={(e) => setSenha(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                required
+                disabled={carregando}
+              />
+              <button
+                type="button"
+                className="botao-toggle-senha"
+                onClick={() => setMostrarSenha(!mostrarSenha)}
+                disabled={carregando}
+                title={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {mostrarSenha ? '🙈' : '👁️'}
+              </button>
+            </div>
           </div>
 
           <button 
