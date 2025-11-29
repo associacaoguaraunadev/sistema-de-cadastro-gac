@@ -18,6 +18,10 @@ model Usuario {
   dataCriacao  DateTime @default(now())
   dataAtualizacao DateTime @updatedAt
   
+  // Campos para recuperação de senha
+  tokenRecuperacao String?   // Hash do token de recuperação
+  expiracaoToken   DateTime? // Quando o token expira
+  
   pessoas      Pessoa[]
 }
 

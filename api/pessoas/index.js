@@ -48,8 +48,17 @@ function extrairToken(req) {
 }
 
 function verificarAutenticacao(token) {
-  if (!token) throw new Error('Token necessário');
-  return jwt.verify(token, process.env.JWT_SECRET);
+  if (!token) {
+    throw new Error('Token necessário');
+  }
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET);
+  } catch (erro) {
+    if (erro.name === 'TokenExpiredError') {
+      throw new Error('Token expirado');
+    }
+    throw new Error(`Token inválido: ${erro.message}`);
+  }
 }
 
 export default async function handler(req, res) {
@@ -66,7 +75,14 @@ export default async function handler(req, res) {
 
   try {
     const token = extrairToken(req);
+    
+    if (!token) {
+      console.error('❌ Token não fornecido em /api/pessoas');
+      return res.status(401).json({ erro: 'Token necessário' });
+    }
+    
     const usuario = verificarAutenticacao(token);
+    console.log(`✅ Autenticação OK | Usuário: ${usuario.id}`);
 
     if (req.method === 'GET') {
       const { pagina = 1, limite = 10, busca = '', status = 'ativo', filtros = null } = req.query;
@@ -245,12 +261,17 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ erro: 'Método não permitido' });
   } catch (erro) {
+    console.error('❌ Erro em /api/pessoas:', erro.message);
+    
     if (erro.message.includes('Token')) {
-      return res.status(401).json({ erro: 'Token de acesso necessário' });
+      if (erro.message.includes('expirado')) {
+        return res.status(401).json({ erro: 'Token expirado. Faça login novamente.' });
+      }
+      return res.status(401).json({ erro: 'Token necessário' });
     }
     
     if (erro.name === 'JsonWebTokenError' || erro.name === 'TokenExpiredError') {
-      return res.status(403).json({ erro: 'Token inválido ou expirado' });
+      return res.status(401).json({ erro: 'Token inválido ou expirado' });
     }
     
     const { status, erro: mensagem } = tratarErroAssincrono(erro);
