@@ -1,5 +1,32 @@
 import validador from 'validator';
 
+// Função para validar força da senha
+export const validarSenha = (senha) => {
+  const erros = [];
+
+  if (senha.length < 8) {
+    erros.push('Senha deve ter pelo menos 8 caracteres');
+  }
+
+  if (!/[A-Z]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 letra maiúscula');
+  }
+
+  if (!/[a-z]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 letra minúscula');
+  }
+
+  if (!/[0-9]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 número');
+  }
+
+  if (!/[!@#$%^&*]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 caractere especial (!@#$%^&*)');
+  }
+
+  return erros;
+};
+
 export const validarCPF = (cpf) => {
   if (!cpf) return false;
   cpf = cpf.replace(/\D/g, '');
@@ -71,8 +98,11 @@ export const validarDadosUsuario = (dados) => {
     erros.push('Email inválido');
   }
 
-  if (!dados.senha || dados.senha.length < 8) {
-    erros.push('Senha deve ter pelo menos 8 caracteres');
+  if (!dados.senha) {
+    erros.push('Senha é obrigatória');
+  } else {
+    const errosSenha = validarSenha(dados.senha);
+    erros.push(...errosSenha);
   }
 
   if (!dados.nome || dados.nome.trim().length < 3) {

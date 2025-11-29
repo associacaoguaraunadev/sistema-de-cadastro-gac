@@ -5,6 +5,33 @@ import { enviarEmailConfirmacaoResetado } from '../middleware/email.js';
 
 const prisma = new PrismaClient();
 
+// Função para validar força da senha
+function validarSenha(senha) {
+  const erros = [];
+
+  if (senha.length < 8) {
+    erros.push('Senha deve ter pelo menos 8 caracteres');
+  }
+
+  if (!/[A-Z]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 letra maiúscula');
+  }
+
+  if (!/[a-z]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 letra minúscula');
+  }
+
+  if (!/[0-9]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 número');
+  }
+
+  if (!/[!@#$%^&*]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 caractere especial (!@#$%^&*)');
+  }
+
+  return erros;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
@@ -24,8 +51,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ erro: 'Token e nova senha são obrigatórios' });
       }
 
-      if (novaSenha.length < 8) {
-        return res.status(400).json({ erro: 'Senha deve ter pelo menos 8 caracteres' });
+      // Validar força da senha
+      const errosSenha = validarSenha(novaSenha);
+      if (errosSenha.length > 0) {
+        return res.status(400).json({ erros: errosSenha });
       }
 
       try {

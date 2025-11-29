@@ -28,6 +28,37 @@ export const validarCPF = (cpf) => {
   return true;
 };
 
+export const validarSenha = (senha) => {
+  const erros = [];
+
+  if (!senha) {
+    erros.push('Senha é obrigatória');
+    return erros;
+  }
+
+  if (senha.length < 8) {
+    erros.push('Senha deve ter pelo menos 8 caracteres');
+  }
+
+  if (!/[A-Z]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 letra maiúscula');
+  }
+
+  if (!/[a-z]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 letra minúscula');
+  }
+
+  if (!/[0-9]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 número');
+  }
+
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(senha)) {
+    erros.push('Senha deve conter pelo menos 1 caractere especial (!@#$%^&*)');
+  }
+
+  return erros;
+};
+
 export const validarTelefone = (telefone) => {
   if (!telefone) return true; // Telefone é opcional
   const apenasNumeros = telefone.replace(/\D/g, '');
@@ -71,9 +102,8 @@ export const validarDadosUsuario = (dados) => {
     erros.push('Email inválido');
   }
 
-  if (!dados.senha || dados.senha.length < 8) {
-    erros.push('Senha deve ter pelo menos 8 caracteres');
-  }
+  const errosSenha = validarSenha(dados.senha);
+  erros.push(...errosSenha);
 
   if (!dados.nome || dados.nome.trim().length < 3) {
     erros.push('Nome deve ter pelo menos 3 caracteres');

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { manipuladorAssincrono } from '../middleware/manipuladorErro.js';
-import { validarDadosUsuario } from '../middleware/validacao.js';
+import { validarDadosUsuario, validarSenha } from '../middleware/validacao.js';
 import { autenticarToken } from '../middleware/autenticacao.js';
 import { enviarEmailRecuperacaoSenha, enviarEmailConfirmacaoResetado } from '../servicos/email.js';
 
@@ -224,8 +224,11 @@ rota.post('/redefinir-senha', manipuladorAssincrono(async (req, res) => {
     return res.status(400).json({ erro: 'Token e nova senha são obrigatórios' });
   }
 
-  if (novaSenha.length < 8) {
-    return res.status(400).json({ erro: 'Senha deve ter pelo menos 8 caracteres' });
+  // Validar força da senha
+  const errosSenha = validarSenha(novaSenha);
+  if (errosSenha.length > 0) {
+    console.log(`   ⚠️ Validação de senha falhou`);
+    return res.status(400).json({ erros: errosSenha });
   }
 
   try {
