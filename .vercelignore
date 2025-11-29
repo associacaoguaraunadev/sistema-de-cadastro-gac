@@ -7,3 +7,5 @@ DADOS_TESTE.txt
 run-seed.sh
 test-setup.sh
 build.sh
+backend
+api
