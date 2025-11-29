@@ -1,0 +1,129 @@
+/* Toast Container */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 400px;
+}
+
+/* Toast Individual */
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideInRight 0.3s ease-out;
+  backdrop-filter: blur(4px);
+  min-width: 320px;
+  max-width: 400px;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Tipos de Toast */
+.toast-sucesso {
+  background: linear-gradient(135deg, #E6F4FF 0%, #7BB9E8 100%);
+  border-left: 4px solid #1C78C0;
+  color: #0A2A43;
+}
+
+.toast-erro {
+  background: linear-gradient(135deg, #FFE5E5 0%, #FF6F6F 100%);
+  border-left: 4px solid #CC3131;
+  color: #8B1C1C;
+}
+
+.toast-aviso {
+  background: linear-gradient(135deg, #FFF3C4 0%, #FFD44D 100%);
+  border-left: 4px solid #D39E00;
+  color: #7A5200;
+}
+
+.toast-info {
+  background: linear-gradient(135deg, #E6F4FF 0%, #7BB9E8 100%);
+  border-left: 4px solid #1C78C0;
+  color: #0A2A43;
+}
+
+/* Conteúdo do Toast */
+.toast-conteudo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.toast-icone {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.toast-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toast-texto strong {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.toast-texto p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+/* Botão Fechar */
+.toast-fechar {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  opacity: 0.7;
+}
+
+.toast-fechar:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Responsivo */
+@media (max-width: 480px) {
+  .toast-container {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+
+  .toast {
+    min-width: auto;
+    max-width: none;
+  }
+}

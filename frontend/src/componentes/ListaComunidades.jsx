@@ -71,7 +71,13 @@ export const ListaComunidades = () => {
       {/* Navbar */}
       <nav className="navbar-comunidades">
         <div className="logo-comunidades">
-          <div className="marca-circulo-pequeno">GAC</div>
+          <button 
+            className="marca-circulo-pequeno-clicavel" 
+            onClick={() => navegar('/')}
+            title="Voltar para lista de pessoas"
+          >
+            GAC
+          </button>
         </div>
         <h1>Sistema de Cadastro de Beneficiários</h1>
         <div className="navbar-direita">

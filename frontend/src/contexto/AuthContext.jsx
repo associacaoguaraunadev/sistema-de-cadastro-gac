@@ -18,14 +18,15 @@ export const AuthProvider = ({ children }) => {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState(null);
 
-  const registrar = useCallback(async (email, senha, nome) => {
+  const registrar = useCallback(async (email, senha, nome, codigoConvite) => {
     setCarregando(true);
     setErro(null);
     try {
       const resposta = await axios.post(`${API_URL}/autenticacao/registrar`, {
         email,
         senha,
-        nome
+        nome,
+        codigoConvite
       });
       
       localStorage.setItem('token', resposta.data.token);

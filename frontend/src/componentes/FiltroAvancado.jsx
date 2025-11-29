@@ -21,6 +21,8 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
     { id: 'cidade', label: 'Cidade', tipo: 'texto', placeholder: 'Ex: São Paulo' },
     { id: 'estado', label: 'Estado', tipo: 'texto', placeholder: 'Ex: SP' },
     { id: 'cep', label: 'CEP', tipo: 'texto', placeholder: 'Ex: 01310-100' },
+    { id: 'dataCriacao', label: 'Cadastrado em', tipo: 'texto', placeholder: 'Ex: 15/01/2024' },
+    { id: 'dataAtualizacao', label: 'Editado em', tipo: 'texto', placeholder: 'Ex: 20/01/2024' },
   ];
 
   const handleAdicionar = (campoId) => {
@@ -37,6 +39,13 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
       ...filtros,
       [campoId]: valor
     });
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      aplicarFiltros();
+    }
   };
 
   const handleRemover = (campoId) => {
@@ -129,7 +138,7 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
         title="Buscar por múltiplos critérios"
       >
         <Filter size={18} />
-        <span>Busca Avançada</span>
+        <span>Filtros</span>
         {temValoresPreenchidos && <span className="contador-filtro">{Object.values(filtros).filter(v => v && v.trim()).length}</span>}
       </button>
 
@@ -176,6 +185,7 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
                           placeholder={campo?.placeholder}
                           value={valor}
                           onChange={(e) => handleAtualizar(campoId, e.target.value)}
+                          onKeyPress={handleKeyPress}
                           autoFocus
                         />
                       </div>

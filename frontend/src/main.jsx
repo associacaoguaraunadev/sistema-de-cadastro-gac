@@ -7,6 +7,7 @@ import { FormularioLogin, FormularioRegistro } from './componentes/FormularioAut
 import { ListaPessoas } from './componentes/ListaPessoas';
 import { ListaComunidades } from './componentes/ListaComunidades';
 import { FormularioPessoa } from './componentes/FormularioPessoa';
+import { TransferenciaPessoas } from './componentes/TransferenciaPessoas';
 import './index.css';
 
 function App() {
@@ -59,6 +60,14 @@ function App() {
         element={
           <RotaPrivada>
             <FormularioPessoa />
+          </RotaPrivada>
+        } 
+      />
+      <Route 
+        path="/transferir" 
+        element={
+          <RotaPrivada>
+            <TransferenciaPessoas />
           </RotaPrivada>
         } 
       />

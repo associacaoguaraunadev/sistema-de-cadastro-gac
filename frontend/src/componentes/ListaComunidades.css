@@ -44,6 +44,34 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.marca-circulo-pequeno-clicavel {
+  width: 44px;
+  height: 44px;
+  background: white;
+  border: 2px solid black;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 18px;
+  color: #1b5e20;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.marca-circulo-pequeno-clicavel:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: #0a8917;
+  background: #f0f7f0;
+}
+
+.marca-circulo-pequeno-clicavel:active {
+  transform: scale(0.95);
+}
+
 .navbar-comunidades h1 {
   flex: 1;
   margin: 0;

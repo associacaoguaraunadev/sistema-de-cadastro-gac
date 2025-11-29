@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
+import { useToast } from '../hooks/useToast';
 import { obterPessoa, criarPessoa, atualizarPessoa } from '../servicos/api';
 import { ArrowLeft, Save, Check } from 'lucide-react';
+import { ToastContainer } from './Toast';
 import './FormularioPessoa.css';
 
 export const FormularioPessoa = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { token } = useAuth();
+  const { toasts, removerToast, sucesso: sucessoToast, erro: erroToast } = useToast();
   
   const [formulario, setFormulario] = useState({
     nome: '',
@@ -54,6 +57,7 @@ export const FormularioPessoa = () => {
       });
     } catch (erro) {
       setErro('Erro ao carregar pessoa: ' + erro.message);
+      erroToast('Erro ao Carregar', 'Não foi possível carregar os dados da pessoa');
     } finally {
       setCarregando(false);
     }
@@ -185,9 +189,11 @@ export const FormularioPessoa = () => {
       if (id) {
         await atualizarPessoa(token, id, dados);
         setSucesso('✓ Pessoa atualizada com sucesso!');
+        sucessoToast('Sucesso!', 'Pessoa atualizada com sucesso');
       } else {
         await criarPessoa(token, dados);
         setSucesso('✓ Pessoa cadastrada com sucesso!');
+        sucessoToast('Sucesso!', 'Pessoa cadastrada com sucesso');
       }
 
       // Animação de sucesso e redirecionamento
@@ -197,6 +203,7 @@ export const FormularioPessoa = () => {
       }, 1200);
     } catch (erro) {
       setErro(erro.message);
+      erroToast('Erro ao Salvar', erro.message);
     } finally {
       setSalvando(false);
     }
@@ -539,6 +546,7 @@ export const FormularioPessoa = () => {
           </div>
         </form>
       </main>
+      <ToastContainer toasts={toasts} onClose={removerToast} />
     </div>
   );
 };

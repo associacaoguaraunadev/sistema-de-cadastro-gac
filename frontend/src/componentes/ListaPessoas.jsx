@@ -1,10 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
+import { useToast } from '../hooks/useToast';
 import { obterPessoas, deletarPessoa } from '../servicos/api';
-import { Plus, Edit2, Trash2, Search, LogOut, Users, Baby, User, Heart } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, LogOut, Users, Baby, User, Heart, Key } from 'lucide-react';
 import { FiltroAvancado } from './FiltroAvancado';
+import { GerenciadorTokens } from './GerenciadorTokens';
+import { ToastContainer } from './Toast';
+import { ModalConfirmacao } from './ModalConfirmacao';
 import './ListaPessoas.css';
+
+// Função helper para converter hex para RGB
+const hexToRgb = (hex) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255, 255, 255';
+};
 
 export const ListaPessoas = () => {
   const [pessoas, setPessoas] = useState([]);
@@ -16,20 +26,24 @@ export const ListaPessoas = () => {
   const [filtrosAvancados, setFiltrosAvancados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
+  const [modalSairAberto, setModalSairAberto] = useState(false);
+  const [saindo, setSaindo] = useState(false);
+  const [gerenciadorTokensAberto, setGerenciadorTokensAberto] = useState(false);
   const timeoutRef = useRef(null);
   
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
+  const { toasts, removerToast, sucesso, erro: erroToast, aviso } = useToast();
   const LIMITE = 50;
 
-  // Debounce para a busca - espera 500ms após parar de digitar
+  // Debounce para a busca - espera 2000ms após parar de digitar
   useEffect(() => {
     clearTimeout(timeoutRef.current);
     
     timeoutRef.current = setTimeout(() => {
       setBusca(buscaInput);
       setPagina(1);
-    }, 500);
+    }, 2000);
 
     return () => clearTimeout(timeoutRef.current);
   }, [buscaInput]);
@@ -53,6 +67,15 @@ export const ListaPessoas = () => {
     setCarregando(true);
     setErro('');
     
+    // Log para debug
+    if (filtrosAvancados || busca) {
+      console.group('🔍 [ListaPessoas] Carregando com filtros');
+      console.log('Busca:', busca);
+      console.log('Filtros Avançados:', filtrosAvancados);
+      console.log('Página:', pagina);
+      console.groupEnd();
+    }
+    
     try {
       const dados = await obterPessoas(token, {
         pagina,
@@ -62,9 +85,12 @@ export const ListaPessoas = () => {
         filtrosAvancados
       });
       
+      console.log(`✅ [ListaPessoas] Retornou ${dados.pessoas.length} de ${dados.total} pessoas`);
+      
       setPessoas(dados.pessoas);
       setTotal(dados.total);
     } catch (erro) {
+      console.error('❌ [ListaPessoas] Erro ao carregar:', erro);
       setErro('Erro ao carregar pessoas: ' + erro.message);
     } finally {
       setCarregando(false);
@@ -78,16 +104,26 @@ export const ListaPessoas = () => {
       await deletarPessoa(token, id);
       setPessoas(pessoas.filter(p => p.id !== id));
       setTotal(total - 1);
+      sucesso('Sucesso!', 'Pessoa deletada com sucesso');
     } catch (erro) {
       setErro('Erro ao deletar: ' + erro.message);
+      erroToast('Erro ao Deletar', 'Não foi possível deletar a pessoa');
     }
   };
 
   const handleSair = () => {
-    if (window.confirm('Deseja sair do sistema?')) {
+    setModalSairAberto(true);
+  };
+
+  const confirmarSair = () => {
+    setSaindo(true);
+    setTimeout(() => {
+      sucesso('Até logo!', 'Você foi desconectado com sucesso');
       sair();
-      navegar('/entrar');
-    }
+      setTimeout(() => {
+        navegar('/entrar');
+      }, 500);
+    }, 300);
   };
 
   // Calcular idade baseado em dataBeneficio (ou usar dataCriacao como fallback)
@@ -117,13 +153,13 @@ export const ListaPessoas = () => {
     return 'idosos';
   };
 
-  // Comunidades pré-cadastradas
+  // Comunidades pré-cadastradas com nova paleta de cores
   const comunidadesFixas = [
-    { nome: 'Vila Cheba', cor: '#3b82f6' },
-    { nome: 'Morro da Vila', cor: '#ef4444' },
-    { nome: 'Barragem', cor: '#8b5cf6' },
-    { nome: 'Parque Centenario', cor: '#10b981' },
-    { nome: 'Jardim Apura', cor: '#f59e0b' }
+    { nome: 'Vila Cheba', cor: '#1C78C0' },
+    { nome: 'Morro da Vila', cor: '#CC3131' },
+    { nome: 'Barragem', cor: '#114E7A' },
+    { nome: 'Parque Centenario', cor: '#D39E00' },
+    { nome: 'Jardim Apura', cor: '#0A2A43' }
   ];
 
   // Carregar comunidades customizadas do localStorage
@@ -196,13 +232,28 @@ export const ListaPessoas = () => {
     <div className="container-lista">
       <header className="cabecalho-lista">
         <div className="titulo-cabecalho">
-          <div className="marca-pequena">GAC</div>
+          <button 
+            className="marca-pequena-clicavel" 
+            onClick={() => navegar('/')}
+            title="Voltar para página principal"
+          >
+            GAC
+          </button>
         </div>
         <div className="titulo-sistema">
           <h2><b>Sistema de Cadastro de Beneficiários</b></h2>
         </div>
         <div className="info-usuario">
           <span><b>{usuario?.nome}</b></span>
+          {usuario?.funcao === 'admin' && (
+            <button 
+              onClick={() => setGerenciadorTokensAberto(true)} 
+              className="botao-tokens" 
+              title="Gerenciar tokens de acesso"
+            >
+              <Key size={18} />
+            </button>
+          )}
           <button onClick={handleSair} className="botao-sair" title="Sair do sistema">
             <LogOut size={18} />
           </button>
@@ -223,27 +274,10 @@ export const ListaPessoas = () => {
             />
           </div>
 
-          {tiposBeneficio.length > 0 && (
-            <select
-              className="filtro-beneficio"
-              value={tipoBeneficioFiltro}
-              onChange={(e) => {
-                setTipoBeneficioFiltro(e.target.value);
-                setPagina(1);
-              }}
-            >
-              <option value="">Todos os benefícios</option>
-              {tiposBeneficio.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {tipo}
-                </option>
-              ))}
-            </select>
-          )}
-
           <FiltroAvancado
             onAplicar={(config) => {
-              setFiltrosAvancados(config);
+              // Passa apenas os filtros, sem o wrapper de operador
+              setFiltrosAvancados(config.filtros);
               setPagina(1);
               setBusca('');
               setBuscaInput('');
@@ -263,6 +297,16 @@ export const ListaPessoas = () => {
           >
             <Plus size={18} /> Novo Cadastro
           </button>
+
+          {usuario?.funcao === 'admin' && (
+            <button 
+              className="botao-transferencia"
+              onClick={() => navegar('/transferir')}
+              title="Transferir pessoas para outro usuário"
+            >
+              📦 Transferência
+            </button>
+          )}
         </div>
 
         {erro && <div className="alerta-erro">{erro}</div>}
@@ -285,11 +329,8 @@ export const ListaPessoas = () => {
               if (totalComunidade === 0) return null; // Não mostrar comunidades vazias
 
               return (
-                <div key={comunidade.nome} className="secao-comunidade" style={{ borderLeftColor: comunidade.cor }}>
-                  <div className="cabecalho-comunidade" style={{ backgroundColor: comunidade.cor }}>
-                    <h2>{comunidade.nome}</h2>
-                    <span className="badge-quantidade">{totalComunidade}</span>
-                  </div>
+                <div key={comunidade.nome} className="secao-comunidade" style={{ '--cor-comunidade-rgb': hexToRgb(comunidade.cor), borderLeftColor: comunidade.cor }}>
+                  <div className="conteudo-comunidade">
 
                   {/* CRIANÇAS */}
                   {gruposComunidade.criancas.length > 0 && (
@@ -356,6 +397,13 @@ export const ListaPessoas = () => {
                       </div>
                     </div>
                   )}
+                  </div>
+                  <div className="painel-comunidade-sticky" style={{ backgroundColor: comunidade.cor }}>
+                    <div className="info-painel-sticky">
+                      <h2>{comunidade.nome}</h2>
+                      <span className="badge-quantidade">{totalComunidade}</span>
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -384,6 +432,21 @@ export const ListaPessoas = () => {
           </>
         )}
       </main>
+      <ModalConfirmacao
+        aberto={modalSairAberto}
+        tipo="logout"
+        titulo="Sair do Sistema"
+        mensagem="Tem certeza que deseja sair? Você será redirecionado para a página de login."
+        botaoPrincipalTexto="Sair"
+        botaoCancelarTexto="Cancelar"
+        onConfirmar={confirmarSair}
+        onCancelar={() => setModalSairAberto(false)}
+        carregando={saindo}
+      />
+      {gerenciadorTokensAberto && (
+        <GerenciadorTokens onFechar={() => setGerenciadorTokensAberto(false)} />
+      )}
+      <ToastContainer toasts={toasts} onClose={removerToast} />
     </div>
   );
 };
@@ -458,8 +521,15 @@ const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar }) => {
 
         <div className="linha-info">
           <span className="label">Cadastrado em:</span>
-          <span className="valor">{new Date(pessoa.dataCriacao).toLocaleDateString('pt-BR')}</span>
+          <span className="valor">{new Date(pessoa.dataCriacao).toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
         </div>
+
+        {pessoa.dataAtualizacao && (
+          <div className="linha-info">
+            <span className="label">Editado em:</span>
+            <span className="valor">{new Date(pessoa.dataAtualizacao).toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+        )}
       </div>
 
       <div className="cartao-rodape">

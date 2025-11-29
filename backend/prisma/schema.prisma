@@ -55,3 +55,31 @@ model Pessoa {
   @@index([comunidade])
   @@index([cpf])
 }
+
+model CodigoConvite {
+  id            Int      @id @default(autoincrement())
+  codigo        String   @unique
+  email         String
+  usado         Boolean  @default(false)
+  usadoPorId    Int?
+  usadoEm       DateTime?
+  dataCriacao   DateTime @default(now())
+  dataExpiracao DateTime?
+  
+  @@index([codigo])
+}
+
+model TokenGeracao {
+  id            Int      @id @default(autoincrement())
+  token         String   @unique
+  usuarioId     Int      // Admin que criou o token
+  email         String
+  usado         Boolean  @default(false)
+  usadoPor      String?  // Email de quem usou o token
+  usadoEm       DateTime?
+  dataCriacao   DateTime @default(now())
+  dataExpiracao DateTime  // Token válido por 7 dias
+  
+  @@index([token])
+  @@index([usuarioId])
+}

@@ -1,6 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
-import { autenticarToken } from '../middleware/autenticacao.js';
+import { autenticarToken, autorizarFuncao } from '../middleware/autenticacao.js';
 import { manipuladorAssincrono } from '../middleware/manipuladorErro.js';
 import { validarDadosPessoa, validarCPF } from '../middleware/validacao.js';
 
@@ -10,8 +10,8 @@ const prisma = new PrismaClient();
 rota.use(autenticarToken);
 
 rota.get('/', manipuladorAssincrono(async (req, res) => {
-  const { status = 'ativo', pagina = 1, limite = 10, busca } = req.query;
-  console.log(`   👥 Listando pessoas | Status: ${status} | Busca: ${busca || 'nenhuma'}`);
+  const { status = 'ativo', pagina = 1, limite = 10, busca, filtros } = req.query;
+  console.log(`   👥 Listando pessoas | Status: ${status} | Busca: ${busca || 'nenhuma'} | Filtros: ${filtros ? 'sim' : 'não'}`);
   
   const pular = (parseInt(pagina) - 1) * parseInt(limite);
   
@@ -20,25 +20,62 @@ rota.get('/', manipuladorAssincrono(async (req, res) => {
     status: status ? status : 'ativo'
   };
 
+  // Array para acumular condições AND
+  const condicoesAND = [];
+
+  // Se houver busca simples, adiciona como OR em todos os campos
   if (busca) {
-    onde.AND = [
-      {
-        OR: [
-          { nome: { contains: busca, mode: 'insensitive' } },
-          { cpf: { contains: busca, mode: 'insensitive' } },
-          { email: { contains: busca, mode: 'insensitive' } },
-          { telefone: { contains: busca, mode: 'insensitive' } },
-          { endereco: { contains: busca, mode: 'insensitive' } },
-          { bairro: { contains: busca, mode: 'insensitive' } },
-          { cidade: { contains: busca, mode: 'insensitive' } },
-          { estado: { contains: busca, mode: 'insensitive' } },
-          { cep: { contains: busca, mode: 'insensitive' } },
-          { comunidade: { contains: busca, mode: 'insensitive' } },
-          { tipoBeneficio: { contains: busca, mode: 'insensitive' } },
-          { observacoes: { contains: busca, mode: 'insensitive' } }
-        ]
-      }
-    ];
+    condicoesAND.push({
+      OR: [
+        { nome: { contains: busca, mode: 'insensitive' } },
+        { cpf: { contains: busca, mode: 'insensitive' } },
+        { email: { contains: busca, mode: 'insensitive' } },
+        { telefone: { contains: busca, mode: 'insensitive' } },
+        { endereco: { contains: busca, mode: 'insensitive' } },
+        { bairro: { contains: busca, mode: 'insensitive' } },
+        { cidade: { contains: busca, mode: 'insensitive' } },
+        { estado: { contains: busca, mode: 'insensitive' } },
+        { cep: { contains: busca, mode: 'insensitive' } },
+        { comunidade: { contains: busca, mode: 'insensitive' } },
+        { tipoBeneficio: { contains: busca, mode: 'insensitive' } },
+        { observacoes: { contains: busca, mode: 'insensitive' } }
+      ]
+    });
+  }
+
+  // Processar filtros avançados
+  if (filtros) {
+    try {
+      const filtrosObj = JSON.parse(filtros);
+      console.log(`   🔍 Filtros avançados recebidos:`, filtrosObj);
+
+      // Para cada filtro avançado, adiciona uma condição AND
+      Object.entries(filtrosObj).forEach(([campo, config]) => {
+        if (config.valor && config.valor.trim()) {
+          const condicao = {};
+          
+          // Tratamento especial para campos de data
+          if (campo === 'dataCriacao' || campo === 'dataAtualizacao') {
+            // Converter dd/mm/yyyy para busca (busca por substring na data)
+            // Aceita formatos: 15/01/2024, 01/2024, 2024
+            condicao[campo] = { contains: config.valor, mode: 'insensitive' };
+          } else {
+            // Para campos de texto, usar contains normal
+            condicao[campo] = { contains: config.valor, mode: 'insensitive' };
+          }
+          
+          condicoesAND.push(condicao);
+          console.log(`   ✓ Filtro adicionado: ${campo} contém "${config.valor}"`);
+        }
+      });
+    } catch (erro) {
+      console.log(`   ⚠️ Erro ao processar filtros avançados:`, erro.message);
+    }
+  }
+
+  // Se há condições AND, adicionar ao onde
+  if (condicoesAND.length > 0) {
+    onde.AND = condicoesAND;
   }
 
   const [pessoas, total] = await Promise.all([
@@ -186,6 +223,65 @@ rota.delete('/:id', manipuladorAssincrono(async (req, res) => {
   });
 
   res.status(204).send();
+}));
+
+rota.post('/transferir', autorizarFuncao(['admin']), manipuladorAssincrono(async (req, res) => {
+  const { pessoaIds, usuarioDestinoId } = req.body;
+
+  console.log(`🔄 Transferindo ${pessoaIds?.length || 0} pessoas para usuário ${usuarioDestinoId}`);
+
+  // Validações
+  if (!pessoaIds || !Array.isArray(pessoaIds) || pessoaIds.length === 0) {
+    return res.status(400).json({ erro: 'Lista de pessoas é obrigatória' });
+  }
+
+  if (!usuarioDestinoId) {
+    return res.status(400).json({ erro: 'Usuário destino é obrigatório' });
+  }
+
+  // Verificar se usuário destino existe
+  const usuarioDestino = await prisma.usuario.findUnique({
+    where: { id: parseInt(usuarioDestinoId) }
+  });
+
+  if (!usuarioDestino) {
+    return res.status(404).json({ erro: 'Usuário destino não encontrado' });
+  }
+
+  // Verificar se o admin está tentando transferir para si mesmo
+  if (usuarioDestinoId === req.usuario.id) {
+    return res.status(400).json({ erro: 'Não é possível transferir para o mesmo usuário' });
+  }
+
+  // Verificar se todas as pessoas pertencem ao admin (segurança)
+  const pessoasVerificacao = await prisma.pessoa.findMany({
+    where: {
+      id: { in: pessoaIds.map(id => parseInt(id)) },
+      usuarioId: req.usuario.id
+    }
+  });
+
+  if (pessoasVerificacao.length !== pessoaIds.length) {
+    return res.status(403).json({ erro: 'Algumas pessoas não pertencem a você' });
+  }
+
+  // Transferir pessoas
+  const resultado = await prisma.pessoa.updateMany({
+    where: {
+      id: { in: pessoaIds.map(id => parseInt(id)) },
+      usuarioId: req.usuario.id
+    },
+    data: {
+      usuarioId: parseInt(usuarioDestinoId)
+    }
+  });
+
+  console.log(`✅ ${resultado.count} pessoas transferidas com sucesso`);
+
+  res.json({
+    mensagem: `${resultado.count} pessoa(s) transferida(s) com sucesso`,
+    quantidade: resultado.count
+  });
 }));
 
 export default rota;
