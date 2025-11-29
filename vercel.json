@@ -1,10 +1,5 @@
 {
   "version": 2,
   "buildCommand": "npm run prisma:generate && npm run build",
-  "outputDirectory": "frontend/dist",
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  "outputDirectory": "frontend/dist"
 }
