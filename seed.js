@@ -5,11 +5,14 @@
  * Este script é executado automaticamente após migrations
  */
 
-import { PrismaClient } from '@prisma/client';
+import { createRequire } from 'module';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
+
+const require = createRequire(import.meta.url);
+const { PrismaClient } = require('./api/node_modules/@prisma/client');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
