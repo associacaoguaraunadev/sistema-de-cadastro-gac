@@ -16,6 +16,7 @@
     "seed": "node seed.js",
     "reset-db": "node reset-db.js",
     "limpar-banco": "node limpar-banco.js",
+    "test-db": "node test-db-connection.js",
     "verificar-credenciais": "node verificar-credenciais.js",
     "vercel-build": "echo '🔨 Build Local Test' && npm run build"
   },
