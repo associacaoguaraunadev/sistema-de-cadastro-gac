@@ -590,11 +590,51 @@ async function pessoasListar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
+    const { pagina = 1, limite = 50, busca = '', status = 'ativo', filtros = null } = req.query;
+    const paginaNum = parseInt(pagina) || 1;
+    const limiteNum = parseInt(limite) || 50;
+    const skip = (paginaNum - 1) * limiteNum;
+
+    // Construir filtros
+    const where = {};
+    
+    // Filtro de status (o campo se chama 'status' no schema)
+    if (status && status !== 'todos') {
+      where.status = status;
+    }
+
+    // Filtro de busca
+    if (busca) {
+      where.OR = [
+        { nome: { contains: busca, mode: 'insensitive' } },
+        { cpf: { contains: busca } },
+        { email: { contains: busca, mode: 'insensitive' } }
+      ];
+    }
+
+    // Log para debug
+    log(`👥 Listando pessoas - Página: ${paginaNum}, Limite: ${limiteNum}, Busca: "${busca}", Status: "${status}"`);
+
+    // Contar total
+    const total = await prisma.pessoa.count({ where });
+
+    // Buscar pessoas
     const pessoas = await prisma.pessoa.findMany({
-      orderBy: { dataCriacao: 'desc' }
+      where,
+      orderBy: { dataCriacao: 'desc' },
+      take: limiteNum,
+      skip
     });
 
-    res.status(200).json(pessoas);
+    log(`✅ Retornando ${pessoas.length} de ${total} pessoas`);
+
+    res.status(200).json({
+      pessoas,
+      total,
+      pagina: paginaNum,
+      limite: limiteNum,
+      totalPaginas: Math.ceil(total / limiteNum)
+    });
   } catch (erro) {
     log(`Erro ao listar pessoas: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao listar pessoas' });
