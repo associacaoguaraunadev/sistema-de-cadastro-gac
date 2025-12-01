@@ -22,6 +22,10 @@ export const AuthProvider = ({ children }) => {
     setCarregando(true);
     setErro(null);
     try {
+      console.log(`📝 [FRONTEND] Registrando novo usuário: ${email}`);
+      console.log(`📝 [FRONTEND] Código/Token: ${codigoConvite?.substring(0, 20)}...`);
+      console.log(`📝 [FRONTEND] URL da API: ${API_URL}`);
+
       const resposta = await axios.post(`${API_URL}/autenticacao/registrar`, {
         email,
         senha,
@@ -29,15 +33,24 @@ export const AuthProvider = ({ children }) => {
         codigoConvite
       });
       
+      console.log(`✅ [FRONTEND] Registro sucesso - Status:`, resposta.status);
+      console.log(`✅ [FRONTEND] Token recebido:`, resposta.data.token ? 'SIM' : 'NÃO');
+      console.log(`✅ [FRONTEND] Usuário criado:`, resposta.data.usuario);
+
       localStorage.setItem('token', resposta.data.token);
       localStorage.setItem('usuario', JSON.stringify(resposta.data.usuario));
       
       setToken(resposta.data.token);
       setUsuario(resposta.data.usuario);
       
+      console.log(`✅ [FRONTEND] Registro completo!`);
       return resposta.data;
     } catch (erro) {
-      const mensagem = erro.response?.data?.erros?.[0] || erro.response?.data?.erro || 'Erro ao registrar';
+      console.error(`❌ [FRONTEND] Erro no registro:`, erro);
+      console.error(`❌ [FRONTEND] Status HTTP:`, erro.response?.status);
+      console.error(`❌ [FRONTEND] Dados de erro:`, erro.response?.data);
+      
+      const mensagem = erro.response?.data?.erros?.[0] || erro.response?.data?.erro || erro.message || 'Erro ao registrar';
       setErro(mensagem);
       throw new Error(mensagem);
     } finally {
@@ -49,20 +62,36 @@ export const AuthProvider = ({ children }) => {
     setCarregando(true);
     setErro(null);
     try {
+      console.log(`🔐 [FRONTEND] Tentando entrar com email: ${email}`);
+      console.log(`🔐 [FRONTEND] URL da API: ${API_URL}`);
+      console.log(`🔐 [FRONTEND] Enviando POST para: ${API_URL}/autenticacao/entrar`);
+
       const resposta = await axios.post(`${API_URL}/autenticacao/entrar`, {
         email,
         senha
       });
       
+      console.log(`✅ [FRONTEND] Resposta recebida:`, resposta.status);
+      console.log(`✅ [FRONTEND] Token recebido:`, resposta.data.token ? 'SIM (caracteres: ' + resposta.data.token.length + ')' : 'NÃO');
+      console.log(`✅ [FRONTEND] Usuário:`, resposta.data.usuario);
+
       localStorage.setItem('token', resposta.data.token);
       localStorage.setItem('usuario', JSON.stringify(resposta.data.usuario));
+      
+      console.log(`💾 [FRONTEND] Dados salvos no localStorage`);
       
       setToken(resposta.data.token);
       setUsuario(resposta.data.usuario);
       
+      console.log(`✅ [FRONTEND] Estado atualizado com sucesso`);
       return resposta.data;
     } catch (erro) {
-      const mensagem = erro.response?.data?.erro || 'Erro ao entrar';
+      console.error(`❌ [FRONTEND] Erro na requisição:`, erro);
+      console.error(`❌ [FRONTEND] Status HTTP:`, erro.response?.status);
+      console.error(`❌ [FRONTEND] Dados de erro:`, erro.response?.data);
+      console.error(`❌ [FRONTEND] Mensagem:`, erro.message);
+      
+      const mensagem = erro.response?.data?.erro || erro.message || 'Erro ao entrar';
       setErro(mensagem);
       throw new Error(mensagem);
     } finally {
