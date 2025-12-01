@@ -686,6 +686,31 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
+  // PARSE DO BODY - CRUCIAL PARA VERCEL
+  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
+    try {
+      let body = '';
+      await new Promise((resolve, reject) => {
+        req.on('data', chunk => {
+          body += chunk.toString();
+        });
+        req.on('end', resolve);
+        req.on('error', reject);
+      });
+      
+      if (body) {
+        req.body = JSON.parse(body);
+      } else {
+        req.body = {};
+      }
+    } catch (erro) {
+      log(`Erro ao fazer parse do body: ${erro.message}`, 'error');
+      req.body = {};
+    }
+  } else {
+    req.body = {};
+  }
+
   // Extrair slug de forma segura e robusta
   let slug = [];
   

@@ -27,7 +27,16 @@ const mockReq = {
     email: 'admin@gac.com',
     senha: 'Admin123!'
   },
-  on: () => {}
+  on: function(event, callback) {
+    if (event === 'data') {
+      // Emula dados chegando
+      const data = JSON.stringify(this.body);
+      callback(Buffer.from(data));
+    } else if (event === 'end') {
+      // Emula fim do stream
+      setTimeout(callback, 10);
+    }
+  }
 };
 
 // Mock de res
