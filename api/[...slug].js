@@ -43,6 +43,49 @@ function log(msg, tipo = 'info') {
   console.log(`[${timestamp}] ${tipo === 'error' ? '❌' : '✅'} ${msg}`);
 }
 
+// Converter strings de data para DateTime ISO-8601
+function converterDataParaIso(data) {
+  if (!data) return null;
+  
+  // Se já é uma string ISO-8601 válida, retorna como está
+  if (typeof data === 'string' && data.includes('T')) {
+    try {
+      new Date(data).toISOString();
+      return data;
+    } catch (e) {
+      // Continua para processar
+    }
+  }
+  
+  // Se é uma string de data simples (YYYY-MM-DD), adiciona hora 00:00:00
+  if (typeof data === 'string' && data.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return `${data}T00:00:00Z`;
+  }
+  
+  // Se é Date object, converte para ISO
+  if (data instanceof Date) {
+    return data.toISOString();
+  }
+  
+  return data; // Retorna como está se não conseguir converter
+}
+
+// Sanitizar dados de pessoa, convertendo datas
+function sanitizarPessoa(data) {
+  const dataSanitizada = { ...data };
+  
+  // Campos que podem ser datas no schema
+  const camposDatas = ['dataBeneficio', 'dataCriacao', 'dataAtualizacao'];
+  
+  camposDatas.forEach(campo => {
+    if (dataSanitizada[campo]) {
+      dataSanitizada[campo] = converterDataParaIso(dataSanitizada[campo]);
+    }
+  });
+  
+  return dataSanitizada;
+}
+
 // Rotas
 async function rotear(req, res, slug) {
   const rota = slug.join('/');
@@ -654,9 +697,11 @@ async function pessoasCriar(req, res) {
       return res.status(400).json({ erro: 'Nome e CPF obrigatórios' });
     }
 
+    const dataSanitizada = sanitizarPessoa(req.body);
+
     const pessoa = await prisma.pessoa.create({
       data: {
-        ...req.body,
+        ...dataSanitizada,
         usuarioId: usuario.id
       }
     });
@@ -696,9 +741,11 @@ async function pessoasAtualizar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
+    const dataSanitizada = sanitizarPessoa(req.body);
+
     const pessoa = await prisma.pessoa.update({
       where: { id: parseInt(id) },
-      data: req.body
+      data: dataSanitizada
     });
 
     res.status(200).json(pessoa);
