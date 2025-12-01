@@ -686,14 +686,16 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Extrair slug de forma segura
+  // Extrair slug de forma segura e robusta
   let slug = [];
   
   // Método 1: req.query.slug (padrão Vercel para [...slug])
   if (req.query.slug && Array.isArray(req.query.slug)) {
     slug = req.query.slug;
+    log(`📌 Slug obtido de req.query.slug (array): ${slug.join('/')}`);
   } else if (req.query.slug && typeof req.query.slug === 'string') {
     slug = [req.query.slug];
+    log(`📌 Slug obtido de req.query.slug (string): ${slug.join('/')}`);
   }
   // Método 2: Extrair do URL se não conseguir por query
   else if (req.url && req.url.length > 1) {
@@ -712,14 +714,21 @@ export default async function handler(req, res) {
       
       // Split e filtrar partes vazias
       slug = pathname.split('/').filter(p => p.length > 0);
+      log(`📌 Slug obtido do URL pathname: ${slug.join('/')}`);
     } catch (erro) {
       log(`Erro ao fazer parse da URL: ${erro.message}`, 'error');
+      log(`URL original: ${req.url}`);
       slug = [];
     }
   }
 
   const rotaStr = slug.join('/');
-  log(`📍 [${req.method}] Rota: "${rotaStr}" | URL: "${req.url}"`);
+  log(`📍 [${req.method}] Rota: "${rotaStr}" | URL: "${req.url}" | Host: ${req.headers.host}`);
+  
+  // DEBUG: Se rota vazia, logar mais detalhes
+  if (!rotaStr || rotaStr === '') {
+    log(`⚠️ ROTA VAZIA! query.slug: ${JSON.stringify(req.query.slug)}`, 'error');
+  }
   
   return rotear(req, res, slug);
 }
