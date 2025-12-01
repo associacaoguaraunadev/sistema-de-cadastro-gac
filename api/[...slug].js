@@ -145,6 +145,18 @@ async function rotear(req, res, slug) {
     return autenticacaoRedefinirSenha(req, res);
   }
 
+  if (rota === 'autenticacao/recuperacao-senha/solicitar' && req.method === 'POST') {
+    return recuperacaoSenhaSolicitar(req, res);
+  }
+
+  if (rota === 'autenticacao/recuperacao-senha/validar-token' && req.method === 'POST') {
+    return recuperacaoSenhaValidarToken(req, res);
+  }
+
+  if (rota === 'autenticacao/recuperacao-senha/redefinir' && req.method === 'POST') {
+    return recuperacaoSenhaRedefinir(req, res);
+  }
+
   if (rota === 'autenticacao/listar' && req.method === 'GET') {
     return autenticacaoListar(req, res);
   }
@@ -451,6 +463,144 @@ async function autenticacaoEsqueciSenha(req, res) {
 
 async function autenticacaoRedefinirSenha(req, res) {
   return res.status(501).json({ erro: 'Não implementado' });
+}
+
+async function recuperacaoSenhaSolicitar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ erro: 'Email é obrigatório' });
+    }
+
+    const usuario = await prisma.usuario.findUnique({ where: { email } });
+    if (!usuario) {
+      // Retornar sucesso mesmo se usuário não existe (segurança)
+      return res.status(200).json({ 
+        mensagem: 'Se o email existe, um código foi enviado',
+        email 
+      });
+    }
+
+    // Gerar token de recuperação
+    const token = require('crypto').randomBytes(5).toString('hex').toUpperCase();
+    const agora = new Date();
+    const expiracao = new Date(agora.getTime() + 30 * 60 * 1000); // 30 minutos
+
+    await prisma.usuario.update({
+      where: { email },
+      data: {
+        tokenRecuperacao: await bcrypt.hash(token, 10),
+        expiracaoToken: expiracao
+      }
+    });
+
+    // Aqui você deveria enviar email com o token
+    log(`✅ Token de recuperação gerado para ${email}: ${token}`, 'info');
+    console.log(`\n📧 TOKEN DE RECUPERAÇÃO (use este código):`);
+    console.log(`   Email: ${email}`);
+    console.log(`   Código: ${token}`);
+    console.log(`   Expira em: ${expiracao.toLocaleString('pt-BR')}\n`);
+
+    res.status(200).json({ 
+      mensagem: 'Se o email existe, um código foi enviado',
+      email,
+      debug: token // Para testes - remover em produção
+    });
+  } catch (erro) {
+    log(`Erro ao solicitar recuperação: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao solicitar recuperação' });
+  }
+}
+
+async function recuperacaoSenhaValidarToken(req, res) {
+  const prisma = getPrisma();
+  try {
+    const { email, token } = req.body;
+
+    if (!email || !token) {
+      return res.status(400).json({ erro: 'Email e token são obrigatórios' });
+    }
+
+    const usuario = await prisma.usuario.findUnique({ where: { email } });
+    
+    if (!usuario || !usuario.tokenRecuperacao) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Verificar se expirou
+    if (new Date() > usuario.expiracaoToken) {
+      return res.status(401).json({ erro: 'Token expirado' });
+    }
+
+    // Verificar se o token está correto
+    const tokenValido = await bcrypt.compare(token, usuario.tokenRecuperacao);
+    
+    if (!tokenValido) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    res.status(200).json({ 
+      mensagem: 'Token validado com sucesso',
+      email
+    });
+  } catch (erro) {
+    log(`Erro ao validar token: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao validar token' });
+  }
+}
+
+async function recuperacaoSenhaRedefinir(req, res) {
+  const prisma = getPrisma();
+  try {
+    const { email, token, novaSenha } = req.body;
+
+    if (!email || !token || !novaSenha) {
+      return res.status(400).json({ erro: 'Email, token e nova senha são obrigatórios' });
+    }
+
+    if (novaSenha.length < 8) {
+      return res.status(400).json({ erro: 'Senha deve ter no mínimo 8 caracteres' });
+    }
+
+    const usuario = await prisma.usuario.findUnique({ where: { email } });
+    
+    if (!usuario || !usuario.tokenRecuperacao) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Verificar se expirou
+    if (new Date() > usuario.expiracaoToken) {
+      return res.status(401).json({ erro: 'Token expirado' });
+    }
+
+    // Verificar se o token está correto
+    const tokenValido = await bcrypt.compare(token, usuario.tokenRecuperacao);
+    
+    if (!tokenValido) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Atualizar senha e limpar token
+    await prisma.usuario.update({
+      where: { email },
+      data: {
+        senha: await bcrypt.hash(novaSenha, 10),
+        tokenRecuperacao: null,
+        expiracaoToken: null
+      }
+    });
+
+    log(`✅ Senha redefinida com sucesso para ${email}`, 'info');
+
+    res.status(200).json({ 
+      mensagem: 'Senha redefinida com sucesso'
+    });
+  } catch (erro) {
+    log(`Erro ao redefinir senha: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao redefinir senha' });
+  }
 }
 
 async function autenticacaoListar(req, res) {

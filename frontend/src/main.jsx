@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexto/AuthContext';
 import { RotaPrivada } from './componentes/RotaPrivada';
 import { FormularioLogin, FormularioRegistro } from './componentes/FormularioAutenticacao';
+import { FormularioRecuperacaoSenha } from './componentes/FormularioRecuperacaoSenha';
 import { ListaPessoas } from './componentes/ListaPessoas';
 import { ListaComunidades } from './componentes/ListaComunidades';
 import { FormularioPessoa } from './componentes/FormularioPessoa';
@@ -22,6 +23,10 @@ function App() {
       <Route 
         path="/registrar" 
         element={autenticado ? <Navigate to="/" /> : <FormularioRegistro />} 
+      />
+      <Route 
+        path="/recuperar-senha" 
+        element={autenticado ? <Navigate to="/" /> : <FormularioRecuperacaoSenha />} 
       />
       <Route 
         path="/" 

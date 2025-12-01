@@ -222,3 +222,51 @@
   color: #999 !important;
   cursor: not-allowed !important;
 }
+
+.texto-instrucao {
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.botao-link {
+  background: none;
+  border: none;
+  color: #2e7d32;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.botao-link:hover {
+  color: #1b5e20;
+}
+
+.botao-link:disabled {
+  color: #999;
+  cursor: not-allowed;
+}
+
+.link-recuperacao {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 13px;
+}
+
+.link-recuperacao a {
+  color: #2e7d32;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.link-recuperacao a:hover {
+  color: #1b5e20;
+  text-decoration: underline;
+}
+

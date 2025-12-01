@@ -94,6 +94,10 @@ export const FormularioLogin = () => {
             {carregando ? 'Entrando...' : 'Entrar'}
           </button>
 
+          <div className="link-recuperacao">
+            <Link to="/recuperar-senha">Esqueci minha senha</Link>
+          </div>
+
           <p className="texto-rodape">
             Não tem conta? <Link to="/registrar">Registre-se aqui</Link>
           </p>
