@@ -672,6 +672,30 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const slug = req.query.slug || [];
+  // Extrair slug de forma segura usando WHATWG URL API
+  let slug = [];
+  
+  // Tenta primeiro req.query.slug (Vercel com [...slug])
+  if (req.query.slug) {
+    slug = Array.isArray(req.query.slug) ? req.query.slug : [req.query.slug];
+  } 
+  // Se não, tenta extrair do URL usando URL API
+  else if (req.url) {
+    try {
+      // Usar URL API do WHATWG para parsing seguro
+      const baseUrl = `http://${req.headers.host || 'localhost'}`;
+      const urlObj = new URL(req.url, baseUrl);
+      const pathname = urlObj.pathname;
+      
+      // Remove /api prefix e split em partes
+      const partes = pathname.replace(/^\/api\/?/, '').split('/').filter(p => p.length > 0);
+      slug = partes;
+    } catch (erro) {
+      log(`Erro ao fazer parse da URL: ${erro.message}`, 'error');
+      slug = [];
+    }
+  }
+
+  log(`📍 Rota recebida: ${slug.join('/') || '(vazia)'} | Método: ${req.method}`);
   return rotear(req, res, slug);
 }

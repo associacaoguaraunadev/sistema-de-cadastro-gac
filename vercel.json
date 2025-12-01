@@ -2,12 +2,6 @@
   "version": 2,
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/[...slug]"
-    }
-  ],
   "headers": [
     {
       "source": "/api/(.*)",
