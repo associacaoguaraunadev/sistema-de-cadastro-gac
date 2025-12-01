@@ -23,6 +23,7 @@ model Usuario {
   expiracaoToken   DateTime? // Quando o token expira
   
   pessoas      Pessoa[]
+  inviteTokens InviteToken[]
 }
 
 model Pessoa {
@@ -42,8 +43,11 @@ model Pessoa {
   // Benefícios GAC armazenados como JSON array
   beneficiosGAC   Json     @default("[]")  // [{tipo, dataInicio, dataFinal}, ...]
   
-  // Benefícios do Governo armazenados como JSON array
-  beneficiosGoverno Json   @default("[]")  // [LOAS, Bolsa Familia, ...]
+  // Benefícios do Governo armazenados como JSON array (dinâmico)
+  beneficiosGoverno Json   @default("[]")  // [{nome, valor}, ...]
+  
+  // Renda Familiar em reais
+  rendaFamiliar   Float?
   
   observacoes     String?
   status          String   @default("ativo")
@@ -57,4 +61,20 @@ model Pessoa {
   @@index([usuarioId])
   @@index([comunidade])
   @@index([cpf])
+}
+
+model InviteToken {
+  id            Int       @id @default(autoincrement())
+  token         String    @unique  // Token único gerado aleatoriamente
+  email         String              // Email do funcionário a ser convidado
+  usuarioId     Int                 // ID do usuário que criou o convite
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  ativo         Boolean   @default(true)
+  dataCriacao   DateTime  @default(now())
+  dataExpiracao DateTime            // Quando o token expira (24h ou 7 dias)
+  dataUtilizado DateTime?           // Quando o convite foi utilizado
+  
+  @@index([token])
+  @@index([email])
+  @@index([usuarioId])
 }
