@@ -76,6 +76,26 @@
   margin-bottom: 16px;
 }
 
+.campo-erro {
+  position: relative;
+}
+
+.campo-erro input,
+.campo-erro select,
+.campo-erro textarea {
+  border-color: #f44336 !important;
+  border-width: 2px;
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
+}
+
+.texto-erro {
+  display: block;
+  color: #f44336;
+  font-size: 12px;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
 .campo-duplo {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -476,6 +496,70 @@
 .campo-checkbox input[type="checkbox"]:disabled + label {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.campo-checkbox-com-valor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.campo-checkbox-com-valor:hover {
+  background: rgba(43, 125, 50, 0.1);
+}
+
+.campo-checkbox-com-valor input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #2b7d32;
+  flex-shrink: 0;
+}
+
+.campo-checkbox-com-valor label {
+  cursor: pointer;
+  color: #333;
+  font-size: 14px;
+  flex: 1;
+  margin: 0;
+}
+
+.valor-beneficio {
+  margin-left: auto;
+  color: #666;
+  font-weight: 600;
+  font-size: 13px;
+  min-width: 80px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.total-beneficios {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f1f8f6 0%, #e8f5e9 100%);
+  border: 2px solid #2b7d32;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(43, 125, 50, 0.1);
+}
+
+.total-beneficios-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1b5e20;
+}
+
+.valor-total {
+  font-size: 18px;
+  color: #1b5e20;
+  font-weight: 700;
 }
 
 @media (max-width: 768px) {

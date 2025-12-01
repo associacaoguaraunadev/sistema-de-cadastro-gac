@@ -25,6 +25,7 @@ export const FormularioPessoa = () => {
     cep: '',
     idade: '',
     comunidade: '',
+    rendaFamiliar: '',
     beneficiosGAC: [],
     beneficiosGoverno: [],
     observacoes: ''
@@ -43,13 +44,16 @@ export const FormularioPessoa = () => {
     dataFinal: ''
   });
 
-  // Lista de benefícios do governo disponíveis
+  // Erros de validação por campo
+  const [errosValidacao, setErrosValidacao] = useState({});
+
+  // Lista de benefícios do governo com valores
   const beneficiosGovernoOpcoes = [
-    'LOAS',
-    'Bolsa Família',
-    'Auxílio Emergencial',
-    'BPC',
-    'Outro'
+    { nome: 'LOAS', valor: 676.00 },
+    { nome: 'Bolsa Família', valor: 600.00 },
+    { nome: 'Auxílio Emergencial', valor: 200.00 },
+    { nome: 'BPC', valor: 1412.00 },
+    { nome: 'Outro', valor: 0 }
   ];
   
   const [carregando, setCarregando] = useState(!!id);
@@ -69,6 +73,7 @@ export const FormularioPessoa = () => {
       const pessoa = await obterPessoa(token, id);
       setFormulario({
         ...pessoa,
+        rendaFamiliar: pessoa.rendaFamiliar || '',
         beneficiosGAC: Array.isArray(pessoa.beneficiosGAC) ? pessoa.beneficiosGAC : [],
         beneficiosGoverno: Array.isArray(pessoa.beneficiosGoverno) ? pessoa.beneficiosGoverno : []
       });
@@ -129,6 +134,43 @@ export const FormularioPessoa = () => {
     }
   };
 
+  const formatarMoeda = (valor) => {
+    // Remove tudo que não é número
+    valor = valor.replace(/\D/g, '');
+    // Converte para número e formata com 2 casas decimais
+    const numero = parseInt(valor || '0', 10) / 100;
+    return numero.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  const extrairValorMoeda = (valor) => {
+    // Remove formatação e extrai apenas o número
+    return parseFloat(valor.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+  };
+
+  const validarDataBeneficio = () => {
+    if (!novoBeneficio.dataInicio) {
+      setErro('Data de início é obrigatória');
+      return false;
+    }
+
+    if (novoBeneficio.dataFinal) {
+      const dataInicio = new Date(novoBeneficio.dataInicio);
+      const dataFinal = new Date(novoBeneficio.dataFinal);
+
+      if (dataFinal < dataInicio) {
+        setErro('Data final não pode ser menor que a data de início');
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   const handleMudar = (e) => {
     const { name, value } = e.target;
     
@@ -136,11 +178,20 @@ export const FormularioPessoa = () => {
     if (name === 'cpf') novoValor = formatarCPF(value);
     if (name === 'cep') novoValor = formatarCEP(value);
     if (name === 'telefone') novoValor = formatarTelefone(value);
+    if (name === 'rendaFamiliar') novoValor = formatarMoeda(value);
 
     setFormulario(prev => ({
       ...prev,
       [name]: novoValor
     }));
+    
+    // Limpar erro de validação quando o campo é preenchido
+    if (errosValidacao[name]) {
+      setErrosValidacao(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
   };
 
   const handleMudarComunidadeCustomizada = (e) => {
@@ -184,8 +235,7 @@ export const FormularioPessoa = () => {
 
   // Funções para gerenciar benefícios GAC
   const adicionarBeneficio = () => {
-    if (!novoBeneficio.tipo || !novoBeneficio.dataInicio) {
-      setErro('Tipo de benefício e data de início são obrigatórios');
+    if (!validarDataBeneficio()) {
       return;
     }
 
@@ -217,10 +267,10 @@ export const FormularioPessoa = () => {
   };
 
   // Funções para gerenciar benefícios do governo
-  const alternarBeneficioGoverno = (beneficio) => {
+  const alternarBeneficioGoverno = (beneficioNome) => {
     setFormulario(prev => {
       const beneficiosAtuais = Array.isArray(prev.beneficiosGoverno) ? prev.beneficiosGoverno : [];
-      const index = beneficiosAtuais.indexOf(beneficio);
+      const index = beneficiosAtuais.indexOf(beneficioNome);
       
       if (index > -1) {
         // Remover se já existe
@@ -232,10 +282,41 @@ export const FormularioPessoa = () => {
         // Adicionar se não existe
         return {
           ...prev,
-          beneficiosGoverno: [...beneficiosAtuais, beneficio]
+          beneficiosGoverno: [...beneficiosAtuais, beneficioNome]
         };
       }
     });
+  };
+
+  // Calcular soma total dos benefícios do governo
+  const calcularTotalBeneficiosGoverno = () => {
+    return beneficiosGovernoOpcoes.reduce((total, beneficio) => {
+      if (formulario.beneficiosGoverno.includes(beneficio.nome)) {
+        return total + beneficio.valor;
+      }
+      return total;
+    }, 0);
+  };
+
+  // Validar campos obrigatórios
+  const validarFormulario = () => {
+    const novosErros = {};
+
+    if (!formulario.nome.trim()) {
+      novosErros.nome = 'Campo obrigatório';
+    }
+    if (!formulario.cpf.trim()) {
+      novosErros.cpf = 'Campo obrigatório';
+    }
+    if (!formulario.endereco.trim()) {
+      novosErros.endereco = 'Campo obrigatório';
+    }
+    if (!formulario.comunidade.trim()) {
+      novosErros.comunidade = 'Campo obrigatório';
+    }
+
+    setErrosValidacao(novosErros);
+    return Object.keys(novosErros).length === 0;
   };
 
 
@@ -243,6 +324,12 @@ export const FormularioPessoa = () => {
     e.preventDefault();
     setErro('');
     setSucesso('');
+
+    if (!validarFormulario()) {
+      erroToast('Validação Falhou', 'Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+
     setSalvando(true);
 
     try {
@@ -258,6 +345,7 @@ export const FormularioPessoa = () => {
         cep: formulario.cep?.trim() || null,
         idade: formulario.idade ? parseInt(formulario.idade) : null,
         comunidade: formulario.comunidade?.trim() || null,
+        rendaFamiliar: formulario.rendaFamiliar ? extrairValorMoeda(formulario.rendaFamiliar) : null,
         beneficiosGAC: formulario.beneficiosGAC || [],
         beneficiosGoverno: formulario.beneficiosGoverno || [],
         observacoes: formulario.observacoes?.trim() || null
@@ -319,7 +407,7 @@ export const FormularioPessoa = () => {
             <h2>Informações Pessoais</h2>
             
             <div className="campo-duplo">
-              <div className="campo">
+              <div className={`campo ${errosValidacao.nome ? 'campo-erro' : ''}`}>
                 <label htmlFor="nome">Nome Completo *</label>
                 <input
                   id="nome"
@@ -331,8 +419,9 @@ export const FormularioPessoa = () => {
                   required
                   disabled={salvando}
                 />
+                {errosValidacao.nome && <span className="texto-erro">{errosValidacao.nome}</span>}
               </div>
-              <div className="campo">
+              <div className={`campo ${errosValidacao.cpf ? 'campo-erro' : ''}`}>
                 <label htmlFor="cpf">CPF *</label>
                 <input
                   id="cpf"
@@ -345,6 +434,7 @@ export const FormularioPessoa = () => {
                   required
                   disabled={salvando}
                 />
+                {errosValidacao.cpf && <span className="texto-erro">{errosValidacao.cpf}</span>}
               </div>
             </div>
 
@@ -397,7 +487,7 @@ export const FormularioPessoa = () => {
           <section className="secao-formulario">
             <h2>Endereço</h2>
             
-            <div className="campo">
+            <div className={`campo ${errosValidacao.endereco ? 'campo-erro' : ''}`}>
               <label htmlFor="endereco">Endereço *</label>
               <input
                 id="endereco"
@@ -409,6 +499,7 @@ export const FormularioPessoa = () => {
                 required
                 disabled={salvando}
               />
+              {errosValidacao.endereco && <span className="texto-erro">{errosValidacao.endereco}</span>}
             </div>
 
             <div className="campo-duplo">
@@ -497,7 +588,7 @@ export const FormularioPessoa = () => {
           <section className="secao-formulario">
             <h2>Comunidade</h2>
             
-            <div className="campo">
+            <div className={`campo ${errosValidacao.comunidade ? 'campo-erro' : ''}`}>
               <label htmlFor="comunidade">Comunidade *</label>
               <select
                 id="comunidade"
@@ -518,6 +609,7 @@ export const FormularioPessoa = () => {
                 ))}
                 <option value="Outra">Outra</option>
               </select>
+              {errosValidacao.comunidade && <span className="texto-erro">{errosValidacao.comunidade}</span>}
             </div>
 
             {formulario.comunidade === 'Outra' && (
@@ -624,7 +716,7 @@ export const FormularioPessoa = () => {
                 onClick={adicionarBeneficio}
                 disabled={salvando}
               >
-                + Adicionar Mais
+                + Adicionar
               </button>
             </div>
           </section>
@@ -635,17 +727,50 @@ export const FormularioPessoa = () => {
             
             <div className="lista-checkboxes">
               {beneficiosGovernoOpcoes.map(beneficio => (
-                <div key={beneficio} className="campo-checkbox">
+                <div key={beneficio.nome} className="campo-checkbox-com-valor">
                   <input
-                    id={`beneficio-${beneficio}`}
+                    id={`beneficio-${beneficio.nome}`}
                     type="checkbox"
-                    checked={Array.isArray(formulario.beneficiosGoverno) && formulario.beneficiosGoverno.includes(beneficio)}
-                    onChange={() => alternarBeneficioGoverno(beneficio)}
+                    checked={Array.isArray(formulario.beneficiosGoverno) && formulario.beneficiosGoverno.includes(beneficio.nome)}
+                    onChange={() => alternarBeneficioGoverno(beneficio.nome)}
                     disabled={salvando}
                   />
-                  <label htmlFor={`beneficio-${beneficio}`}>{beneficio}</label>
+                  <label htmlFor={`beneficio-${beneficio.nome}`}>{beneficio.nome}</label>
+                  {beneficio.valor > 0 && (
+                    <span className="valor-beneficio">
+                      {beneficio.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </span>
+                  )}
                 </div>
               ))}
+            </div>
+
+            {formulario.beneficiosGoverno.length > 0 && (
+              <div className="total-beneficios">
+                <strong>Total de Benefícios do Governo:</strong>
+                <span className="valor-total">
+                  {calcularTotalBeneficiosGoverno().toLocaleString('pt-BR', { 
+                    style: 'currency', 
+                    currency: 'BRL' 
+                  })}
+                </span>
+              </div>
+            )}
+          </section>
+
+          <section className="secao-formulario">
+            <h2>Renda Familiar</h2>
+            <div className="campo">
+              <label htmlFor="rendaFamiliar">Renda Familiar (opcional)</label>
+              <input
+                id="rendaFamiliar"
+                name="rendaFamiliar"
+                type="text"
+                value={formulario.rendaFamiliar}
+                onChange={handleMudar}
+                placeholder="R$ 0,00"
+                disabled={salvando}
+              />
             </div>
           </section>
 
