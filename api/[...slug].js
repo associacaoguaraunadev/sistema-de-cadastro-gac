@@ -145,7 +145,7 @@ async function rotear(req, res, slug) {
     return pessoasObter(req, res, id);
   }
 
-  if (rota.startsWith('pessoas/') && req.method === 'PUT') {
+  if (rota.startsWith('pessoas/') && (req.method === 'PUT' || req.method === 'PATCH')) {
     const id = slug[1];
     return pessoasAtualizar(req, res, id);
   }
@@ -801,6 +801,34 @@ export default async function handler(req, res) {
       log(`Erro ao fazer parse da URL: ${erro.message}`, 'error');
       log(`URL original: ${req.url}`);
       slug = [];
+    }
+  }
+
+  // Limpar query strings do slug (em caso de teste local)
+  slug = slug.map(s => {
+    const parts = s.split('?');
+    return parts[0]; // Retorna apenas a parte antes de '?'
+  }).filter(s => s.length > 0);
+
+  // Fazer parse de query strings do URL
+  if (!req.query || Object.keys(req.query).length === 0 || !req.query.pagina) {
+    try {
+      const baseUrl = `http://${req.headers.host || 'localhost'}`;
+      const urlObj = new URL(req.url, baseUrl);
+      req.query = req.query || {};
+      
+      // Pega todos os parâmetros de query
+      const searchParams = new URLSearchParams(urlObj.search);
+      searchParams.forEach((value, key) => {
+        req.query[key] = value;
+      });
+      
+      // Se nenhum parâmetro foi encontrado no URL, tenta manter os existentes
+      if (searchParams.size === 0 && Object.keys(req.query).length > 1) {
+        // Ok, já tinha query
+      }
+    } catch (erro) {
+      req.query = req.query || {};
     }
   }
 
