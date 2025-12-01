@@ -474,7 +474,7 @@ export const FormularioPessoa = () => {
           </section>
 
           <section className="secao-formulario">
-            <h2>Benefício</h2>
+            <h2>Benefícios GAC</h2>
             
             <div className="campo-duplo">
               <div className="campo">
