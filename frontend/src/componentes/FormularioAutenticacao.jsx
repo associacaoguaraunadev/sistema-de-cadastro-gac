@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
+import { useToast } from '../hooks/useToast';
+import { ToastContainer } from './Toast';
 import './FormularioAutenticacao.css';
 
 export const FormularioLogin = () => {
@@ -12,6 +14,7 @@ export const FormularioLogin = () => {
   
   const { entrar } = useAuth();
   const navegar = useNavigate();
+  const { toasts, removerToast, sucesso: sucessoToast, erro: erroToast } = useToast();
 
   const aoEnviar = async (e) => {
     e.preventDefault();
@@ -20,9 +23,13 @@ export const FormularioLogin = () => {
 
     try {
       await entrar(email, senha);
-      navegar('/');
+      sucessoToast('Bem-vindo!', 'Login realizado com sucesso');
+      setTimeout(() => {
+        navegar('/');
+      }, 500);
     } catch (erro) {
       setErro(erro.message);
+      erroToast('Erro no Login', erro.message);
     } finally {
       setCarregando(false);
     }
@@ -30,6 +37,7 @@ export const FormularioLogin = () => {
 
   return (
     <div className="container-autenticacao">
+      <ToastContainer toasts={toasts} onClose={removerToast} />
       <div className="card-autenticacao">
         <div className="logo-gac">
           <div className="marca-gac">GAC</div>
@@ -107,6 +115,7 @@ export const FormularioRegistro = () => {
   
   const { registrar } = useAuth();
   const navegar = useNavigate();
+  const { toasts: toastsReg, removerToast: removerToastReg, sucesso: sucessoToastReg, erro: erroToastReg, aviso: avisoReg } = useToast();
 
   const validarCodigo = async () => {
     setErro('');
@@ -130,15 +139,18 @@ export const FormularioRegistro = () => {
       if (!resposta.ok) {
         setErro(dados.erro || 'Código inválido');
         setCodigoValidado(false);
+        erroToastReg('Código Inválido', dados.erro || 'Código inválido ou expirado');
         return;
       }
 
       setEmail(dados.email);
       setCodigoValidado(true);
       setErro('');
+      sucessoToastReg('Código Validado!', 'Complete seu cadastro abaixo');
     } catch (erro) {
       setErro('Erro ao validar código: ' + erro.message);
       setCodigoValidado(false);
+      erroToastReg('Erro ao Validar', 'Erro ao validar código: ' + erro.message);
     } finally {
       setCarregando(false);
     }
@@ -151,9 +163,13 @@ export const FormularioRegistro = () => {
 
     try {
       await registrar(email, senha, nome, codigoConvite);
-      navegar('/');
+      sucessoToastReg('Conta Criada!', 'Bem-vindo ao sistema');
+      setTimeout(() => {
+        navegar('/');
+      }, 500);
     } catch (erro) {
       setErro(erro.message);
+      erroToastReg('Erro no Registro', erro.message);
     } finally {
       setCarregando(false);
     }
@@ -161,6 +177,7 @@ export const FormularioRegistro = () => {
 
   return (
     <div className="container-autenticacao">
+      <ToastContainer toasts={toastsReg} onClose={removerToastReg} />
       <div className="card-autenticacao">
         <div className="logo-gac">
           <div className="marca-gac">GAC</div>
