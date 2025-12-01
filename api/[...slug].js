@@ -163,7 +163,14 @@ async function rotear(req, res, slug) {
 async function autenticacaoEntrar(req, res) {
   const prisma = getPrisma();
   try {
-    const { email, senha } = req.body;
+    // DEBUG: Verificar o que está chegando no body
+    log(`📦 Tipo de req.body: ${typeof req.body}`);
+    log(`📦 req.body é null? ${req.body === null}`);
+    log(`📦 req.body é undefined? ${req.body === undefined}`);
+    log(`📦 req.body: ${JSON.stringify(req.body)}`);
+    
+    const { email, senha } = req.body || {};
+    
     log(`🔐 Tentando login: ${email}`);
 
     if (!email || !senha) {
@@ -211,6 +218,7 @@ async function autenticacaoEntrar(req, res) {
     });
   } catch (erro) {
     log(`Erro no login: ${erro.message}`, 'error');
+    log(`Stack: ${erro.stack}`, 'error');
     res.status(500).json({ erro: 'Erro ao fazer login' });
   }
 }
@@ -689,19 +697,28 @@ export default async function handler(req, res) {
   // PARSE DO BODY - CRUCIAL PARA VERCEL
   if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
     try {
-      let body = '';
-      await new Promise((resolve, reject) => {
-        req.on('data', chunk => {
-          body += chunk.toString();
-        });
-        req.on('end', resolve);
-        req.on('error', reject);
-      });
-      
-      if (body) {
-        req.body = JSON.parse(body);
+      // Vercel pode já ter parseado o body
+      if (req.body) {
+        if (typeof req.body === 'string') {
+          req.body = JSON.parse(req.body);
+        }
+        // Se já é objeto, deixa como está
       } else {
-        req.body = {};
+        // Se não tem body, tentar ler do stream
+        let body = '';
+        await new Promise((resolve, reject) => {
+          req.on('data', chunk => {
+            body += chunk.toString();
+          });
+          req.on('end', resolve);
+          req.on('error', reject);
+        });
+        
+        if (body) {
+          req.body = JSON.parse(body);
+        } else {
+          req.body = {};
+        }
       }
     } catch (erro) {
       log(`Erro ao fazer parse do body: ${erro.message}`, 'error');
