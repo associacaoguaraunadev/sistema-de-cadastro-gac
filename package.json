@@ -3,19 +3,34 @@
   "version": "1.0.0",
   "description": "Sistema de Cadastro de Beneficiários - GAC",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "prisma:generate": "cd backend && npm install && prisma generate",
+    "prisma:generate": "cd api && prisma generate",
     "dev": "node dev.js",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
     "dev:parallel": "npm run dev:frontend & npm run dev:backend",
     "start": "cd frontend && npm start",
     "start:backend": "cd backend && npm start",
-    "seed": "cd backend && node seed.js",
+    "seed": "node seed.js",
+    "reset-db": "node reset-db.js",
     "vercel-build": "echo '🔨 Build Local Test' && npm run build"
   },
-  "keywords": ["beneficiarios", "cadastro", "gac"],
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.0"
+  },
+  "keywords": [
+    "beneficiarios",
+    "cadastro",
+    "gac"
+  ],
   "author": "Associação Guaraúna",
   "license": "MIT"
 }

@@ -1,43 +1,46 @@
 #!/usr/bin/env node
 
 /**
- * 🌱 Seed Script - Criação de dados de teste
- * Este script é executado automaticamente após migrations
+ * 🔄 Script de Reset Completo do Banco de Dados
+ * Remove todos os dados e reinicia com dados de teste
  */
 
-import { PrismaClient } from '@prisma/client';
+import { createRequire } from 'module';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
+// Carregar variáveis de ambiente
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-// Tentar carregar de diferentes locais
 dotenv.config({ path: resolve(__dirname, '.env') });
-dotenv.config({ path: resolve(__dirname, 'api/.env') });
-dotenv.config({ path: resolve(__dirname, '.env.local') });
 
-const prisma = new PrismaClient();
+// Importar Prisma do local correto (api/node_modules)
+const require = createRequire(import.meta.url);
+const { PrismaClient } = require('./api/node_modules/@prisma/client/index.js');
 
-async function seed() {
+const prisma = new PrismaClient({
+  // Especificar o schema do Prisma
+});
+
+async function resetDatabase() {
   try {
-    console.log('\n🌱 INICIANDO SEED DO BANCO DE DADOS\n');
+    console.log('\n🔄 INICIANDO RESET COMPLETO DO BANCO DE DADOS\n');
     console.log('═'.repeat(60));
 
-    // Verificar se já existem usuários
-    const usuariosExistentes = await prisma.usuario.count();
+    // Step 1: Deletar todos os registros
+    console.log('\n📋 STEP 1: Limpando dados existentes...');
+    
+    const pessoasDeleted = await prisma.pessoa.deleteMany({});
+    console.log(`   ✅ ${pessoasDeleted.count} pessoas removidas`);
 
-    if (usuariosExistentes > 0) {
-      console.log('\n⚠️  Banco de dados já contém usuários. Pulando seed.');
-      console.log(`   Total de usuários: ${usuariosExistentes}`);
-      console.log('═'.repeat(60) + '\n');
-      return;
-    }
+    const usuariosDeleted = await prisma.usuario.deleteMany({});
+    console.log(`   ✅ ${usuariosDeleted.count} usuários removidos`);
 
-    // Criar usuário admin
-    console.log('\n📝 Criando usuário ADMIN...');
+    // Step 2: Criar usuários
+    console.log('\n📋 STEP 2: Criando usuários...');
+
     const usuarioAdmin = await prisma.usuario.create({
       data: {
         email: 'admin@gac.com',
@@ -47,10 +50,8 @@ async function seed() {
         ativo: true
       }
     });
-    console.log(`   ✅ admin@gac.com (Senha: Admin123!)`);
+    console.log(`   ✅ Admin: admin@gac.com (Senha: Admin123!)`);
 
-    // Criar usuário funcionário
-    console.log('\n📝 Criando usuário FUNCIONÁRIO...');
     const usuarioFunc = await prisma.usuario.create({
       data: {
         email: 'funcionario@gac.com',
@@ -60,10 +61,10 @@ async function seed() {
         ativo: true
       }
     });
-    console.log(`   ✅ funcionario@gac.com (Senha: Func123!)`);
+    console.log(`   ✅ Funcionário: funcionario@gac.com (Senha: Func123!)`);
 
-    // Criar pessoas de teste
-    console.log('\n📝 Criando pessoas de teste...');
+    // Step 3: Criar pessoas de teste
+    console.log('\n📋 STEP 3: Criando pessoas de teste...');
 
     const pessoasData = [
       // CRIANÇAS (0-17 anos)
@@ -276,8 +277,8 @@ async function seed() {
     });
     console.log(`   ✅ ${pessoasCreated.count} pessoas criadas`);
 
-    // Estatísticas
-    console.log('\n📊 RESUMO DO SEED:');
+    // Step 4: Estatísticas
+    console.log('\n📊 ESTATÍSTICAS FINAIS:');
 
     const criancas = pessoasData.filter(p => p.idade < 18).length;
     const adultos = pessoasData.filter(p => p.idade >= 18 && p.idade < 60).length;
@@ -297,18 +298,28 @@ async function seed() {
       console.log(`     • ${benef}: ${count}`);
     });
 
-    console.log('\n═'.repeat(60));
-    console.log('\n✨ SEED CONCLUÍDO COM SUCESSO!\n');
+    // Step 5: Credenciais
+    console.log('\n' + '═'.repeat(60));
+    console.log('\n🔐 CREDENCIAIS DE TESTE:');
+    console.log('─'.repeat(60));
+    console.log('\n📧 ADMIN:');
+    console.log('   Email: admin@gac.com');
+    console.log('   Senha: Admin123!');
+    console.log('   Função: admin');
+    console.log('\n📧 FUNCIONÁRIO:');
+    console.log('   Email: funcionario@gac.com');
+    console.log('   Senha: Func123!');
+    console.log('   Função: funcionario');
+    console.log('\n' + '═'.repeat(60));
+    console.log('\n✨ RESET CONCLUÍDO COM SUCESSO!\n');
 
   } catch (erro) {
-    console.error('\n❌ ERRO NO SEED:', erro.message);
-    if (erro.code === 'P2002') {
-      console.error('   Erro: Valor único violado (possivelmente email ou CPF duplicado)');
-    }
+    console.error('\n❌ ERRO NO RESET:', erro.message);
+    console.error(erro);
     process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-seed();
+resetDatabase();
