@@ -47,6 +47,20 @@ function log(msg, tipo = 'info') {
 async function rotear(req, res, slug) {
   const rota = slug.join('/');
 
+  // DEBUG: Se rota vazia, retorna erro informativo
+  if (!rota || rota === '') {
+    log(`⚠️ Rota vazia recebida | query.slug: ${JSON.stringify(req.query.slug)} | req.url: ${req.url}`, 'error');
+    return res.status(400).json({ 
+      erro: 'Rota não especificada',
+      debug: {
+        slug: slug,
+        rota: rota,
+        url: req.url,
+        query: req.query
+      }
+    });
+  }
+
   // HEALTH CHECK
   if (rota === 'health' && req.method === 'GET') {
     try {
@@ -672,30 +686,40 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  // Extrair slug de forma segura usando WHATWG URL API
+  // Extrair slug de forma segura
   let slug = [];
   
-  // Tenta primeiro req.query.slug (Vercel com [...slug])
-  if (req.query.slug) {
-    slug = Array.isArray(req.query.slug) ? req.query.slug : [req.query.slug];
-  } 
-  // Se não, tenta extrair do URL usando URL API
-  else if (req.url) {
+  // Método 1: req.query.slug (padrão Vercel para [...slug])
+  if (req.query.slug && Array.isArray(req.query.slug)) {
+    slug = req.query.slug;
+  } else if (req.query.slug && typeof req.query.slug === 'string') {
+    slug = [req.query.slug];
+  }
+  // Método 2: Extrair do URL se não conseguir por query
+  else if (req.url && req.url.length > 1) {
     try {
       // Usar URL API do WHATWG para parsing seguro
       const baseUrl = `http://${req.headers.host || 'localhost'}`;
       const urlObj = new URL(req.url, baseUrl);
-      const pathname = urlObj.pathname;
+      let pathname = urlObj.pathname;
       
-      // Remove /api prefix e split em partes
-      const partes = pathname.replace(/^\/api\/?/, '').split('/').filter(p => p.length > 0);
-      slug = partes;
+      // Remover /api/ prefix
+      if (pathname.startsWith('/api/')) {
+        pathname = pathname.slice(5); // Remove "/api/"
+      } else if (pathname.startsWith('/api')) {
+        pathname = pathname.slice(4); // Remove "/api"
+      }
+      
+      // Split e filtrar partes vazias
+      slug = pathname.split('/').filter(p => p.length > 0);
     } catch (erro) {
       log(`Erro ao fazer parse da URL: ${erro.message}`, 'error');
       slug = [];
     }
   }
 
-  log(`📍 Rota recebida: ${slug.join('/') || '(vazia)'} | Método: ${req.method}`);
+  const rotaStr = slug.join('/');
+  log(`📍 [${req.method}] Rota: "${rotaStr}" | URL: "${req.url}"`);
+  
   return rotear(req, res, slug);
 }
