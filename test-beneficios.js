@@ -140,7 +140,10 @@ const pessoa1 = await test(
         dataFinal: null
       }
     ],
-    beneficiosGoverno: ['LOAS', 'Bolsa Família']
+    beneficiosGoverno: [
+      { nome: 'LOAS', valor: 676.00 },
+      { nome: 'Bolsa Família', valor: 600.00 }
+    ]
   },
   token
 );
@@ -150,6 +153,7 @@ if (pessoa1) {
   console.log('   ✓ Quantidade de benefícios GAC:', pessoa1.beneficiosGAC?.length);
   console.log('   ✓ beneficiosGoverno é array:', Array.isArray(pessoa1.beneficiosGoverno));
   console.log('   ✓ Quantidade de benefícios governo:', pessoa1.beneficiosGoverno?.length);
+  console.log('   ✓ Primeiro benefício tem nome e valor:', pessoa1.beneficiosGoverno?.[0]?.nome && pessoa1.beneficiosGoverno?.[0]?.valor);
 }
 
 // Teste 2: Criar pessoa com benefícios vazios
@@ -210,14 +214,20 @@ const pessoa4 = await test(
     endereco: 'Avenida Principal, 999',
     comunidade: 'Parque Centenario',
     beneficiosGAC: [],
-    beneficiosGoverno: ['LOAS', 'Bolsa Família', 'BPC', 'Auxílio Emergencial']
+    beneficiosGoverno: [
+      { nome: 'LOAS', valor: 676.00 },
+      { nome: 'Bolsa Família', valor: 600.00 },
+      { nome: 'BPC', valor: 1412.00 },
+      { nome: 'Auxílio Emergencial', valor: 200.00 }
+    ]
   },
   token
 );
 
 if (pessoa4) {
   console.log('   ✓ Total de benefícios governo:', pessoa4.beneficiosGoverno?.length);
-  console.log('   ✓ Inclui BPC:', pessoa4.beneficiosGoverno?.includes('BPC'));
+  const temBPC = pessoa4.beneficiosGoverno?.some(b => b.nome === 'BPC');
+  console.log('   ✓ Inclui BPC:', temBPC);
 }
 
 // Teste 5: Benefício sem data final (contínuo)
@@ -237,7 +247,9 @@ const pessoa5 = await test(
         dataFinal: null
       }
     ],
-    beneficiosGoverno: ['Bolsa Família']
+    beneficiosGoverno: [
+      { nome: 'Bolsa Família', valor: 600.00 }
+    ]
   },
   token
 );
@@ -298,7 +310,9 @@ if (pessoa2) {
           dataFinal: null
         }
       ],
-      beneficiosGoverno: ['LOAS']
+      beneficiosGoverno: [
+        { nome: 'LOAS', valor: 676.00 }
+      ]
     },
     token
   );

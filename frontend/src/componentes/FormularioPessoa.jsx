@@ -47,14 +47,11 @@ export const FormularioPessoa = () => {
   // Erros de validação por campo
   const [errosValidacao, setErrosValidacao] = useState({});
 
-  // Lista de benefícios do governo com valores
-  const beneficiosGovernoOpcoes = [
-    { nome: 'LOAS', valor: 676.00 },
-    { nome: 'Bolsa Família', valor: 600.00 },
-    { nome: 'Auxílio Emergencial', valor: 200.00 },
-    { nome: 'BPC', valor: 1412.00 },
-    { nome: 'Outro', valor: 0 }
-  ];
+  // Estado para novo benefício do governo sendo adicionado
+  const [novoBeneficioGoverno, setNovoBeneficioGoverno] = useState({
+    nome: '',
+    valor: ''
+  });
   
   const [carregando, setCarregando] = useState(!!id);
   const [salvando, setSalvando] = useState(false);
@@ -266,35 +263,55 @@ export const FormularioPessoa = () => {
     }));
   };
 
-  // Funções para gerenciar benefícios do governo
-  const alternarBeneficioGoverno = (beneficioNome) => {
+  // Funções para gerenciar benefícios do governo dinâmicos
+  
+  const adicionarBeneficioGoverno = () => {
+    if (!novoBeneficioGoverno.nome.trim()) {
+      erroToast('Erro', 'Digite o nome do benefício');
+      return;
+    }
+
+    const valor = parseFloat(extrairValorMoeda(novoBeneficioGoverno.valor));
+    
+    if (isNaN(valor) || valor < 0) {
+      erroToast('Erro', 'Digite um valor válido');
+      return;
+    }
+
     setFormulario(prev => {
       const beneficiosAtuais = Array.isArray(prev.beneficiosGoverno) ? prev.beneficiosGoverno : [];
-      const index = beneficiosAtuais.indexOf(beneficioNome);
-      
-      if (index > -1) {
-        // Remover se já existe
-        return {
-          ...prev,
-          beneficiosGoverno: beneficiosAtuais.filter((_, i) => i !== index)
-        };
-      } else {
-        // Adicionar se não existe
-        return {
-          ...prev,
-          beneficiosGoverno: [...beneficiosAtuais, beneficioNome]
-        };
-      }
+      return {
+        ...prev,
+        beneficiosGoverno: [
+          ...beneficiosAtuais,
+          {
+            nome: novoBeneficioGoverno.nome.trim(),
+            valor: valor
+          }
+        ]
+      };
+    });
+
+    // Limpar formulário
+    setNovoBeneficioGoverno({ nome: '', valor: '' });
+  };
+
+  const removerBeneficioGoverno = (index) => {
+    setFormulario(prev => {
+      const beneficiosAtuais = Array.isArray(prev.beneficiosGoverno) ? prev.beneficiosGoverno : [];
+      return {
+        ...prev,
+        beneficiosGoverno: beneficiosAtuais.filter((_, i) => i !== index)
+      };
     });
   };
 
   // Calcular soma total dos benefícios do governo
   const calcularTotalBeneficiosGoverno = () => {
-    return beneficiosGovernoOpcoes.reduce((total, beneficio) => {
-      if (formulario.beneficiosGoverno.includes(beneficio.nome)) {
-        return total + beneficio.valor;
-      }
-      return total;
+    if (!Array.isArray(formulario.beneficiosGoverno)) return 0;
+    return formulario.beneficiosGoverno.reduce((total, beneficio) => {
+      const valor = typeof beneficio.valor === 'number' ? beneficio.valor : 0;
+      return total + valor;
     }, 0);
   };
 
@@ -723,31 +740,81 @@ export const FormularioPessoa = () => {
 
           <section className="secao-formulario">
             <h2>Benefícios do Governo</h2>
-            <p className="descricao-secao">Selecione os benefícios do governo que a pessoa recebe (opcional)</p>
+            <p className="descricao-secao">Adicione os benefícios do governo que a pessoa recebe com seus respectivos valores (opcional)</p>
             
-            <div className="lista-checkboxes">
-              {beneficiosGovernoOpcoes.map(beneficio => (
-                <div key={beneficio.nome} className="campo-checkbox-com-valor">
-                  <input
-                    id={`beneficio-${beneficio.nome}`}
-                    type="checkbox"
-                    checked={Array.isArray(formulario.beneficiosGoverno) && formulario.beneficiosGoverno.includes(beneficio.nome)}
-                    onChange={() => alternarBeneficioGoverno(beneficio.nome)}
-                    disabled={salvando}
-                  />
-                  <label htmlFor={`beneficio-${beneficio.nome}`}>{beneficio.nome}</label>
-                  {beneficio.valor > 0 && (
-                    <span className="valor-beneficio">
-                      {beneficio.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </span>
-                  )}
-                </div>
-              ))}
+            {/* Exibir benefícios adicionados */}
+            {formulario.beneficiosGoverno && formulario.beneficiosGoverno.length > 0 && (
+              <div className="lista-beneficios-governo">
+                <h3>Benefícios Adicionados:</h3>
+                {formulario.beneficiosGoverno.map((beneficio, index) => (
+                  <div key={index} className="item-beneficio-governo">
+                    <div className="info-beneficio-governo">
+                      <strong className="nome-beneficio-governo">{beneficio.nome}</strong>
+                      <span className="valor-beneficio-governo">
+                        {typeof beneficio.valor === 'number' 
+                          ? beneficio.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                          : 'R$ 0,00'
+                        }
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="botao-remover"
+                      onClick={() => removerBeneficioGoverno(index)}
+                      disabled={salvando}
+                      title="Remover benefício"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Formulário para adicionar novo benefício do governo */}
+            <div className="secao-adicionar">
+              <h3>Adicionar Benefício</h3>
+              <div className="campo">
+                <label htmlFor="nomeBeneficioGoverno">Nome do Benefício</label>
+                <input
+                  id="nomeBeneficioGoverno"
+                  type="text"
+                  value={novoBeneficioGoverno.nome}
+                  onChange={(e) => setNovoBeneficioGoverno(prev => ({ ...prev, nome: e.target.value }))}
+                  placeholder="Ex: LOAS, Bolsa Família, BPC, etc."
+                  disabled={salvando}
+                />
+              </div>
+
+              <div className="campo">
+                <label htmlFor="valorBeneficioGoverno">Valor do Benefício</label>
+                <input
+                  id="valorBeneficioGoverno"
+                  type="text"
+                  value={novoBeneficioGoverno.valor}
+                  onChange={(e) => setNovoBeneficioGoverno(prev => ({ 
+                    ...prev, 
+                    valor: formatarMoeda(e.target.value)
+                  }))}
+                  placeholder="R$ 0,00"
+                  disabled={salvando}
+                />
+              </div>
+
+              <button
+                type="button"
+                className="botao-adicionar-beneficio"
+                onClick={adicionarBeneficioGoverno}
+                disabled={salvando}
+              >
+                + Adicionar
+              </button>
             </div>
 
-            {formulario.beneficiosGoverno.length > 0 && (
+            {/* Total de benefícios */}
+            {formulario.beneficiosGoverno && formulario.beneficiosGoverno.length > 0 && (
               <div className="total-beneficios">
-                <strong>Total de Benefícios do Governo:</strong>
+                <strong className="total-beneficios-label">Total de Benefícios do Governo:</strong>
                 <span className="valor-total">
                   {calcularTotalBeneficiosGoverno().toLocaleString('pt-BR', { 
                     style: 'currency', 

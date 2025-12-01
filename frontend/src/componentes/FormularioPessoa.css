@@ -411,6 +411,74 @@
   cursor: not-allowed;
 }
 
+/* Estilos para benefícios do governo dinâmicos */
+.lista-beneficios-governo {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f1f8f6 0%, #e8f5e9 100%);
+  border-radius: 8px;
+  border-left: 4px solid #2b7d32;
+}
+
+.lista-beneficios-governo h3 {
+  margin: 0 0 12px 0;
+  color: #1b5e20;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.item-beneficio-governo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease;
+  border-left: 3px solid #2b7d32;
+}
+
+.info-beneficio-governo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  gap: 16px;
+}
+
+.nome-beneficio-governo {
+  color: #1b5e20;
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 150px;
+}
+
+.valor-beneficio-governo {
+  color: #2b7d32;
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 100px;
+  text-align: right;
+}
+
+.secao-adicionar {
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 2px dashed #2b7d32;
+}
+
+.secao-adicionar h3 {
+  margin: 0 0 16px 0;
+  color: #1b5e20;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .secao-adicionar {
   margin-top: 20px;
   padding: 16px;
