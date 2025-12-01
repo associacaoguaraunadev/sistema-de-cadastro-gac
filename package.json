@@ -17,11 +17,13 @@
     "reset-db": "node reset-db.js",
     "limpar-banco": "node limpar-banco.js",
     "test-db": "node test-db-connection.js",
+    "diagnostico": "node diagnostico-completo.js",
     "verificar-credenciais": "node verificar-credenciais.js",
     "vercel-build": "echo '🔨 Build Local Test' && npm run build"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.3.1",
     "jsonwebtoken": "^9.0.0"
