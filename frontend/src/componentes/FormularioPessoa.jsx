@@ -98,14 +98,18 @@ export const FormularioPessoa = () => {
     valor = valor.replace(/\D/g, '');
     // Limita a 11 dígitos
     valor = valor.slice(0, 11);
-    // Formata: (00) 90000-0000
-    if (valor.length >= 2) {
-      valor = '(' + valor.slice(0, 2) + ') ' + valor.slice(2);
+    
+    // Se não tem dígitos, retorna vazio
+    if (valor.length === 0) return '';
+    
+    // Formata: (XX) XXXXX-XXXX (10 dígitos) ou (XX) 9XXXX-XXXX (11 dígitos)
+    if (valor.length <= 2) {
+      return valor;
+    } else if (valor.length <= 7) {
+      return `(${valor.slice(0, 2)}) ${valor.slice(2)}`;
+    } else {
+      return `(${valor.slice(0, 2)}) ${valor.slice(2, 7)}-${valor.slice(7)}`;
     }
-    if (valor.length >= 9) {
-      valor = valor.slice(0, 9) + '-' + valor.slice(9);
-    }
-    return valor;
   };
 
   const handleMudar = (e) => {
