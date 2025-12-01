@@ -25,8 +25,8 @@ export const FormularioPessoa = () => {
     cep: '',
     idade: '',
     comunidade: '',
-    tipoBeneficio: 'Cesta Básica',
-    dataBeneficio: '',
+    beneficiosGAC: [],
+    beneficiosGoverno: [],
     observacoes: ''
   });
   
@@ -35,6 +35,22 @@ export const FormularioPessoa = () => {
     const salvas = localStorage.getItem('comunidadesCustomizadas');
     return salvas ? JSON.parse(salvas) : [];
   });
+
+  // Estado para novo benefício GAC sendo adicionado
+  const [novoBeneficio, setNovoBeneficio] = useState({
+    tipo: 'Cesta Básica',
+    dataInicio: '',
+    dataFinal: ''
+  });
+
+  // Lista de benefícios do governo disponíveis
+  const beneficiosGovernoOpcoes = [
+    'LOAS',
+    'Bolsa Família',
+    'Auxílio Emergencial',
+    'BPC',
+    'Outro'
+  ];
   
   const [carregando, setCarregando] = useState(!!id);
   const [salvando, setSalvando] = useState(false);
@@ -53,7 +69,8 @@ export const FormularioPessoa = () => {
       const pessoa = await obterPessoa(token, id);
       setFormulario({
         ...pessoa,
-        dataBeneficio: pessoa.dataBeneficio ? pessoa.dataBeneficio.split('T')[0] : ''
+        beneficiosGAC: Array.isArray(pessoa.beneficiosGAC) ? pessoa.beneficiosGAC : [],
+        beneficiosGoverno: Array.isArray(pessoa.beneficiosGoverno) ? pessoa.beneficiosGoverno : []
       });
     } catch (erro) {
       setErro('Erro ao carregar pessoa: ' + erro.message);
@@ -165,6 +182,62 @@ export const FormularioPessoa = () => {
     setErro('');
   };
 
+  // Funções para gerenciar benefícios GAC
+  const adicionarBeneficio = () => {
+    if (!novoBeneficio.tipo || !novoBeneficio.dataInicio) {
+      setErro('Tipo de benefício e data de início são obrigatórios');
+      return;
+    }
+
+    setFormulario(prev => ({
+      ...prev,
+      beneficiosGAC: [...prev.beneficiosGAC, { ...novoBeneficio }]
+    }));
+
+    setNovoBeneficio({
+      tipo: 'Cesta Básica',
+      dataInicio: '',
+      dataFinal: ''
+    });
+    setErro('');
+  };
+
+  const removerBeneficio = (index) => {
+    setFormulario(prev => ({
+      ...prev,
+      beneficiosGAC: prev.beneficiosGAC.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleMudarNovoBeneficio = (field, value) => {
+    setNovoBeneficio(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Funções para gerenciar benefícios do governo
+  const alternarBeneficioGoverno = (beneficio) => {
+    setFormulario(prev => {
+      const beneficiosAtuais = Array.isArray(prev.beneficiosGoverno) ? prev.beneficiosGoverno : [];
+      const index = beneficiosAtuais.indexOf(beneficio);
+      
+      if (index > -1) {
+        // Remover se já existe
+        return {
+          ...prev,
+          beneficiosGoverno: beneficiosAtuais.filter((_, i) => i !== index)
+        };
+      } else {
+        // Adicionar se não existe
+        return {
+          ...prev,
+          beneficiosGoverno: [...beneficiosAtuais, beneficio]
+        };
+      }
+    });
+  };
+
 
   const aoEnviar = async (e) => {
     e.preventDefault();
@@ -185,8 +258,8 @@ export const FormularioPessoa = () => {
         cep: formulario.cep?.trim() || null,
         idade: formulario.idade ? parseInt(formulario.idade) : null,
         comunidade: formulario.comunidade?.trim() || null,
-        tipoBeneficio: formulario.tipoBeneficio.trim(),
-        dataBeneficio: formulario.dataBeneficio || null,
+        beneficiosGAC: formulario.beneficiosGAC || [],
+        beneficiosGoverno: formulario.beneficiosGoverno || [],
         observacoes: formulario.observacoes?.trim() || null
       };
 
@@ -476,15 +549,42 @@ export const FormularioPessoa = () => {
           <section className="secao-formulario">
             <h2>Benefícios GAC</h2>
             
-            <div className="campo-duplo">
+            {/* Exibir benefícios adicionados */}
+            {formulario.beneficiosGAC && formulario.beneficiosGAC.length > 0 && (
+              <div className="lista-beneficios">
+                <h3>Benefícios Adicionados:</h3>
+                {formulario.beneficiosGAC.map((beneficio, index) => (
+                  <div key={index} className="item-beneficio">
+                    <div className="info-beneficio">
+                      <strong>{beneficio.tipo}</strong>
+                      <span className="datas-beneficio">
+                        De {new Date(beneficio.dataInicio).toLocaleDateString('pt-BR')}
+                        {beneficio.dataFinal && ` até ${new Date(beneficio.dataFinal).toLocaleDateString('pt-BR')}`}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="botao-remover"
+                      onClick={() => removerBeneficio(index)}
+                      disabled={salvando}
+                      title="Remover benefício"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Formulário para adicionar novo benefício */}
+            <div className="secao-adicionar">
+              <h3>Adicionar Benefício</h3>
               <div className="campo">
-                <label htmlFor="tipoBeneficio">Tipo de Benefício *</label>
+                <label htmlFor="tipoBeneficio">Tipo de Benefício</label>
                 <select
                   id="tipoBeneficio"
-                  name="tipoBeneficio"
-                  value={formulario.tipoBeneficio}
-                  onChange={handleMudar}
-                  required
+                  value={novoBeneficio.tipo}
+                  onChange={(e) => handleMudarNovoBeneficio('tipo', e.target.value)}
                   disabled={salvando}
                 >
                   <option value="Cesta Básica">Cesta Básica</option>
@@ -494,19 +594,64 @@ export const FormularioPessoa = () => {
                   <option value="Outro">Outro</option>
                 </select>
               </div>
-              <div className="campo">
-                <label htmlFor="dataBeneficio">Data do Benefício</label>
-                <input
-                  id="dataBeneficio"
-                  name="dataBeneficio"
-                  type="date"
-                  value={formulario.dataBeneficio}
-                  onChange={handleMudar}
-                  disabled={salvando}
-                />
-              </div>
-            </div>
 
+              <div className="campo-duplo">
+                <div className="campo">
+                  <label htmlFor="dataInicio">Data de Início</label>
+                  <input
+                    id="dataInicio"
+                    type="date"
+                    value={novoBeneficio.dataInicio}
+                    onChange={(e) => handleMudarNovoBeneficio('dataInicio', e.target.value)}
+                    disabled={salvando}
+                  />
+                </div>
+                <div className="campo">
+                  <label htmlFor="dataFinal">Data Final</label>
+                  <input
+                    id="dataFinal"
+                    type="date"
+                    value={novoBeneficio.dataFinal}
+                    onChange={(e) => handleMudarNovoBeneficio('dataFinal', e.target.value)}
+                    disabled={salvando}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="botao-adicionar-beneficio"
+                onClick={adicionarBeneficio}
+                disabled={salvando}
+              >
+                + Adicionar Mais
+              </button>
+            </div>
+          </section>
+
+          <section className="secao-formulario">
+            <h2>Benefícios do Governo</h2>
+            <p className="descricao-secao">Selecione os benefícios do governo que a pessoa recebe (opcional)</p>
+            
+            <div className="lista-checkboxes">
+              {beneficiosGovernoOpcoes.map(beneficio => (
+                <div key={beneficio} className="campo-checkbox">
+                  <input
+                    id={`beneficio-${beneficio}`}
+                    type="checkbox"
+                    checked={Array.isArray(formulario.beneficiosGoverno) && formulario.beneficiosGoverno.includes(beneficio)}
+                    onChange={() => alternarBeneficioGoverno(beneficio)}
+                    disabled={salvando}
+                  />
+                  <label htmlFor={`beneficio-${beneficio}`}>{beneficio}</label>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="secao-formulario">
+            <h2>Observações Gerais</h2>
+            
             <div className="campo">
               <label htmlFor="observacoes">Observações</label>
               <textarea

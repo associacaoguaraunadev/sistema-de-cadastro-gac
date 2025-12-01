@@ -38,8 +38,13 @@ model Pessoa {
   cep             String?
   idade           Int?
   comunidade      String?  // Vila Cheba, Morro da Vila, Barragem, Parque Centenario, Jardim Apura
-  tipoBeneficio   String
-  dataBeneficio   DateTime?
+  
+  // Benefícios GAC armazenados como JSON array
+  beneficiosGAC   Json     @default("[]")  // [{tipo, dataInicio, dataFinal}, ...]
+  
+  // Benefícios do Governo armazenados como JSON array
+  beneficiosGoverno Json   @default("[]")  // [LOAS, Bolsa Familia, ...]
+  
   observacoes     String?
   status          String   @default("ativo")
   usuarioId       Int
