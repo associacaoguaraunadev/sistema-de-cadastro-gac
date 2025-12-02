@@ -640,14 +640,10 @@
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   align-items: center;
-  cursor: grab;
+  cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   transition: background-color 0.2s ease;
-}
-
-.abas-wrapper:active {
-  cursor: grabbing;
 }
 
 .abas-wrapper::-webkit-scrollbar {
