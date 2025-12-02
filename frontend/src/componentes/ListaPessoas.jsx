@@ -66,22 +66,52 @@ export const ListaPessoas = () => {
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
-  // Implementar scroll horizontal com mouse wheel na barra de comunidades
+  // Implementar scroll horizontal com drag na barra de comunidades
   useEffect(() => {
     const wrapper = abasWrapperRef.current;
     if (!wrapper) return;
 
-    const handleWheel = (e) => {
-      // Verificar se o scroll é horizontal ou vertical
-      if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
-        // Se for mais vertical que horizontal, converter para horizontal
-        e.preventDefault();
-        wrapper.scrollLeft += e.deltaY;
-      }
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    const handleMouseDown = (e) => {
+      isDown = true;
+      startX = e.pageX - wrapper.offsetLeft;
+      scrollLeft = wrapper.scrollLeft;
+      wrapper.style.cursor = 'grabbing';
     };
 
-    wrapper.addEventListener('wheel', handleWheel, { passive: false });
-    return () => wrapper.removeEventListener('wheel', handleWheel);
+    const handleMouseLeave = () => {
+      isDown = false;
+      wrapper.style.cursor = 'grab';
+    };
+
+    const handleMouseUp = () => {
+      isDown = false;
+      wrapper.style.cursor = 'grab';
+    };
+
+    const handleMouseMove = (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      
+      const x = e.pageX - wrapper.offsetLeft;
+      const walk = (x - startX) * 1.5; // 1.5x multiplier para mais sensibilidade
+      wrapper.scrollLeft = scrollLeft - walk;
+    };
+
+    wrapper.addEventListener('mousedown', handleMouseDown);
+    wrapper.addEventListener('mouseleave', handleMouseLeave);
+    wrapper.addEventListener('mouseup', handleMouseUp);
+    wrapper.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      wrapper.removeEventListener('mousedown', handleMouseDown);
+      wrapper.removeEventListener('mouseleave', handleMouseLeave);
+      wrapper.removeEventListener('mouseup', handleMouseUp);
+      wrapper.removeEventListener('mousemove', handleMouseMove);
+    };
   }, []);
 
   const carregarTotaisPorComunidade = async () => {
