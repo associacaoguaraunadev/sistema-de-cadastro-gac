@@ -23,6 +23,12 @@ export const obterPessoas = async (token, { pagina = 1, limite = 10, busca = '',
   return resposta.data;
 };
 
+export const obterTotaisPorComunidade = async (token) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.get('/pessoas/totais/por-comunidade');
+  return resposta.data;
+};
+
 export const obterPessoa = async (token, id) => {
   const cliente = criarClienteAPI(token);
   const resposta = await cliente.get(`/pessoas/${id}`);

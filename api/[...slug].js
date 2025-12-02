@@ -187,6 +187,10 @@ async function rotear(req, res, slug) {
   }
 
   // PESSOAS
+  if (rota === 'pessoas/totais/por-comunidade' && req.method === 'GET') {
+    return pessoasTotaisPorComunidade(req, res);
+  }
+
   if (rota === 'pessoas' && req.method === 'GET') {
     return pessoasListar(req, res);
   }
@@ -810,6 +814,48 @@ async function revogarToken(req, res, id) {
 }
 
 // ==================== PESSOAS ====================
+
+async function pessoasTotaisPorComunidade(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Obter o total geral de pessoas ativas
+    const totalGeral = await prisma.pessoa.count({
+      where: { status: 'ativo' }
+    });
+
+    // Agrupar por comunidade e contar
+    const pessoas = await prisma.pessoa.findMany({
+      where: { status: 'ativo' },
+      select: { comunidade: true }
+    });
+
+    // Contar por comunidade
+    const totalPorComunidade = {};
+    pessoas.forEach(pessoa => {
+      if (pessoa.comunidade) {
+        totalPorComunidade[pessoa.comunidade] = (totalPorComunidade[pessoa.comunidade] || 0) + 1;
+      }
+    });
+
+    log(`✅ Totais por comunidade obtidos - Total geral: ${totalGeral}`);
+
+    res.status(200).json({
+      totalGeral,
+      totalPorComunidade
+    });
+  } catch (erro) {
+    log(`Erro ao obter totais por comunidade: ${erro.message}`, 'error');
+    res.status(500).json({ 
+      erro: 'Erro ao obter totais por comunidade',
+      codigo: 'TOTAIS_COMUNIDADE_ERROR'
+    });
+  }
+}
 
 async function pessoasListar(req, res) {
   const prisma = getPrisma();

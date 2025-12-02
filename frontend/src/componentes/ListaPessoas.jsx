@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { useToast } from '../hooks/useToast';
-import { obterPessoas, deletarPessoa } from '../servicos/api';
+import { obterPessoas, deletarPessoa, obterTotaisPorComunidade } from '../servicos/api';
 import { Plus, Edit2, Trash2, Search, LogOut, Users, Baby, User, Heart, Key } from 'lucide-react';
 import { FiltroAvancado } from './FiltroAvancado';
 import { GerenciadorTokens } from './GerenciadorTokens';
@@ -30,12 +30,14 @@ export const ListaPessoas = () => {
   const [saindo, setSaindo] = useState(false);
   const [gerenciadorTokensAberto, setGerenciadorTokensAberto] = useState(false);
   const [comunidadeSelecionada, setComunidadeSelecionada] = useState(null);
+  const [totalPorComunidadeReal, setTotalPorComunidadeReal] = useState({});
+  const [totalGeral, setTotalGeral] = useState(0);
   const timeoutRef = useRef(null);
   
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
   const { toasts, removerToast, sucesso, erro: erroToast, aviso } = useToast();
-  const LIMITE = 50;
+  const LIMITE = 100;
 
   // Debounce para a busca - espera 2000ms após parar de digitar
   useEffect(() => {
@@ -60,7 +62,20 @@ export const ListaPessoas = () => {
 
   useEffect(() => {
     carregarPessoas();
+    carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
+
+  const carregarTotaisPorComunidade = async () => {
+    if (!token) return;
+    
+    try {
+      const dados = await obterTotaisPorComunidade(token);
+      setTotalPorComunidadeReal(dados.totalPorComunidade);
+      setTotalGeral(dados.totalGeral);
+    } catch (erro) {
+      console.error('❌ Erro ao carregar totais por comunidade:', erro);
+    }
+  };
 
   const carregarPessoas = async () => {
     if (!token) return;
@@ -238,9 +253,13 @@ export const ListaPessoas = () => {
     };
   });
 
-  // Contar total por comunidade
-  const totalPorComunidade = Object.entries(pessoasAgrupadas).reduce((acc, [nome, grupo]) => {
-    acc[nome] = grupo.criancas.length + grupo.adultos.length + grupo.idosos.length;
+  // Contar total por comunidade - usar valores reais da API
+  const totalPorComunidade = comunidades.reduce((acc, comunidade) => {
+    // Se temos dados reais da API, usar esses, senão usar contagem da página
+    acc[comunidade.nome] = totalPorComunidadeReal[comunidade.nome] || 
+                           (pessoasAgrupadas[comunidade.nome].criancas.length + 
+                            pessoasAgrupadas[comunidade.nome].adultos.length + 
+                            pessoasAgrupadas[comunidade.nome].idosos.length);
     return acc;
   }, {});
 
@@ -360,7 +379,7 @@ export const ListaPessoas = () => {
                 >
                   <span className="icone-aba">👥</span>
                   <span className="label-aba">Todas</span>
-                  <span className="badge-aba">{pessoasFiltradas.length}</span>
+                  <span className="badge-aba">{totalGeral || total}</span>
                 </button>
                 
                 {comunidades.map(comunidade => {

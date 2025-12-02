@@ -635,7 +635,9 @@
   gap: 4px;
   padding: 8px 12px;
   overflow-x: auto;
+  overflow-y: hidden;
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
   align-items: center;
 }
 

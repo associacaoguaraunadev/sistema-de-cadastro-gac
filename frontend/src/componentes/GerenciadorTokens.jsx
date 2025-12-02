@@ -2,7 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexto/AuthContext';
 import { useToast } from '../hooks/useToast';
 import { Copy, Trash2, Check, Loader, AlertCircle, X } from 'lucide-react';
+import axios from 'axios';
 import './GerenciadorTokens.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const GerenciadorTokens = ({ onFechar }) => {
   const [email, setEmail] = useState('');
@@ -21,15 +24,13 @@ export const GerenciadorTokens = ({ onFechar }) => {
   const carregarTokens = async () => {
     try {
       setCarregando(true);
-      const response = await fetch('http://localhost:3001/api/autenticacao/token/listar', {
+      const response = await axios.get(`${API_URL}/autenticacao/token/listar`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (!response.ok) throw new Error('Erro ao carregar tokens');
-
-      const dados = await response.json();
-      setTokens(dados);
+      setTokens(response.data);
     } catch (erro) {
+      console.error('❌ Erro ao carregar tokens:', erro);
       erroToast('Erro ao carregar tokens: ' + erro.message);
     } finally {
       setCarregando(false);
@@ -44,31 +45,29 @@ export const GerenciadorTokens = ({ onFechar }) => {
 
     try {
       setGerando(true);
-      const response = await fetch('http://localhost:3001/api/autenticacao/token/gerar', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email })
-      });
-
-      const dados = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 409) {
-          erroToast(dados.erro || 'Email já possui conta ou token pendente');
-        } else {
-          erroToast(dados.erro || 'Erro ao gerar token');
+      console.log('🔑 Gerando token para:', email);
+      
+      const response = await axios.post(`${API_URL}/autenticacao/token/gerar`, 
+        { email },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
-        return;
-      }
+      );
 
+      console.log('✅ Token gerado:', response.data);
       sucesso('Token gerado com sucesso!');
       setEmail('');
       await carregarTokens();
     } catch (erro) {
-      erroToast('Erro ao gerar token: ' + erro.message);
+      console.error('❌ Erro ao gerar token:', erro);
+      if (erro.response?.status === 409) {
+        erroToast(erro.response.data?.erro || 'Email já possui conta ou token pendente');
+      } else {
+        erroToast(erro.response?.data?.erro || 'Erro ao gerar token: ' + erro.message);
+      }
     } finally {
       setGerando(false);
     }
@@ -91,21 +90,15 @@ export const GerenciadorTokens = ({ onFechar }) => {
     if (!dialogRevogar.tokenId) return;
 
     try {
-      const response = await fetch(`http://localhost:3001/api/autenticacao/token/${dialogRevogar.tokenId}`, {
-        method: 'DELETE',
+      await axios.delete(`${API_URL}/autenticacao/token/${dialogRevogar.tokenId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
-      if (!response.ok) {
-        const dados = await response.json();
-        erroToast(dados.erro || 'Erro ao revogar token');
-        return;
-      }
 
       sucesso('Token revogado com sucesso!');
       await carregarTokens();
     } catch (erro) {
-      erroToast('Erro ao revogar token: ' + erro.message);
+      console.error('❌ Erro ao revogar token:', erro);
+      erroToast(erro.response?.data?.erro || 'Erro ao revogar token: ' + erro.message);
     } finally {
       setDialogRevogar({ aberto: false, tokenId: null });
     }
