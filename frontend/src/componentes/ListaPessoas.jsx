@@ -66,51 +66,29 @@ export const ListaPessoas = () => {
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
-  // Implementar scroll horizontal com drag na barra de comunidades
+  // Implementar scroll do mouse wheel na barra de comunidades
   useEffect(() => {
     const wrapper = abasWrapperRef.current;
     if (!wrapper) return;
 
-    let isDown = false;
-    let startX;
-    let scrollLeft;
+    const handleWheel = (e) => {
+      // Se o elemento NÃO tem scroll horizontal, retorna
+      if (wrapper.scrollWidth <= wrapper.clientWidth) return;
 
-    const handleMouseDown = (e) => {
-      isDown = true;
-      startX = e.pageX - wrapper.offsetLeft;
-      scrollLeft = wrapper.scrollLeft;
-      wrapper.style.cursor = 'grabbing';
-    };
-
-    const handleMouseLeave = () => {
-      isDown = false;
-      wrapper.style.cursor = 'grab';
-    };
-
-    const handleMouseUp = () => {
-      isDown = false;
-      wrapper.style.cursor = 'grab';
-    };
-
-    const handleMouseMove = (e) => {
-      if (!isDown) return;
+      // Previne o scroll vertical padrão
       e.preventDefault();
       
-      const x = e.pageX - wrapper.offsetLeft;
-      const walk = (x - startX) * 1.5; // 1.5x multiplier para mais sensibilidade
-      wrapper.scrollLeft = scrollLeft - walk;
+      // Converte scroll vertical em horizontal
+      // deltaY positivo = scroll para baixo = scroll para direita
+      // deltaY negativo = scroll para cima = scroll para esquerda
+      wrapper.scrollLeft += e.deltaY;
     };
 
-    wrapper.addEventListener('mousedown', handleMouseDown);
-    wrapper.addEventListener('mouseleave', handleMouseLeave);
-    wrapper.addEventListener('mouseup', handleMouseUp);
-    wrapper.addEventListener('mousemove', handleMouseMove);
-
+    // IMPORTANTE: passive: false permite usar preventDefault()
+    wrapper.addEventListener('wheel', handleWheel, { passive: false });
+    
     return () => {
-      wrapper.removeEventListener('mousedown', handleMouseDown);
-      wrapper.removeEventListener('mouseleave', handleMouseLeave);
-      wrapper.removeEventListener('mouseup', handleMouseUp);
-      wrapper.removeEventListener('mousemove', handleMouseMove);
+      wrapper.removeEventListener('wheel', handleWheel);
     };
   }, []);
 
