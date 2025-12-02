@@ -70,7 +70,19 @@ export const FormularioPessoa = () => {
       const pessoa = await obterPessoa(token, id);
       setFormulario({
         ...pessoa,
+        nome: (pessoa.nome || '').toString(),
+        cpf: (pessoa.cpf || '').toString(),
+        email: (pessoa.email || '').toString(),
+        telefone: (pessoa.telefone || '').toString(),
+        endereco: (pessoa.endereco || '').toString(),
+        bairro: (pessoa.bairro || '').toString(),
+        cidade: (pessoa.cidade || '').toString(),
+        estado: (pessoa.estado || '').toString(),
+        cep: (pessoa.cep || '').toString(),
+        idade: pessoa.idade ? pessoa.idade.toString() : '',
+        comunidade: (pessoa.comunidade || '').toString(),
         rendaFamiliar: pessoa.rendaFamiliar || '',
+        observacoes: (pessoa.observacoes || '').toString(),
         beneficiosGAC: Array.isArray(pessoa.beneficiosGAC) ? pessoa.beneficiosGAC : [],
         beneficiosGoverno: Array.isArray(pessoa.beneficiosGoverno) ? pessoa.beneficiosGoverno : []
       });
@@ -357,14 +369,14 @@ export const FormularioPessoa = () => {
     try {
       const dados = {
         nome: formulario.nome.trim(),
-        cpf: formulario.cpf.replace(/\D/g, ''),
+        cpf: (formulario.cpf || '').toString().replace(/\D/g, ''),
         email: formulario.email?.trim() || null,
-        telefone: formulario.telefone?.trim() || null,
+        telefone: (formulario.telefone || '').toString().trim() || null,
         endereco: formulario.endereco.trim(),
         bairro: formulario.bairro?.trim() || null,
         cidade: formulario.cidade?.trim() || null,
         estado: formulario.estado?.trim() || null,
-        cep: formulario.cep?.trim() || null,
+        cep: (formulario.cep || '').toString().trim() || null,
         idade: formulario.idade ? parseInt(formulario.idade) : null,
         comunidade: formulario.comunidade?.trim() || null,
         rendaFamiliar: formulario.rendaFamiliar ? extrairValorMoeda(formulario.rendaFamiliar) : null,
