@@ -66,6 +66,13 @@ export const ListaPessoas = () => {
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
+  // Resetar página quando comunidade for selecionada
+  useEffect(() => {
+    if (comunidadeSelecionada && pagina !== 1) {
+      setPagina(1);
+    }
+  }, [comunidadeSelecionada]);
+
   // Implementar drag scroll na barra de comunidades
   useEffect(() => {
     const wrapper = abasWrapperRef.current;
