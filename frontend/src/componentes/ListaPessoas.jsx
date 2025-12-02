@@ -532,7 +532,9 @@ const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar }) => {
           <h3 className="nome-cartao">{pessoa.nome}</h3>
           <p className="idade-cartao">{idade} anos</p>
         </div>
-        <div className="badge-beneficio">{pessoa.tipoBeneficio}</div>
+        {pessoa.tipoBeneficio && (
+          <div className="badge-beneficio">{pessoa.tipoBeneficio}</div>
+        )}
       </div>
 
       <div className="cartao-conteudo">

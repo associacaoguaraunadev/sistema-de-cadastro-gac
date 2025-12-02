@@ -87,6 +87,12 @@
   align-items: flex-start;
   padding: 20px;
   border-bottom: 2px solid #b0bec5;
+  gap: 16px;
+}
+
+.cabecalho-filtro > div:first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .cabecalho-filtro h3 {
@@ -107,10 +113,12 @@
   cursor: pointer;
   color: #999;
   transition: color 0.3s ease;
-  padding: 0;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  margin: -4px;
 }
 
 .botao-fechar:hover {
