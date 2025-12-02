@@ -331,6 +331,11 @@ export const FormularioPessoa = () => {
     if (!formulario.comunidade.trim()) {
       novosErros.comunidade = 'Campo obrigatório';
     }
+    if (!formulario.idade || formulario.idade === '') {
+      novosErros.idade = 'Campo obrigatório';
+    } else if (isNaN(formulario.idade) || formulario.idade < 0 || formulario.idade > 150) {
+      novosErros.idade = 'Idade inválida (0-150)';
+    }
 
     setErrosValidacao(novosErros);
     return Object.keys(novosErros).length === 0;
@@ -484,8 +489,8 @@ export const FormularioPessoa = () => {
             </div>
 
             <div className="campo-duplo">
-              <div className="campo">
-                <label htmlFor="idade">Idade</label>
+              <div className={`campo ${errosValidacao.idade ? 'campo-erro' : ''}`}>
+                <label htmlFor="idade">Idade *</label>
                 <input
                   id="idade"
                   name="idade"
@@ -495,8 +500,12 @@ export const FormularioPessoa = () => {
                   value={formulario.idade}
                   onChange={handleMudar}
                   placeholder="Digite a idade"
+                  required
                   disabled={salvando}
                 />
+                {errosValidacao.idade && (
+                  <span className="erro-campo">{errosValidacao.idade}</span>
+                )}
               </div>
             </div>
           </section>

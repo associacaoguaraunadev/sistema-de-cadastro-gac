@@ -869,9 +869,38 @@ async function pessoasCriar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { nome, cpf } = req.body;
+    const { nome, cpf, idade } = req.body;
+    
+    // Validação: nome e CPF obrigatórios
     if (!nome || !cpf) {
-      return res.status(400).json({ erro: 'Nome e CPF obrigatórios' });
+      return res.status(400).json({ 
+        erro: 'Nome e CPF são obrigatórios',
+        campos: {
+          nome: !nome ? 'Campo obrigatório' : null,
+          cpf: !cpf ? 'Campo obrigatório' : null
+        }
+      });
+    }
+
+    // Validação: idade obrigatória
+    if (idade === null || idade === undefined || idade === '') {
+      return res.status(400).json({ 
+        erro: 'Idade é obrigatória',
+        campos: {
+          idade: 'Campo obrigatório'
+        }
+      });
+    }
+
+    // Validação: idade deve ser um número válido
+    const idadeNum = parseInt(idade);
+    if (isNaN(idadeNum) || idadeNum < 0 || idadeNum > 150) {
+      return res.status(400).json({ 
+        erro: 'Idade deve ser um número entre 0 e 150',
+        campos: {
+          idade: 'Valor inválido'
+        }
+      });
     }
 
     const dataSanitizada = sanitizarPessoa(req.body);
@@ -883,9 +912,11 @@ async function pessoasCriar(req, res) {
       }
     });
 
+    log(`✅ Pessoa criada com sucesso: ${pessoa.nome} (ID: ${pessoa.id}, Idade: ${pessoa.idade})`);
     res.status(201).json(pessoa);
   } catch (erro) {
-    log(`Erro ao criar pessoa: ${erro.message}`, 'error');
+    log(`❌ Erro ao criar pessoa: ${erro.message}`, 'error');
+    log(`Stack: ${erro.stack}`, 'error');
     res.status(500).json({ erro: 'Erro ao criar pessoa' });
   }
 }
