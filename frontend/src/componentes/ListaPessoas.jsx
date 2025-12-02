@@ -66,29 +66,39 @@ export const ListaPessoas = () => {
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
-  // Implementar scroll do mouse wheel na barra de comunidades
+  // Implementar drag scroll na barra de comunidades
   useEffect(() => {
     const wrapper = abasWrapperRef.current;
     if (!wrapper) return;
 
-    const handleWheel = (e) => {
-      // Se o elemento NÃO tem scroll horizontal, retorna
-      if (wrapper.scrollWidth <= wrapper.clientWidth) return;
+    let isDown = false;
+    let startX;
+    let scrollLeft;
 
-      // Previne o scroll vertical padrão
+    wrapper.addEventListener('mousedown', (e) => {
+      isDown = true;
+      startX = e.pageX - wrapper.offsetLeft;
+      scrollLeft = wrapper.scrollLeft;
+    });
+
+    wrapper.addEventListener('mouseleave', () => {
+      isDown = false;
+    });
+
+    wrapper.addEventListener('mouseup', () => {
+      isDown = false;
+    });
+
+    wrapper.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
       e.preventDefault();
-      
-      // Converte scroll vertical em horizontal
-      // deltaY positivo = scroll para baixo = scroll para direita
-      // deltaY negativo = scroll para cima = scroll para esquerda
-      wrapper.scrollLeft += e.deltaY;
-    };
+      const x = e.pageX - wrapper.offsetLeft;
+      const walk = x - startX;
+      wrapper.scrollLeft = scrollLeft - walk;
+    });
 
-    // IMPORTANTE: passive: false permite usar preventDefault()
-    wrapper.addEventListener('wheel', handleWheel, { passive: false });
-    
     return () => {
-      wrapper.removeEventListener('wheel', handleWheel);
+      // Cleanup se necessário
     };
   }, []);
 

@@ -642,6 +642,11 @@
   align-items: center;
   user-select: none;
   -webkit-user-select: none;
+  cursor: pointer;
+}
+
+.abas-wrapper:active {
+  cursor: grabbing;
 }
 
 .abas-wrapper::-webkit-scrollbar {
