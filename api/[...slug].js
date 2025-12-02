@@ -218,42 +218,58 @@ async function rotear(req, res, slug) {
 async function autenticacaoEntrar(req, res) {
   const prisma = getPrisma();
   try {
-    // DEBUG: Verificar o que está chegando no body
+    // DEBUG COMPLETO: Verificar o que está chegando no body
+    log(`\n========== LOGIN DEBUG START ==========`);
     log(`📦 Tipo de req.body: ${typeof req.body}`);
     log(`📦 req.body é null? ${req.body === null}`);
     log(`📦 req.body é undefined? ${req.body === undefined}`);
     log(`📦 req.body: ${JSON.stringify(req.body)}`);
+    log(`📦 req.headers['content-type']: ${req.headers['content-type']}`);
+    log(`📦 req.headers['content-length']: ${req.headers['content-length']}`);
+    log(`========== LOGIN DEBUG END ==========\n`);
     
     const { email, senha } = req.body || {};
     
+    log(`🔐 Email extraído: ${email}`);
+    log(`🔐 Senha extraída: ${senha ? '***' : 'VAZIA'}`);
     log(`🔐 Tentando login: ${email}`);
 
     if (!email || !senha) {
-      log('Credenciais incompletas', 'error');
-      return res.status(400).json({ erro: 'Email e senha são obrigatórios' });
+      log(`❌ Credenciais incompletas - email: ${!!email}, senha: ${!!senha}`, 'error');
+      return res.status(400).json({ 
+        erro: 'Email e senha são obrigatórios',
+        debug: { emailRecebido: !!email, senhaRecebida: !!senha }
+      });
     }
 
+    log(`🔍 Procurando usuário no banco: ${email}`);
     const usuario = await prisma.usuario.findUnique({ where: { email } });
+    
     if (!usuario) {
-      log(`Usuário não encontrado: ${email}`, 'error');
+      log(`❌ Usuário não encontrado: ${email}`, 'error');
       return res.status(401).json({ erro: 'Email ou senha inválidos' });
     }
 
+    log(`✅ Usuário encontrado: ${usuario.email} (ID: ${usuario.id})`);
+
     if (!usuario.ativo) {
-      log(`Usuário inativo: ${email}`, 'error');
+      log(`❌ Usuário inativo: ${email}`, 'error');
       return res.status(401).json({ erro: 'Usuário desativado' });
     }
 
     // ⚠️ VERIFICAÇÃO CRÍTICA DA SENHA
-    log(`Comparando senha para ${email}...`);
-    log(`Senha armazenada tem ${usuario.senha.length} caracteres`);
+    log(`🔐 Comparando senha para ${email}...`);
+    log(`🔐 Senha armazenada tem ${usuario.senha.length} caracteres`);
+    log(`🔐 Senha fornecida tem ${senha.length} caracteres`);
     
     const senhaValida = await bcrypt.compare(senha, usuario.senha);
     
     if (!senhaValida) {
-      log(`Senha incorreta para: ${email}`, 'error');
+      log(`❌ Senha incorreta para: ${email}`, 'error');
       return res.status(401).json({ erro: 'Email ou senha inválidos' });
     }
+
+    log(`✅ Senha válida!`);
 
     const token = jwt.sign(
       { id: usuario.id, email: usuario.email, funcao: usuario.funcao },
@@ -261,6 +277,7 @@ async function autenticacaoEntrar(req, res) {
       { expiresIn: '24h' }
     );
 
+    log(`✅ Token gerado com sucesso`);
     log(`✅ Login bem-sucedido: ${email}`);
     res.status(200).json({
       token,
@@ -272,9 +289,19 @@ async function autenticacaoEntrar(req, res) {
       }
     });
   } catch (erro) {
-    log(`Erro no login: ${erro.message}`, 'error');
+    log(`\n❌ ERRO NO LOGIN ❌`, 'error');
+    log(`Mensagem: ${erro.message}`, 'error');
     log(`Stack: ${erro.stack}`, 'error');
-    res.status(500).json({ erro: 'Erro ao fazer login' });
+    log(`Nome do erro: ${erro.name}`, 'error');
+    log(`Código: ${erro.code}`, 'error');
+    log(`\n`);
+    res.status(500).json({ 
+      erro: 'Erro ao fazer login',
+      debug: {
+        mensagem: erro.message,
+        tipo: erro.name
+      }
+    });
   }
 }
 
@@ -934,31 +961,55 @@ export default async function handler(req, res) {
   // PARSE DO BODY - CRUCIAL PARA VERCEL
   if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
     try {
+      log(`\n🔄 INICIANDO PARSE DO BODY 🔄`);
+      log(`Método: ${req.method}`);
+      log(`Content-Type: ${req.headers['content-type']}`);
+      log(`Content-Length: ${req.headers['content-length']}`);
+      log(`req.body já existe? ${!!req.body}`);
+      log(`typeof req.body: ${typeof req.body}`);
+      
       // Vercel pode já ter parseado o body
       if (req.body) {
+        log(`Body já existe`);
         if (typeof req.body === 'string') {
+          log(`Body é string, parseando...`);
           req.body = JSON.parse(req.body);
+          log(`✅ Body parseado: ${JSON.stringify(req.body).substring(0, 100)}`);
+        } else if (typeof req.body === 'object') {
+          log(`✅ Body já é objeto: ${JSON.stringify(req.body).substring(0, 100)}`);
         }
-        // Se já é objeto, deixa como está
       } else {
         // Se não tem body, tentar ler do stream
+        log(`Body não existe, lendo do stream...`);
         let body = '';
         await new Promise((resolve, reject) => {
           req.on('data', chunk => {
+            log(`📥 Chunk recebido: ${chunk.length} bytes`);
             body += chunk.toString();
           });
-          req.on('end', resolve);
-          req.on('error', reject);
+          req.on('end', () => {
+            log(`📥 Stream finalizado. Total: ${body.length} bytes`);
+            resolve();
+          });
+          req.on('error', (err) => {
+            log(`❌ Erro no stream: ${err.message}`, 'error');
+            reject(err);
+          });
         });
         
-        if (body) {
+        if (body && body.trim().length > 0) {
+          log(`Body raw: ${body.substring(0, 200)}`);
           req.body = JSON.parse(body);
+          log(`✅ Body parseado do stream: ${JSON.stringify(req.body).substring(0, 100)}`);
         } else {
+          log(`⚠️ Body vazio após ler stream`, 'error');
           req.body = {};
         }
       }
+      log(`🔄 FIM PARSE DO BODY 🔄\n`);
     } catch (erro) {
-      log(`Erro ao fazer parse do body: ${erro.message}`, 'error');
+      log(`❌ Erro ao fazer parse do body: ${erro.message}`, 'error');
+      log(`Stack: ${erro.stack}`, 'error');
       req.body = {};
     }
   } else {
