@@ -1,9 +1,15 @@
-import React, { createContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
+import { criarInterceptor } from '../servicos/interceptorHttp';
 
 export const AuthContext = createContext();
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+// Instância axios customizada com configurações
+const instanciaAxios = axios.create({
+  baseURL: API_URL
+});
 
 export const AuthProvider = ({ children }) => {
   const [usuario, setUsuario] = useState(() => {
@@ -17,6 +23,7 @@ export const AuthProvider = ({ children }) => {
 
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState(null);
+  const [sessaoExpirada, setSessaoExpirada] = useState(false);
 
   const registrar = useCallback(async (email, senha, nome, codigoConvite) => {
     setCarregando(true);
@@ -105,17 +112,30 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUsuario(null);
     setErro(null);
+    setSessaoExpirada(false);
   }, []);
+
+  // Configurar interceptor HTTP quando sair mudar
+  useEffect(() => {
+    const notificarSessaoExpirada = () => {
+      setSessaoExpirada(true);
+    };
+
+    criarInterceptor(instanciaAxios, sair, notificarSessaoExpirada);
+  }, [sair]);
 
   const valor = {
     usuario,
     token,
     carregando,
     erro,
+    sessaoExpirada,
+    setSessaoExpirada,
     registrar,
     entrar,
     sair,
-    autenticado: !!token
+    autenticado: !!token,
+    axios: instanciaAxios
   };
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;
