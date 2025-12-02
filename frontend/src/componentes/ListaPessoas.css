@@ -285,22 +285,22 @@
   display: none;
 }
 
-/* Seções de Comunidade */
+/* Seções de Comunidade - Minimalista */
 .secao-comunidade {
-  background: linear-gradient(to bottom, #ffffff 0%, #fafbfa 100%);
-  border-left: 6px solid;
-  border-radius: 12px;
-  margin-bottom: 28px;
+  background: white;
+  border-left: 3px solid;
+  border-radius: 4px;
+  margin-bottom: 20px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: block;
   position: relative;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 }
 
 .secao-comunidade:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  border-left-width: 4px;
 }
 
 .marcador-comunidade-sticky {
@@ -329,19 +329,15 @@
   display: none;
 }
 
-/* Seções de Faixa Etária - com novo padding */
+/* Seções de Faixa Etária */
 .secao-faixa-etaria {
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-top: none;
 }
 
-.secao-faixa-etaria:first-of-type {
-  padding-top: 20px;
-}
-
 .secao-faixa-etaria:not(:last-of-type) {
-  border-bottom: 1px solid #f0f0f0;
-  padding-bottom: 20px;
+  border-bottom: 1px solid #f5f5f5;
+  padding-bottom: 16px;
 }
 
 .titulo-comunidade {
@@ -434,35 +430,36 @@
 /* Grid de Pessoas */
 .grid-pessoas {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+  margin-bottom: 0;
 }
 
 /* Cartão da Pessoa */
 .cartao-pessoa {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   display: flex;
   flex-direction: column;
 }
 
 .cartao-pessoa:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+  border-color: #e0e0e0;
 }
 
 .cartao-cabecalho {
   background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
   color: white;
-  padding: 16px;
+  padding: 12px 14px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
 }
 
 .info-principal {
@@ -470,33 +467,33 @@
 }
 
 .nome-cartao {
-  margin: 0 0 4px 0;
-  font-size: 16px;
+  margin: 0 0 2px 0;
+  font-size: 15px;
   font-weight: 700;
   color: white;
 }
 
 .idade-cartao {
   margin: 0;
-  font-size: 13px;
-  opacity: 0.9;
+  font-size: 12px;
+  opacity: 0.85;
 }
 
 .badge-beneficio {
   background: rgba(255, 255, 255, 0.2);
   color: white;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .cartao-conteudo {
-  padding: 16px;
+  padding: 12px 14px;
   flex: 1;
   overflow-y: auto;
-  max-height: 300px;
+  max-height: 280px;
 }
 
 .linha-info {
@@ -528,10 +525,10 @@
 
 .cartao-rodape {
   display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid #e8f5e9;
-  background: #f9fdf8;
+  gap: 6px;
+  padding: 10px 14px;
+  border-top: 1px solid #f5f5f5;
+  background: #fafafa;
 }
 
 .botao-cartao {
@@ -546,7 +543,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .botao-cartao.botao-editar {
@@ -620,153 +617,131 @@
   font-size: 16px;
 }
 
-/* ABAS DE COMUNIDADES MODERNAS */
+/* ABAS DE COMUNIDADES - MINIMALISTA */
 .container-abas-comunidades {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  margin-bottom: 28px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
   overflow: hidden;
-  border-top: 4px solid #2e7d32;
+  border-bottom: 2px solid #f0f0f0;
 }
 
 .abas-wrapper {
   display: flex;
-  gap: 8px;
-  padding: 12px 16px;
+  gap: 4px;
+  padding: 8px 12px;
   overflow-x: auto;
   scroll-behavior: smooth;
   align-items: center;
 }
 
 .abas-wrapper::-webkit-scrollbar {
-  height: 4px;
+  height: 3px;
 }
 
 .abas-wrapper::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
+  background: transparent;
 }
 
 .abas-wrapper::-webkit-scrollbar-thumb {
-  background: #2e7d32;
+  background: #ddd;
   border-radius: 10px;
 }
 
 .abas-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #1b5e20;
+  background: #999;
 }
 
 .aba-comunidade {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  border: 2px solid transparent;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #f9fdf8 0%, #ffffff 100%);
-  color: #666;
-  font-weight: 600;
-  font-size: 14px;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #999;
+  font-weight: 500;
+  font-size: 13px;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s ease;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   flex-shrink: 0;
 }
 
-.aba-comunidade::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: currentColor;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
 .aba-comunidade:hover {
-  background: linear-gradient(135deg, #f1f8f6 0%, #e8f5e9 100%);
-  border-color: #a5d6a7;
-  transform: translateY(-2px);
+  color: #666;
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .aba-comunidade.aba-todas {
-  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
-  color: white;
-  border-color: #1b5e20;
-  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.2);
+  background: transparent;
+  color: #2e7d32;
+  font-weight: 600;
+  border-bottom-color: #2e7d32;
 }
 
 .aba-comunidade.aba-todas:hover {
-  background: linear-gradient(135deg, #1b5e20 0%, #0f4c15 100%);
-  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+  background: rgba(46, 125, 50, 0.04);
 }
 
 .aba-comunidade.ativa {
   color: white;
-  border-color: var(--cor-aba, #2e7d32);
-  background: linear-gradient(135deg, var(--cor-aba, #2e7d32) 0%, rgba(46, 125, 50, 0.8) 100%);
-  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.25);
-  transform: scale(1.05) translateY(-2px);
+  background: var(--cor-aba, #2e7d32);
+  border-bottom-color: transparent;
+  border-radius: 6px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.aba-comunidade.ativa::before {
-  opacity: 1;
+.aba-comunidade.ativa:hover {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  background: var(--cor-aba, #2e7d32);
 }
 
 .icone-aba {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
   font-size: 14px;
-  font-weight: bold;
-  background: rgba(46, 125, 50, 0.1);
-  transition: all 0.3s ease;
-}
-
-.aba-comunidade.ativa .icone-aba {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.15);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .label-aba {
-  font-weight: 600;
-  font-size: 14px;
-  letter-spacing: 0.3px;
+  font-weight: 500;
+  font-size: 13px;
 }
 
 .badge-aba {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(46, 125, 50, 0.15);
-  color: #1b5e20;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 700;
-  min-width: 24px;
-  transition: all 0.3s ease;
+  background: rgba(0, 0, 0, 0.06);
+  color: #666;
+  padding: 3px 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 20px;
+  transition: all 0.25s ease;
 }
 
 .aba-comunidade.ativa .badge-aba {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
   color: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* ANIMAÇÃO DE ENTRADA */
 @keyframes slideInAbas {
   from {
     opacity: 0;
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
@@ -778,15 +753,15 @@
   animation: slideInAbas 0.3s ease-out;
 }
 
-/* MELHORIAS PARA SEÇÕES DE COMUNIDADE */
+/* SEÇÕES DE COMUNIDADE - MINIMALISTA */
 .secao-comunidade {
-  animation: fadeInComunidade 0.4s ease-out;
+  animation: fadeInComunidade 0.3s ease-out;
 }
 
 @keyframes fadeInComunidade {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -795,28 +770,29 @@
 }
 
 .cabecalho-secao-comunidade {
-  padding: 24px 24px 12px 24px;
-  background: linear-gradient(to bottom, rgba(46, 125, 50, 0.04), transparent);
-  border-bottom: 2px solid transparent;
-  border-bottom-color: var(--cor-comunidade);
+  padding: 16px 20px;
+  background: transparent;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .titulo-comunidade {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1b5e20;
-  border-bottom: 3px solid var(--cor-comunidade);
-  padding-bottom: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  border: none;
+  padding: 0;
+  border-left: 3px solid var(--cor-comunidade);
+  padding-left: 10px;
 }
 
 .ponto-comunidade {
   display: inline-block;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--cor-comunidade);
   flex-shrink: 0;
@@ -824,11 +800,11 @@
 
 .total-comunidade {
   margin-left: auto;
-  background: rgba(46, 125, 50, 0.1);
-  color: #1b5e20;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 13px;
+  background: #f5f5f5;
+  color: #666;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
   font-weight: 600;
 }
 

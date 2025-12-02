@@ -832,8 +832,103 @@ async function pessoasListar(req, res) {
       where.status = status;
     }
 
-    // Filtro de busca
-    if (busca) {
+    // Processar filtros avançados se fornecidos
+    if (filtros) {
+      try {
+        const filtrosObj = typeof filtros === 'string' ? JSON.parse(filtros) : filtros;
+        
+        // Construir condições AND para múltiplos critérios
+        const condicoes = [];
+        
+        Object.entries(filtrosObj).forEach(([campo, config]) => {
+          if (!config || !config.valor) return;
+          
+          const valor = config.valor.toString().trim().toLowerCase();
+          
+          // Mapear campo e criar condição apropriada
+          switch (campo) {
+            case 'nome':
+              condicoes.push({
+                nome: { contains: valor, mode: 'insensitive' }
+              });
+              break;
+            case 'cpf':
+              condicoes.push({
+                cpf: { contains: valor }
+              });
+              break;
+            case 'email':
+              condicoes.push({
+                email: { contains: valor, mode: 'insensitive' }
+              });
+              break;
+            case 'telefone':
+              condicoes.push({
+                telefone: { contains: valor }
+              });
+              break;
+            case 'tipoBeneficio':
+              condicoes.push({
+                tipoBeneficio: { contains: valor, mode: 'insensitive' }
+              });
+              break;
+            case 'endereco':
+              condicoes.push({
+                endereco: { contains: valor, mode: 'insensitive' }
+              });
+              break;
+            case 'bairro':
+              condicoes.push({
+                bairro: { contains: valor, mode: 'insensitive' }
+              });
+              break;
+            case 'cidade':
+              condicoes.push({
+                cidade: { contains: valor, mode: 'insensitive' }
+              });
+              break;
+            case 'estado':
+              condicoes.push({
+                estado: { contains: valor, mode: 'insensitive' }
+              });
+              break;
+            case 'cep':
+              condicoes.push({
+                cep: { contains: valor }
+              });
+              break;
+            case 'comunidade':
+              condicoes.push({
+                comunidade: { contains: valor, mode: 'insensitive' }
+              });
+              break;
+            case 'dataCriacao':
+              // Buscar por data exata ou parcial
+              condicoes.push({
+                dataCriacao: { contains: valor }
+              });
+              break;
+            case 'dataAtualizacao':
+              condicoes.push({
+                dataAtualizacao: { contains: valor }
+              });
+              break;
+          }
+        });
+        
+        // Se houver condições, usar AND
+        if (condicoes.length > 0) {
+          where.AND = condicoes;
+        }
+        
+        log(`🔍 Filtros avançados aplicados: ${JSON.stringify(filtrosObj)}`);
+      } catch (erro) {
+        log(`⚠️ Erro ao processar filtros avançados: ${erro.message}`, 'error');
+      }
+    }
+
+    // Filtro de busca simples (se não houver filtros avançados)
+    if (busca && !filtros) {
       where.OR = [
         { nome: { contains: busca, mode: 'insensitive' } },
         { cpf: { contains: busca } },
@@ -842,7 +937,9 @@ async function pessoasListar(req, res) {
     }
 
     // Log para debug
-    log(`👥 Listando pessoas - Página: ${paginaNum}, Limite: ${limiteNum}, Busca: "${busca}", Status: "${status}"`);
+    log(`👥 Listando pessoas - Página: ${paginaNum}, Limite: ${limiteNum}, Status: "${status}"`);
+    if (busca) log(`   Busca simples: "${busca}"`);
+    if (filtros) log(`   Filtros avançados aplicados`);
 
     // Contar total
     const total = await prisma.pessoa.count({ where });
