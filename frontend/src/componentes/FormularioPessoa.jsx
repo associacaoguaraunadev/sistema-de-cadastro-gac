@@ -405,6 +405,16 @@ export const FormularioPessoa = () => {
         sucessoToast('Sucesso!', 'Pessoa cadastrada com sucesso');
       }
 
+      // Salvar comunidade customizada se for nova
+      const comunidadesFixas = ['Vila Cheba', 'Morro da Vila', 'Barragem', 'Parque Centenario', 'Jardim Apura'];
+      if (formulario.comunidade && !comunidadesFixas.includes(formulario.comunidade)) {
+        const comunidadesCustomizadas = JSON.parse(localStorage.getItem('comunidadesCustomizadas') || '[]');
+        if (!comunidadesCustomizadas.includes(formulario.comunidade)) {
+          comunidadesCustomizadas.push(formulario.comunidade);
+          localStorage.setItem('comunidadesCustomizadas', JSON.stringify(comunidadesCustomizadas));
+        }
+      }
+
       // Animação de sucesso e redirecionamento
       setRedirecionando(true);
       setTimeout(() => {

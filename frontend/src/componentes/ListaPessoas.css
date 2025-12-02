@@ -704,13 +704,14 @@
 }
 
 .icone-aba {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  width: 18px;
-  height: 18px;
+  font-size: 10px;
+  width: auto;
+  height: auto;
   flex-shrink: 0;
+  color: var(--cor-aba, #999);
 }
 
 .label-aba {

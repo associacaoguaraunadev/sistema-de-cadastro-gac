@@ -347,7 +347,7 @@ export const ListaPessoas = () => {
                       style={{ '--cor-aba': comunidade.cor }}
                       title={`Ver ${comunidade.nome}`}
                     >
-                      <span className="icone-aba" style={{ backgroundColor: comunidade.cor, color: 'white' }}>●</span>
+                      <span className="icone-aba" style={{ '--cor-aba': comunidade.cor }}>●</span>
                       <span className="label-aba">{comunidade.nome}</span>
                       <span className="badge-aba">{totalComunidade}</span>
                     </button>
