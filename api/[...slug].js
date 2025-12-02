@@ -747,32 +747,49 @@ async function gerarTokenGeracao(req, res) {
       return res.status(400).json({ erro: 'Email obrigatório' });
     }
 
+    log(`🔑 Gerando token para: ${email}`);
+
     const usuarioExistente = await prisma.usuario.findUnique({ where: { email } });
     const tokenPendente = await prisma.tokenGeracao.findFirst({
       where: { email, usado: false }
     });
 
     if (usuarioExistente || tokenPendente) {
+      log(`⚠️ Email ${email} já possui conta ou token pendente`, 'error');
       return res.status(409).json({ erro: 'Email já possui conta ou token pendente' });
     }
 
-    const tokenGerado = `GAC-TOKEN-${Math.random().toString(36).substr(2, 32).toUpperCase()}`;
+    // Gerar token aleatório com 32 caracteres
+    const tokenGerado = `GAC-TOKEN-${Math.random().toString(36).substring(2, 34).toUpperCase()}`;
     const dataExpiracao = new Date();
     dataExpiracao.setDate(dataExpiracao.getDate() + 7);
+
+    log(`📝 Criando registro no banco - Email: ${email}, Token: ${tokenGerado.substring(0, 20)}...`);
 
     const tokenDb = await prisma.tokenGeracao.create({
       data: {
         token: tokenGerado,
         email,
-        dataExpiracao
+        dataExpiracao,
+        usado: false
       }
     });
 
-    log(`✅ Token gerado para ${email}`);
-    res.status(201).json(tokenDb);
+    log(`✅ Token gerado com sucesso para ${email}`);
+    res.status(201).json({
+      id: tokenDb.id,
+      token: tokenDb.token,
+      email: tokenDb.email,
+      dataExpiracao: tokenDb.dataExpiracao,
+      usado: tokenDb.usado
+    });
   } catch (erro) {
-    log(`Erro ao gerar token: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao gerar token' });
+    log(`❌ Erro ao gerar token: ${erro.message}`, 'error');
+    log(`Stack: ${erro.stack}`, 'error');
+    res.status(500).json({ 
+      erro: 'Erro ao gerar token',
+      detalhes: process.env.NODE_ENV === 'development' ? erro.message : undefined
+    });
   }
 }
 

@@ -33,6 +33,7 @@ export const ListaPessoas = () => {
   const [totalPorComunidadeReal, setTotalPorComunidadeReal] = useState({});
   const [totalGeral, setTotalGeral] = useState(0);
   const timeoutRef = useRef(null);
+  const abasWrapperRef = useRef(null);
   
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
@@ -64,6 +65,24 @@ export const ListaPessoas = () => {
     carregarPessoas();
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
+
+  // Implementar scroll horizontal com mouse wheel na barra de comunidades
+  useEffect(() => {
+    const wrapper = abasWrapperRef.current;
+    if (!wrapper) return;
+
+    const handleWheel = (e) => {
+      // Verificar se o scroll é horizontal ou vertical
+      if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
+        // Se for mais vertical que horizontal, converter para horizontal
+        e.preventDefault();
+        wrapper.scrollLeft += e.deltaY;
+      }
+    };
+
+    wrapper.addEventListener('wheel', handleWheel, { passive: false });
+    return () => wrapper.removeEventListener('wheel', handleWheel);
+  }, []);
 
   const carregarTotaisPorComunidade = async () => {
     if (!token) return;
@@ -371,7 +390,7 @@ export const ListaPessoas = () => {
           <>
             {/* ABAS DE COMUNIDADES MODERNAS */}
             <div className="container-abas-comunidades">
-              <div className="abas-wrapper">
+              <div className="abas-wrapper" ref={abasWrapperRef}>
                 <button
                   className={`aba-comunidade aba-todas ${!comunidadeSelecionada ? 'ativa' : ''}`}
                   onClick={() => setComunidadeSelecionada(null)}
