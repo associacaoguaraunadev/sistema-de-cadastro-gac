@@ -29,6 +29,7 @@ export const ListaPessoas = () => {
   const [modalSairAberto, setModalSairAberto] = useState(false);
   const [saindo, setSaindo] = useState(false);
   const [gerenciadorTokensAberto, setGerenciadorTokensAberto] = useState(false);
+  const [comunidadeSelecionada, setComunidadeSelecionada] = useState(null);
   const timeoutRef = useRef(null);
   
   const { token, usuario, sair } = useAuth();
@@ -321,12 +322,51 @@ export const ListaPessoas = () => {
 
         {!carregando && pessoasFiltradas.length > 0 && (
           <>
-            {/* RENDERIZAR POR COMUNIDADE */}
+            {/* ABAS DE COMUNIDADES MODERNAS */}
+            <div className="container-abas-comunidades">
+              <div className="abas-wrapper">
+                <button
+                  className={`aba-comunidade aba-todas ${!comunidadeSelecionada ? 'ativa' : ''}`}
+                  onClick={() => setComunidadeSelecionada(null)}
+                  title="Visualizar todas as comunidades"
+                >
+                  <span className="icone-aba">👥</span>
+                  <span className="label-aba">Todas</span>
+                  <span className="badge-aba">{pessoasFiltradas.length}</span>
+                </button>
+                
+                {comunidades.map(comunidade => {
+                  const totalComunidade = totalPorComunidade[comunidade.nome] || 0;
+                  if (totalComunidade === 0) return null;
+                  
+                  return (
+                    <button
+                      key={comunidade.nome}
+                      className={`aba-comunidade ${comunidadeSelecionada === comunidade.nome ? 'ativa' : ''}`}
+                      onClick={() => setComunidadeSelecionada(comunidade.nome)}
+                      style={{ '--cor-aba': comunidade.cor }}
+                      title={`Ver ${comunidade.nome}`}
+                    >
+                      <span className="icone-aba" style={{ backgroundColor: comunidade.cor, color: 'white' }}>●</span>
+                      <span className="label-aba">{comunidade.nome}</span>
+                      <span className="badge-aba">{totalComunidade}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* RENDERIZAR POR COMUNIDADE COM FILTRO */}
             {comunidades.map(comunidade => {
               const gruposComunidade = pessoasAgrupadas[comunidade.nome];
               const totalComunidade = totalPorComunidade[comunidade.nome] || 0;
 
-              if (totalComunidade === 0) return null; // Não mostrar comunidades vazias
+              // Se uma comunidade está selecionada, mostrar apenas essa
+              if (comunidadeSelecionada && comunidade.nome !== comunidadeSelecionada) {
+                return null;
+              }
+
+              if (totalComunidade === 0) return null;
 
               return (
                 <div key={comunidade.nome} className="secao-comunidade" style={{ '--cor-comunidade-rgb': hexToRgb(comunidade.cor), borderLeftColor: comunidade.cor }}>
