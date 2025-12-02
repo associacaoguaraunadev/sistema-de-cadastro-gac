@@ -164,10 +164,38 @@ export const ListaPessoas = () => {
   ];
 
   // Carregar comunidades customizadas do localStorage
-  const [comunidadesCustomizadas] = useState(() => {
+  const [comunidadesCustomizadas, setComunidadesCustomizadas] = useState(() => {
     const salvas = localStorage.getItem('comunidadesCustomizadas');
     return salvas ? JSON.parse(salvas) : [];
   });
+
+  // Efeito para atualizar comunidades customizadas conforme pessoas são carregadas
+  useEffect(() => {
+    if (pessoas.length > 0) {
+      const comunidadesFixas = ['Vila Cheba', 'Morro da Vila', 'Barragem', 'Parque Centenario', 'Jardim Apura'];
+      
+      // Extrair todas as comunidades únicas das pessoas
+      const todasAsComunidades = new Set(
+        pessoas
+          .map(p => p.comunidade)
+          .filter(c => c && !comunidadesFixas.includes(c))
+      );
+
+      // Converter para array e comparar com localStorage
+      const comunidadesNovas = Array.from(todasAsComunidades);
+      const comunidadesAtuais = JSON.parse(localStorage.getItem('comunidadesCustomizadas') || '[]');
+      
+      // Se houver comunidades novas não salvas, adicionar
+      const comNovidade = [
+        ...new Set([...comunidadesAtuais, ...comunidadesNovas])
+      ];
+
+      if (JSON.stringify(comNovidade.sort()) !== JSON.stringify(comunidadesAtuais.sort())) {
+        localStorage.setItem('comunidadesCustomizadas', JSON.stringify(comNovidade));
+        setComunidadesCustomizadas(comNovidade);
+      }
+    }
+  }, [pessoas]);
 
   // Função para gerar cor consistente a partir do nome
   const gerarCorDeComunidade = (nomeComun) => {
@@ -508,19 +536,6 @@ const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar }) => {
       </div>
 
       <div className="cartao-conteudo">
-        {pessoa.beneficiosGAC && pessoa.beneficiosGAC.length > 0 && (
-          <div className="secao-beneficios">
-            <span className="label-beneficios">Benefícios GAC:</span>
-            <div className="lista-beneficios">
-              {pessoa.beneficiosGAC.map((beneficio, idx) => (
-                <span key={idx} className="tag-beneficio">
-                  {typeof beneficio === 'object' ? beneficio.nome : beneficio}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="linha-info">
           <span className="label">CPF:</span>
           <span className="valor">{formatarCPF(pessoa.cpf)}</span>
