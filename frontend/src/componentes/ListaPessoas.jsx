@@ -508,6 +508,19 @@ const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar }) => {
       </div>
 
       <div className="cartao-conteudo">
+        {pessoa.beneficiosGAC && pessoa.beneficiosGAC.length > 0 && (
+          <div className="secao-beneficios">
+            <span className="label-beneficios">Benefícios GAC:</span>
+            <div className="lista-beneficios">
+              {pessoa.beneficiosGAC.map((beneficio, idx) => (
+                <span key={idx} className="tag-beneficio">
+                  {typeof beneficio === 'object' ? beneficio.nome : beneficio}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="linha-info">
           <span className="label">CPF:</span>
           <span className="valor">{formatarCPF(pessoa.cpf)}</span>
