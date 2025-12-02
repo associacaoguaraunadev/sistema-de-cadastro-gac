@@ -87,8 +87,9 @@ export const FormularioPessoa = () => {
         beneficiosGoverno: Array.isArray(pessoa.beneficiosGoverno) ? pessoa.beneficiosGoverno : []
       });
     } catch (erro) {
-      setErro('Erro ao carregar pessoa: ' + erro.message);
-      erroToast('Erro ao Carregar', 'Não foi possível carregar os dados da pessoa');
+      const mensagem = 'Não foi possível carregar os dados da pessoa. Tente novamente.';
+      setErro(mensagem);
+      erroToast('Erro ao Carregar', mensagem);
     } finally {
       setCarregando(false);
     }
@@ -279,14 +280,14 @@ export const FormularioPessoa = () => {
   
   const adicionarBeneficioGoverno = () => {
     if (!novoBeneficioGoverno.nome.trim()) {
-      erroToast('Erro', 'Digite o nome do benefício');
+      erroToast('Campo Vazio', 'Digite o nome do benefício de governo');
       return;
     }
 
     const valor = parseFloat(extrairValorMoeda(novoBeneficioGoverno.valor));
     
     if (isNaN(valor) || valor < 0) {
-      erroToast('Erro', 'Digite um valor válido');
+      erroToast('Valor Inválido', 'Digite um valor numérico válido (maior que zero)');
       return;
     }
 
@@ -332,21 +333,21 @@ export const FormularioPessoa = () => {
     const novosErros = {};
 
     if (!formulario.nome.trim()) {
-      novosErros.nome = 'Campo obrigatório';
+      novosErros.nome = 'Digite o nome completo da pessoa';
     }
     if (!formulario.cpf.trim()) {
-      novosErros.cpf = 'Campo obrigatório';
+      novosErros.cpf = 'Digite um CPF válido (11 dígitos)';
     }
     if (!formulario.endereco.trim()) {
-      novosErros.endereco = 'Campo obrigatório';
+      novosErros.endereco = 'Digite o endereço da pessoa';
     }
     if (!formulario.comunidade.trim()) {
-      novosErros.comunidade = 'Campo obrigatório';
+      novosErros.comunidade = 'Selecione uma comunidade';
     }
     if (!formulario.idade || formulario.idade === '') {
-      novosErros.idade = 'Campo obrigatório';
+      novosErros.idade = 'Digite a idade da pessoa';
     } else if (isNaN(formulario.idade) || formulario.idade < 0 || formulario.idade > 150) {
-      novosErros.idade = 'Idade inválida (0-150)';
+      novosErros.idade = 'Idade deve ser entre 0 e 150 anos';
     }
 
     setErrosValidacao(novosErros);
@@ -360,7 +361,7 @@ export const FormularioPessoa = () => {
     setSucesso('');
 
     if (!validarFormulario()) {
-      erroToast('Validação Falhou', 'Por favor, preencha todos os campos obrigatórios');
+      erroToast('Formulário Incompleto', 'Por favor, preencha todos os campos obrigatórios com um asterisco (*)');
       return;
     }
 
@@ -401,8 +402,9 @@ export const FormularioPessoa = () => {
         navigate('/');
       }, 1200);
     } catch (erro) {
-      setErro(erro.message);
-      erroToast('Erro ao Salvar', erro.message);
+      const mensagem = erro.response?.data?.erro || erro.message || 'Erro desconhecido ao salvar';
+      setErro(mensagem);
+      erroToast('Erro ao Salvar Dados', mensagem);
     } finally {
       setSalvando(false);
     }

@@ -237,8 +237,11 @@ async function autenticacaoEntrar(req, res) {
     if (!email || !senha) {
       log(`❌ Credenciais incompletas - email: ${!!email}, senha: ${!!senha}`, 'error');
       return res.status(400).json({ 
-        erro: 'Email e senha são obrigatórios',
-        debug: { emailRecebido: !!email, senhaRecebida: !!senha }
+        erro: 'Por favor, forneça email e senha para fazer login',
+        detalhes: {
+          emailFornecido: !!email,
+          senhaFornecida: !!senha
+        }
       });
     }
 
@@ -247,14 +250,18 @@ async function autenticacaoEntrar(req, res) {
     
     if (!usuario) {
       log(`❌ Usuário não encontrado: ${email}`, 'error');
-      return res.status(401).json({ erro: 'Email ou senha inválidos' });
+      return res.status(401).json({ 
+        erro: 'Email ou senha inválidos. Verifique suas credenciais e tente novamente.' 
+      });
     }
 
     log(`✅ Usuário encontrado: ${usuario.email} (ID: ${usuario.id})`);
 
     if (!usuario.ativo) {
       log(`❌ Usuário inativo: ${email}`, 'error');
-      return res.status(401).json({ erro: 'Usuário desativado' });
+      return res.status(401).json({ 
+        erro: 'Sua conta foi desativada. Entre em contato com o administrador do sistema.' 
+      });
     }
 
     // ⚠️ VERIFICAÇÃO CRÍTICA DA SENHA
@@ -266,7 +273,9 @@ async function autenticacaoEntrar(req, res) {
     
     if (!senhaValida) {
       log(`❌ Senha incorreta para: ${email}`, 'error');
-      return res.status(401).json({ erro: 'Email ou senha inválidos' });
+      return res.status(401).json({ 
+        erro: 'Email ou senha inválidos. Verifique suas credenciais e tente novamente.' 
+      });
     }
 
     log(`✅ Senha válida!`);
@@ -857,7 +866,10 @@ async function pessoasListar(req, res) {
     });
   } catch (erro) {
     log(`Erro ao listar pessoas: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao listar pessoas' });
+    res.status(500).json({ 
+      erro: 'Erro ao listar pessoas. Tente recarregar a página ou tente novamente em alguns momentos.',
+      codigo: 'LIST_PERSONS_ERROR'
+    });
   }
 }
 
@@ -917,7 +929,10 @@ async function pessoasCriar(req, res) {
   } catch (erro) {
     log(`❌ Erro ao criar pessoa: ${erro.message}`, 'error');
     log(`Stack: ${erro.stack}`, 'error');
-    res.status(500).json({ erro: 'Erro ao criar pessoa' });
+    res.status(500).json({ 
+      erro: 'Erro ao cadastrar pessoa. Verifique os dados e tente novamente.',
+      codigo: 'CREATE_PERSON_ERROR'
+    });
   }
 }
 
