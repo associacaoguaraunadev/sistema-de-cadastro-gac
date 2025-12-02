@@ -167,6 +167,7 @@ export const FormularioPessoa = () => {
 
   const extrairValorMoeda = (valor) => {
     // Remove formatação e extrai apenas o número
+    valor = (valor || '').toString();
     return parseFloat(valor.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
   };
 

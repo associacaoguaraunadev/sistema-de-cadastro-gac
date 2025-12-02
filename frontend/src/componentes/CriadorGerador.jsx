@@ -5,6 +5,7 @@ import { Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import './CriadorGerador.css';
 
 const formatarCPF = (cpf) => {
+  cpf = (cpf || '').toString();
   return cpf.replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 };
 
