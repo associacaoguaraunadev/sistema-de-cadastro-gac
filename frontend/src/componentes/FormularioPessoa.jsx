@@ -96,6 +96,8 @@ export const FormularioPessoa = () => {
   };
 
   const formatarCPF = (valor) => {
+    // Garante que valor é string
+    valor = (valor || '').toString();
     // Remove tudo que não é número
     valor = valor.replace(/\D/g, '');
     // Limita a 11 dígitos
@@ -114,6 +116,8 @@ export const FormularioPessoa = () => {
   };
 
   const formatarCEP = (valor) => {
+    // Garante que valor é string
+    valor = (valor || '').toString();
     // Remove tudo que não é número
     valor = valor.replace(/\D/g, '');
     // Limita a 8 dígitos
@@ -126,6 +130,8 @@ export const FormularioPessoa = () => {
   };
 
   const formatarTelefone = (valor) => {
+    // Garante que valor é string
+    valor = (valor || '').toString();
     // Remove tudo que não é número
     valor = valor.replace(/\D/g, '');
     // Limita a 11 dígitos
@@ -145,6 +151,8 @@ export const FormularioPessoa = () => {
   };
 
   const formatarMoeda = (valor) => {
+    // Garante que valor é string
+    valor = (valor || '').toString();
     // Remove tudo que não é número
     valor = valor.replace(/\D/g, '');
     // Converte para número e formata com 2 casas decimais
