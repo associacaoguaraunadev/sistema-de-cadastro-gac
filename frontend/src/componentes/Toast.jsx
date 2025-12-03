@@ -4,8 +4,10 @@ import './Toast.css';
 
 export const Toast = ({ id, tipo = 'info', titulo, mensagem, duracao = 4000, onClose }) => {
   useEffect(() => {
-    if (duracao) {
-      const timer = setTimeout(() => onClose(id), duracao);
+    if (duracao > 0) {
+      const timer = setTimeout(() => {
+        onClose(id);
+      }, duracao);
       return () => clearTimeout(timer);
     }
   }, [id, duracao, onClose]);
@@ -26,7 +28,13 @@ export const Toast = ({ id, tipo = 'info', titulo, mensagem, duracao = 4000, onC
           {mensagem && <p>{mensagem}</p>}
         </div>
       </div>
-      <button className="toast-fechar" onClick={() => onClose(id)}>
+      <button 
+        className="toast-fechar" 
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose(id);
+        }}
+      >
         <X size={18} />
       </button>
     </div>

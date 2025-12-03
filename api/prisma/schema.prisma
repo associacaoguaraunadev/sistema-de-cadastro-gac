@@ -23,7 +23,6 @@ model Usuario {
   expiracaoToken   DateTime? // Quando o token expira
   
   pessoas      Pessoa[]
-  inviteTokens InviteToken[]
 }
 
 model Pessoa {
@@ -49,6 +48,10 @@ model Pessoa {
   // Renda Familiar em reais
   rendaFamiliar   Float?
   
+  // Família
+  numeroMembros   Int?      // Quantidade de membros da família
+  dependentes     Int?      // Quantidade de dependentes
+  
   observacoes     String?
   status          String   @default("ativo")
   usuarioId       Int
@@ -63,18 +66,15 @@ model Pessoa {
   @@index([cpf])
 }
 
-model InviteToken {
+
+model TokenGeracao {
   id            Int       @id @default(autoincrement())
-  token         String    @unique  // Token único gerado aleatoriamente
-  email         String              // Email do funcionário a ser convidado
-  usuarioId     Int                 // ID do usuário que criou o convite
-  usuario       Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  ativo         Boolean   @default(true)
+  token         String    @unique
+  email         String    @unique
+  usado         Boolean   @default(false)
   dataCriacao   DateTime  @default(now())
-  dataExpiracao DateTime            // Quando o token expira (24h ou 7 dias)
-  dataUtilizado DateTime?           // Quando o convite foi utilizado
+  dataExpiracao DateTime
   
-  @@index([token])
   @@index([email])
-  @@index([usuarioId])
+  @@index([token])
 }

@@ -26,6 +26,8 @@ export const FormularioPessoa = () => {
     idade: '',
     comunidade: '',
     rendaFamiliar: '',
+    numeroMembros: '',
+    dependentes: '',
     beneficiosGAC: [],
     beneficiosGoverno: [],
     observacoes: ''
@@ -82,6 +84,8 @@ export const FormularioPessoa = () => {
         idade: pessoa.idade ? pessoa.idade.toString() : '',
         comunidade: (pessoa.comunidade || '').toString(),
         rendaFamiliar: pessoa.rendaFamiliar || '',
+        numeroMembros: pessoa.numeroMembros ? pessoa.numeroMembros.toString() : '',
+        dependentes: pessoa.dependentes ? pessoa.dependentes.toString() : '',
         observacoes: (pessoa.observacoes || '').toString(),
         beneficiosGAC: Array.isArray(pessoa.beneficiosGAC) ? pessoa.beneficiosGAC : [],
         beneficiosGoverno: Array.isArray(pessoa.beneficiosGoverno) ? pessoa.beneficiosGoverno : []
@@ -96,23 +100,21 @@ export const FormularioPessoa = () => {
   };
 
   const formatarCPF = (valor) => {
-    // Garante que valor é string
-    valor = (valor || '').toString();
+    // Se está vazio, retorna vazio
+    if (!valor) return '';
+    
+    valor = valor.toString();
     // Remove tudo que não é número
-    valor = valor.replace(/\D/g, '');
+    let apenasNumeros = valor.replace(/\D/g, '');
     // Limita a 11 dígitos
-    valor = valor.slice(0, 11);
-    // Formata: 000.000.000-00
-    if (valor.length >= 3) {
-      valor = valor.slice(0, 3) + '.' + valor.slice(3);
-    }
-    if (valor.length >= 7) {
-      valor = valor.slice(0, 7) + '.' + valor.slice(7);
-    }
-    if (valor.length >= 11) {
-      valor = valor.slice(0, 11) + '-' + valor.slice(11, 13);
-    }
-    return valor;
+    apenasNumeros = apenasNumeros.slice(0, 11);
+    
+    // Formata de acordo com a quantidade de dígitos
+    if (apenasNumeros.length === 0) return '';
+    if (apenasNumeros.length <= 3) return apenasNumeros;
+    if (apenasNumeros.length <= 6) return `${apenasNumeros.slice(0, 3)}.${apenasNumeros.slice(3)}`;
+    if (apenasNumeros.length <= 9) return `${apenasNumeros.slice(0, 3)}.${apenasNumeros.slice(3, 6)}.${apenasNumeros.slice(6)}`;
+    return `${apenasNumeros.slice(0, 3)}.${apenasNumeros.slice(3, 6)}.${apenasNumeros.slice(6, 9)}-${apenasNumeros.slice(9)}`;
   };
 
   const formatarCEP = (valor) => {
@@ -340,26 +342,66 @@ export const FormularioPessoa = () => {
   // Validar campos obrigatórios
   const validarFormulario = () => {
     const novosErros = {};
+    const mensagensErro = [];
 
+    // Validar Nome
     if (!formulario.nome.trim()) {
-      novosErros.nome = 'Digite o nome completo da pessoa';
+      novosErros.nome = '⚠️ Nome completo é obrigatório';
+      mensagensErro.push('Nome completo é obrigatório');
     }
-    if (!formulario.cpf.trim()) {
-      novosErros.cpf = 'Digite um CPF válido (11 dígitos)';
+    
+    // Validar CPF: retirar formatação e verificar se tem 11 dígitos
+    const cpfLimpo = (formulario.cpf || '').replace(/\D/g, '');
+    if (!cpfLimpo) {
+      novosErros.cpf = '⚠️ CPF é obrigatório';
+      mensagensErro.push('CPF é obrigatório');
+    } else if (cpfLimpo.length !== 11) {
+      novosErros.cpf = `⚠️ CPF incompleto (${cpfLimpo.length}/11 dígitos)`;
+      mensagensErro.push(`CPF incompleto (${cpfLimpo.length}/11 dígitos). Digite o CPF completo.`);
     }
+    
+    // Validar Endereço
     if (!formulario.endereco.trim()) {
-      novosErros.endereco = 'Digite o endereço da pessoa';
+      novosErros.endereco = '⚠️ Endereço é obrigatório';
+      mensagensErro.push('Endereço é obrigatório');
     }
+    
+    // Validar Comunidade
     if (!formulario.comunidade.trim()) {
-      novosErros.comunidade = 'Selecione uma comunidade';
+      novosErros.comunidade = '⚠️ Comunidade é obrigatória';
+      mensagensErro.push('Comunidade é obrigatória');
     }
+    
+    // Validar Idade
     if (!formulario.idade || formulario.idade === '') {
-      novosErros.idade = 'Digite a idade da pessoa';
+      novosErros.idade = '⚠️ Idade é obrigatória';
+      mensagensErro.push('Idade é obrigatória');
     } else if (isNaN(formulario.idade) || formulario.idade < 0 || formulario.idade > 150) {
-      novosErros.idade = 'Idade deve ser entre 0 e 150 anos';
+      novosErros.idade = '⚠️ Idade inválida (0-150 anos)';
+      mensagensErro.push('Idade deve ser um número entre 0 e 150');
+    }
+
+    // Validar Telefone: deve ter pelo menos 10 dígitos (padrão brasileiro)
+    const telefoneLimpo = (formulario.telefone || '').replace(/\D/g, '');
+    if (!telefoneLimpo) {
+      novosErros.telefone = '⚠️ Telefone é obrigatório';
+      mensagensErro.push('Telefone é obrigatório');
+    } else if (telefoneLimpo.length < 10) {
+      novosErros.telefone = `⚠️ Telefone incompleto (${telefoneLimpo.length}/10 dígitos)`;
+      mensagensErro.push(`Telefone incompleto (${telefoneLimpo.length}/10 dígitos). Digite o telefone completo.`);
     }
 
     setErrosValidacao(novosErros);
+    
+    // Mostrar toast com todos os erros
+    if (mensagensErro.length > 0) {
+      const mensagensCombinadas = mensagensErro.join('\n');
+      erroToast(
+        `❌ ${mensagensErro.length} ${mensagensErro.length === 1 ? 'erro encontrado' : 'erros encontrados'}`,
+        mensagensErro.length === 1 ? mensagensErro[0] : `Por favor, corrija os campos obrigatórios`
+      );
+    }
+    
     return Object.keys(novosErros).length === 0;
   };
 
@@ -370,7 +412,6 @@ export const FormularioPessoa = () => {
     setSucesso('');
 
     if (!validarFormulario()) {
-      erroToast('Formulário Incompleto', 'Por favor, preencha todos os campos obrigatórios com um asterisco (*)');
       return;
     }
 
@@ -390,6 +431,8 @@ export const FormularioPessoa = () => {
         idade: formulario.idade ? parseInt(formulario.idade) : null,
         comunidade: formulario.comunidade?.trim() || null,
         rendaFamiliar: formulario.rendaFamiliar ? extrairValorMoeda(formulario.rendaFamiliar) : null,
+        numeroMembros: formulario.numeroMembros ? parseInt(formulario.numeroMembros) : null,
+        dependentes: formulario.dependentes ? parseInt(formulario.dependentes) : null,
         beneficiosGAC: formulario.beneficiosGAC || [],
         beneficiosGoverno: formulario.beneficiosGoverno || [],
         observacoes: formulario.observacoes?.trim() || null
@@ -454,7 +497,7 @@ export const FormularioPessoa = () => {
       </header>
 
       <main className="conteudo-formulario">
-        <form onSubmit={aoEnviar} className="formulario-pessoa">
+        <form onSubmit={aoEnviar} className="formulario-pessoa" noValidate>
           {erro && <div className="alerta-erro">{erro}</div>}
           {sucesso && <div className="alerta-sucesso">{sucesso}</div>}
 
@@ -471,7 +514,6 @@ export const FormularioPessoa = () => {
                   value={formulario.nome}
                   onChange={handleMudar}
                   placeholder="Nome completo"
-                  required
                   disabled={salvando}
                 />
                 {errosValidacao.nome && <span className="texto-erro">{errosValidacao.nome}</span>}
@@ -486,7 +528,6 @@ export const FormularioPessoa = () => {
                   onChange={handleMudar}
                   placeholder="000.000.000-00"
                   maxLength="14"
-                  required
                   disabled={salvando}
                 />
                 {errosValidacao.cpf && <span className="texto-erro">{errosValidacao.cpf}</span>}
@@ -495,7 +536,7 @@ export const FormularioPessoa = () => {
 
             <div className="campo-duplo">
               <div className="campo">
-                <label htmlFor="email">Email</label>
+                <label htmlFor="email">Email <span className="campo-opcional">(Opcional)</span></label>
                 <input
                   id="email"
                   name="email"
@@ -507,7 +548,7 @@ export const FormularioPessoa = () => {
                 />
               </div>
               <div className="campo">
-                <label htmlFor="telefone">Telefone</label>
+                <label htmlFor="telefone">Telefone *</label>
                 <input
                   id="telefone"
                   name="telefone"
@@ -533,7 +574,6 @@ export const FormularioPessoa = () => {
                   value={formulario.idade}
                   onChange={handleMudar}
                   placeholder="Digite a idade"
-                  required
                   disabled={salvando}
                 />
                 {errosValidacao.idade && (
@@ -563,7 +603,7 @@ export const FormularioPessoa = () => {
 
             <div className="campo-duplo">
               <div className="campo">
-                <label htmlFor="bairro">Bairro</label>
+                <label htmlFor="bairro">Bairro *</label>
                 <input
                   id="bairro"
                   name="bairro"
@@ -575,7 +615,7 @@ export const FormularioPessoa = () => {
                 />
               </div>
               <div className="campo">
-                <label htmlFor="cidade">Cidade</label>
+                <label htmlFor="cidade">Cidade *</label>
                 <input
                   id="cidade"
                   name="cidade"
@@ -590,7 +630,7 @@ export const FormularioPessoa = () => {
 
             <div className="campo-duplo">
               <div className="campo">
-                <label htmlFor="estado">Estado</label>
+                <label htmlFor="estado">Estado *</label>
                 <select
                   id="estado"
                   name="estado"
@@ -629,7 +669,7 @@ export const FormularioPessoa = () => {
                 </select>
               </div>
               <div className="campo">
-                <label htmlFor="cep">CEP</label>
+                <label htmlFor="cep">CEP <span className="campo-opcional">(Opcional)</span></label>
                 <input
                   id="cep"
                   name="cep"
@@ -869,15 +909,45 @@ export const FormularioPessoa = () => {
 
           <section className="secao-formulario">
             <h2>Renda Familiar</h2>
+            
+            <div className="campo-duplo">
+              <div className="campo">
+                <label htmlFor="rendaFamiliar">Renda Familiar <span className="campo-opcional">(Opcional)</span></label>
+                <input
+                  id="rendaFamiliar"
+                  name="rendaFamiliar"
+                  type="text"
+                  value={formulario.rendaFamiliar}
+                  onChange={handleMudar}
+                  placeholder="R$ 0,00"
+                  disabled={salvando}
+                />
+              </div>
+              <div className="campo">
+                <label htmlFor="numeroMembros">Número de Membros <span className="campo-opcional">(Opcional)</span></label>
+                <input
+                  id="numeroMembros"
+                  name="numeroMembros"
+                  type="number"
+                  min="1"
+                  value={formulario.numeroMembros}
+                  onChange={handleMudar}
+                  placeholder="Ex: 4"
+                  disabled={salvando}
+                />
+              </div>
+            </div>
+
             <div className="campo">
-              <label htmlFor="rendaFamiliar">Renda Familiar (opcional)</label>
+              <label htmlFor="dependentes">Dependentes <span className="campo-opcional">(Opcional)</span></label>
               <input
-                id="rendaFamiliar"
-                name="rendaFamiliar"
-                type="text"
-                value={formulario.rendaFamiliar}
+                id="dependentes"
+                name="dependentes"
+                type="number"
+                min="0"
+                value={formulario.dependentes}
                 onChange={handleMudar}
-                placeholder="R$ 0,00"
+                placeholder="Ex: 2"
                 disabled={salvando}
               />
             </div>
@@ -887,7 +957,7 @@ export const FormularioPessoa = () => {
             <h2>Observações Gerais</h2>
             
             <div className="campo">
-              <label htmlFor="observacoes">Observações</label>
+              <label htmlFor="observacoes">Observações <span className="campo-opcional">(Opcional)</span></label>
               <textarea
                 id="observacoes"
                 name="observacoes"

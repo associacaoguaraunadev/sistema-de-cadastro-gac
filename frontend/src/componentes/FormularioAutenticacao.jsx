@@ -127,7 +127,7 @@ export const FormularioRegistro = () => {
 
     try {
       // Detectar qual tipo de código foi fornecido
-      const ehToken = codigoConvite.startsWith('GAC-TOKEN-');
+      const ehToken = codigoConvite.startsWith('GAC-GEN-') || codigoConvite.startsWith('GAC-TOKEN-');
       const endpoint = ehToken 
         ? 'http://localhost:3001/api/autenticacao/token/validar'
         : 'http://localhost:3001/api/autenticacao/convite/validar';

@@ -661,3 +661,11 @@
     width: 100%;
   }
 }
+
+/* Campo Opcional - Texto Discreto */
+.campo-opcional {
+  font-weight: 400;
+  font-size: 12px;
+  color: #999;
+  margin-left: 4px;
+}

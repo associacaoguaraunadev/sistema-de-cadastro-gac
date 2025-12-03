@@ -11,12 +11,32 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
 
 // Logging middleware
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  console.log(`[${new Date().toISOString()}] 📥 ${req.method} ${req.path}`);
+  
+  // Interceptar res.json para logar resposta
+  const originalJson = res.json;
+  res.json = function(data) {
+    console.log(`[${new Date().toISOString()}] 📤 Response JSON - ${res.statusCode}`);
+    return originalJson.call(this, data);
+  };
+  
+  // Interceptar res.send para logar resposta
+  const originalSend = res.send;
+  res.send = function(data) {
+    console.log(`[${new Date().toISOString()}] 📤 Response SEND - ${res.statusCode}`);
+    return originalSend.call(this, data);
+  };
+  
   next();
 });
 
@@ -29,18 +49,40 @@ app.get('/health', (req, res) => {
 import handler from './[...slug].js';
 
 // Mapear todos os endpoints para o handler catchall
-app.all('/:page*', async (req, res) => {
+app.all('*', async (req, res) => {
   try {
+    // Extrair o slug do path
+    let pathname = req.path;
+    
+    console.log(`[${new Date().toISOString()}] 🔄 Route handler - path: ${pathname}`);
+    
+    // Remover /api/ prefix se existir
+    if (pathname.startsWith('/api/')) {
+      pathname = pathname.slice(5);
+    } else if (pathname.startsWith('/api')) {
+      pathname = pathname.slice(4);
+    }
+    
+    // Se comça com /, remover
+    if (pathname.startsWith('/')) {
+      pathname = pathname.slice(1);
+    }
+    
+    // Split e filtrar partes vazias
+    const slug = pathname.split('/').filter(p => p.length > 0);
+    
+    console.log(`[${new Date().toISOString()}] 🔄 Slug extraído: ${slug.join('/')}`);
+    
     // Construir o objeto req no formato esperado pelo handler Vercel
     const vercelReq = {
       method: req.method,
       url: req.originalUrl,
       headers: req.headers,
       body: req.body,
-      query: req.query,
-      cookies: req.cookies || {},
-      // Simular o path params do Vercel
-      query: { __NEXT_DATA__: { slug: req.params.page?.split('/') || [] } }
+      query: { 
+        slug: slug.length > 0 ? slug : [] 
+      },
+      cookies: req.cookies || {}
     };
 
     // Construir o objeto res no formato esperado
@@ -48,30 +90,44 @@ app.all('/:page*', async (req, res) => {
     const vercelRes = {
       status(code) {
         statusCode.code = code;
+        console.log(`[${new Date().toISOString()}] 🎯 Setting status: ${code}`);
         res.status(code);
         return this;
       },
       json(data) {
+        console.log(`[${new Date().toISOString()}] 📤 Chamando json() - Status: ${statusCode.code}`);
         res.json(data);
+        console.log(`[${new Date().toISOString()}] 📤 json() completado`);
         return this;
       },
       setHeader(key, value) {
+        console.log(`[${new Date().toISOString()}] 📋 Header: ${key}: ${value}`);
         res.setHeader(key, value);
         return this;
       },
       send(data) {
+        console.log(`[${new Date().toISOString()}] 📤 send() chamado`);
         res.send(data);
         return this;
       },
       end() {
+        console.log(`[${new Date().toISOString()}] 📤 end() chamado`);
         res.end();
         return this;
       }
     };
 
-    await handler(vercelReq, vercelRes);
+    try {
+      await handler(vercelReq, vercelRes);
+      console.log(`[${new Date().toISOString()}] ✅ Handler completado com sucesso`);
+    } catch (handlerError) {
+      console.error(`[${new Date().toISOString()}] ❌ Erro dentro do handler:`, handlerError.message);
+      console.error(handlerError.stack);
+      throw handlerError;
+    }
   } catch (error) {
-    console.error('❌ Erro ao processar requisição:', error);
+    console.error(`[${new Date().toISOString()}] ❌ Erro ao processar requisição:`, error);
+    console.error(error.stack);
     res.status(500).json({
       erro: 'Erro interno do servidor',
       mensagem: error.message

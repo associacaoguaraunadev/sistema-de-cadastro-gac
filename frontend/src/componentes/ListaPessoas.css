@@ -331,13 +331,13 @@
 
 /* Seções de Faixa Etária */
 .secao-faixa-etaria {
-  padding: 16px 20px;
+  padding: 20px 20px;
   border-top: none;
 }
 
 .secao-faixa-etaria:not(:last-of-type) {
   border-bottom: 1px solid #f5f5f5;
-  padding-bottom: 16px;
+  padding-bottom: 20px;
 }
 
 .titulo-comunidade {
@@ -430,9 +430,10 @@
 /* Grid de Pessoas */
 .grid-pessoas {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
   gap: 12px;
   margin-bottom: 0;
+  width: 100%;
 }
 
 /* Cartão da Pessoa */
@@ -442,24 +443,30 @@
   border: 1px solid #f0f0f0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   overflow: hidden;
-  transition: all 0.25s ease;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   display: flex;
   flex-direction: column;
+  cursor: pointer;
+  will-change: transform, box-shadow, border-color;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .cartao-pessoa:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-  border-color: #e0e0e0;
+  transform: scale(1.05);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15),
+              0 0 0 1px rgba(27, 94, 32, 0.1);
+  border-color: #c8e6c9;
 }
 
 .cartao-cabecalho {
   background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
   color: white;
-  padding: 12px 14px;
+  padding: 8px 10px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
+  gap: 8px;
 }
 
 .info-principal {
@@ -467,49 +474,54 @@
 }
 
 .nome-cartao {
-  margin: 0 0 2px 0;
-  font-size: 15px;
+  margin: 0 0 1px 0;
+  font-size: 14px;
   font-weight: 700;
   color: white;
+  word-break: break-word;
+  line-height: 1.2;
 }
 
 .idade-cartao {
   margin: 0;
-  font-size: 12px;
-  opacity: 0.85;
+  font-size: 11px;
+  opacity: 0.95;
 }
 
 .badge-beneficio {
   background: rgba(255, 255, 255, 0.3);
   color: white;
-  padding: 6px 12px;
-  border-radius: 14px;
-  font-size: 12px;
+  padding: 3px 6px;
+  border-radius: 10px;
+  font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   backdrop-filter: blur(4px);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .cartao-conteudo {
-  padding: 12px 14px;
+  padding: 12px 13px;
   flex: 1;
-  overflow-y: auto;
-  max-height: 280px;
+  overflow: hidden;
+  max-height: 140px;
 }
 
 .linha-info {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-size: 13px;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 .label {
   font-weight: 600;
   color: #1b5e20;
-  min-width: 80px;
+  min-width: 60px;
   flex-shrink: 0;
 }
 
@@ -517,6 +529,7 @@
   color: #333;
   word-break: break-word;
   flex: 1;
+  font-size: 12px;
 }
 
 .valor.observacao {
@@ -528,24 +541,24 @@
 
 .cartao-rodape {
   display: flex;
-  gap: 6px;
-  padding: 10px 14px;
+  gap: 4px;
+  padding: 8px 10px;
   border-top: 1px solid #f5f5f5;
   background: #fafafa;
 }
 
 .botao-cartao {
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 8px;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   transition: all 0.2s ease;
 }
 
@@ -625,10 +638,11 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  margin-bottom: 24px;
+  margin-bottom: 28px;
   overflow: hidden;
   border-bottom: 2px solid #f0f0f0;
   position: relative;
+  animation: slideInAbas 0.3s ease-out;
 }
 
 .abas-wrapper {
@@ -764,10 +778,6 @@
   }
 }
 
-.container-abas-comunidades {
-  animation: slideInAbas 0.3s ease-out;
-}
-
 /* SEÇÕES DE COMUNIDADE - MINIMALISTA */
 .secao-comunidade {
   animation: fadeInComunidade 0.3s ease-out;
@@ -782,44 +792,5 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.cabecalho-secao-comunidade {
-  padding: 16px 20px;
-  background: transparent;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.titulo-comunidade {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-  border: none;
-  padding: 0;
-  border-left: 3px solid var(--cor-comunidade);
-  padding-left: 10px;
-}
-
-.ponto-comunidade {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--cor-comunidade);
-  flex-shrink: 0;
-}
-
-.total-comunidade {
-  margin-left: auto;
-  background: #f5f5f5;
-  color: #666;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
 }
 

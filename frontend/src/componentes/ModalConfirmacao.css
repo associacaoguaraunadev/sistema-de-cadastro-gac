@@ -8,7 +8,7 @@
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   z-index: 9990;
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.3s ease-out;
 }
 
 @keyframes fadeIn {
@@ -27,17 +27,17 @@
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 9991;
-  animation: slideUp 0.3s ease-out;
+  animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes slideUp {
+@keyframes modalSlideIn {
   from {
     opacity: 0;
-    transform: translate(-50%, -60%);
+    transform: translate(-50%, -50%) scale(0.85);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
@@ -91,9 +91,10 @@
   color: #2E7D32;
 }
 
-.modal-icone-deletar {
+.modal-icone-deletar,
+.modal-icone-delete {
   background: #FFE5E5;
-  color: #CC3131;
+  color: #E63946;
 }
 
 /* Título */
@@ -175,13 +176,18 @@
   box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
 }
 
-.botao-confirmar-deletar {
-  background: linear-gradient(135deg, #FF6F6F 0%, #CC3131 100%);
+.botao-confirmar-deletar,
+.botao-confirmar-delete {
+  background: #E63946 !important;
+  color: white !important;
+  border: none !important;
 }
 
-.botao-confirmar-deletar:hover:not(:disabled) {
+.botao-confirmar-deletar:hover:not(:disabled),
+.botao-confirmar-delete:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(204, 49, 49, 0.3);
+  background: #CC0000 !important;
+  box-shadow: 0 6px 16px rgba(230, 57, 70, 0.6) !important;
 }
 
 /* Responsivo */

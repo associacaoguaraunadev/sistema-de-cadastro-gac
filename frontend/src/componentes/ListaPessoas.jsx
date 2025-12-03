@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
-import { useToast } from '../hooks/useToast';
+import { useGlobalToast } from '../contexto/ToastContext';
 import { obterPessoas, deletarPessoa, obterTotaisPorComunidade } from '../servicos/api';
 import { Plus, Edit2, Trash2, Search, LogOut, Users, Baby, User, Heart, Key } from 'lucide-react';
 import { FiltroAvancado } from './FiltroAvancado';
 import { GerenciadorTokens } from './GerenciadorTokens';
-import { ToastContainer } from './Toast';
 import { ModalConfirmacao } from './ModalConfirmacao';
+import ModalPreview from './ModalPreview';
+import ModalEdicao from './ModalEdicao';
+import ModalCadastro from './ModalCadastro';
 import './ListaPessoas.css';
 
 // Função helper para converter hex para RGB
@@ -32,13 +34,49 @@ export const ListaPessoas = () => {
   const [comunidadeSelecionada, setComunidadeSelecionada] = useState(null);
   const [totalPorComunidadeReal, setTotalPorComunidadeReal] = useState({});
   const [totalGeral, setTotalGeral] = useState(0);
+  const [modalPreviewAberto, setModalPreviewAberto] = useState(false);
+  const [pessoaSelecionada, setPessoaSelecionada] = useState(null);
+  const [modalEdicaoAberto, setModalEdicaoAberto] = useState(false);
+  const [pessoaParaEditar, setPessoaParaEditar] = useState(null);
+  const [modalDeleteAberto, setModalDeleteAberto] = useState(false);
+  const [pessoaParaDeleter, setPessoaParaDeleter] = useState(null);
+  const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
   const timeoutRef = useRef(null);
   const abasWrapperRef = useRef(null);
+  const hoverTimeoutRef = useRef(null);
   
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
-  const { toasts, removerToast, sucesso, erro: erroToast, aviso } = useToast();
-  const LIMITE = 100;
+  const { sucesso, erro: erroToast, aviso } = useGlobalToast();
+  const LIMITE = 200;
+
+  // Restaurar estado do localStorage ao carregar a página
+  useEffect(() => {
+    const estadoSalvo = localStorage.getItem('listaPessoasEstado');
+    if (estadoSalvo) {
+      try {
+        const { pagina: paginaSalva, busca: buscaSalva, comunidade: comunidadeSalva } = JSON.parse(estadoSalvo);
+        if (paginaSalva) setPagina(paginaSalva);
+        if (buscaSalva) {
+          setBuscaInput(buscaSalva);
+          setBusca(buscaSalva);
+        }
+        if (comunidadeSalva) setComunidadeSelecionada(comunidadeSalva);
+      } catch (e) {
+        console.error('Erro ao restaurar estado:', e);
+      }
+    }
+  }, []);
+
+  // Salvar estado no localStorage quando mudar
+  useEffect(() => {
+    const estado = {
+      pagina,
+      busca,
+      comunidade: comunidadeSelecionada
+    };
+    localStorage.setItem('listaPessoasEstado', JSON.stringify(estado));
+  }, [pagina, busca, comunidadeSelecionada]);
 
   // Debounce para a busca - espera 2000ms após parar de digitar
   useEffect(() => {
@@ -158,16 +196,23 @@ export const ListaPessoas = () => {
   };
 
   const handleDeletar = async (id) => {
-    if (!window.confirm('Tem certeza que deseja deletar esta pessoa?')) return;
+    setPessoaParaDeleter(id);
+    setModalDeleteAberto(true);
+  };
+
+  const confirmarDeletar = async () => {
+    if (!pessoaParaDeleter) return;
     
     try {
-      await deletarPessoa(token, id);
-      setPessoas(pessoas.filter(p => p.id !== id));
+      await deletarPessoa(token, pessoaParaDeleter);
+      setPessoas(pessoas.filter(p => p.id !== pessoaParaDeleter));
       setTotal(total - 1);
-      sucesso('Sucesso!', 'Pessoa deletada com sucesso');
+      sucesso('Sucesso', 'Beneficiário deletado!');
     } catch (erro) {
-      setErro('Erro ao deletar: ' + erro.message);
-      erroToast('Erro ao Deletar', 'Não foi possível deletar a pessoa');
+      erroToast('Erro ao Deletar', 'Não foi possível deletar o beneficiário');
+    } finally {
+      setModalDeleteAberto(false);
+      setPessoaParaDeleter(null);
     }
   };
 
@@ -307,7 +352,6 @@ export const ListaPessoas = () => {
     return acc;
   }, {});
 
-  // Obter tipos de benefício únicos
   const tiposBeneficio = [...new Set(pessoas.map(p => p.tipoBeneficio))].sort();
 
   // Filtrar por tipo de benefício se selecionado
@@ -385,7 +429,7 @@ export const ListaPessoas = () => {
 
           <button 
             className="botao-novo"
-            onClick={() => navegar('/pessoas/novo')}
+            onClick={() => setModalCadastroAberto(true)}
           >
             <Plus size={18} /> Novo Cadastro
           </button>
@@ -457,7 +501,16 @@ export const ListaPessoas = () => {
                 return null;
               }
 
+              // Não renderizar se não há pessoas nesta comunidade
               if (totalComunidade === 0) return null;
+
+              // Verificar se há pelo menos uma faixa etária com pessoas
+              const temPessoas = gruposComunidade.criancas.length > 0 || 
+                                gruposComunidade.adultos.length > 0 || 
+                                gruposComunidade.idosos.length > 0;
+              
+              // Não renderizar seção vazia
+              if (!temPessoas) return null;
 
               return (
                 <div key={comunidade.nome} className="secao-comunidade" style={{ '--cor-comunidade-rgb': hexToRgb(comunidade.cor), borderLeftColor: comunidade.cor }}>
@@ -477,8 +530,15 @@ export const ListaPessoas = () => {
                             key={pessoa.id}
                             pessoa={pessoa}
                             idade={calcularIdade(pessoa)}
-                            onEditar={() => navegar(`/pessoas/${pessoa.id}`)}
+                            onEditar={() => {
+                              setPessoaParaEditar(pessoa);
+                              setModalEdicaoAberto(true);
+                            }}
                             onDeletar={() => handleDeletar(pessoa.id)}
+                            onPreview={(p, i) => {
+                              setPessoaSelecionada({ pessoa: p, idade: i });
+                              setModalPreviewAberto(true);
+                            }}
                           />
                         ))}
                       </div>
@@ -499,8 +559,15 @@ export const ListaPessoas = () => {
                             key={pessoa.id}
                             pessoa={pessoa}
                             idade={calcularIdade(pessoa)}
-                            onEditar={() => navegar(`/pessoas/${pessoa.id}`)}
+                            onEditar={() => {
+                              setPessoaParaEditar(pessoa);
+                              setModalEdicaoAberto(true);
+                            }}
                             onDeletar={() => handleDeletar(pessoa.id)}
+                            onPreview={(p, i) => {
+                              setPessoaSelecionada({ pessoa: p, idade: i });
+                              setModalPreviewAberto(true);
+                            }}
                           />
                         ))}
                       </div>
@@ -521,8 +588,15 @@ export const ListaPessoas = () => {
                             key={pessoa.id}
                             pessoa={pessoa}
                             idade={calcularIdade(pessoa)}
-                            onEditar={() => navegar(`/pessoas/${pessoa.id}`)}
+                            onEditar={() => {
+                              setPessoaParaEditar(pessoa);
+                              setModalEdicaoAberto(true);
+                            }}
                             onDeletar={() => handleDeletar(pessoa.id)}
+                            onPreview={(p, i) => {
+                              setPessoaSelecionada({ pessoa: p, idade: i });
+                              setModalPreviewAberto(true);
+                            }}
                           />
                         ))}
                       </div>
@@ -539,7 +613,7 @@ export const ListaPessoas = () => {
               );
             })}
 
-            {paginas > 1 && (
+            {paginas > 1 && !comunidadeSelecionada && (
               <div className="paginacao">
                 <button
                   onClick={() => setPagina(p => Math.max(1, p - 1))}
@@ -574,10 +648,55 @@ export const ListaPessoas = () => {
         onCancelar={() => setModalSairAberto(false)}
         carregando={saindo}
       />
-      {gerenciadorTokensAberto && (
+      <ModalConfirmacao
+        aberto={modalDeleteAberto}
+        tipo="delete"
+        titulo="Deletar Beneficiário"
+        mensagem="Tem certeza que deseja deletar este beneficiário? Esta ação não pode ser desfeita."
+        botaoPrincipalTexto="Deletar"
+        botaoCancelarTexto="Cancelar"
+        onConfirmar={confirmarDeletar}
+        onCancelar={() => {
+          setModalDeleteAberto(false);
+          setPessoaParaDeleter(null);
+        }}
+        carregando={false}
+      />
+      {usuario?.funcao === 'admin' && gerenciadorTokensAberto && (
         <GerenciadorTokens onFechar={() => setGerenciadorTokensAberto(false)} />
       )}
-      <ToastContainer toasts={toasts} onClose={removerToast} />
+      {pessoaSelecionada && (
+        <ModalPreview
+          pessoa={pessoaSelecionada.pessoa}
+          idade={pessoaSelecionada.idade}
+          isOpen={modalPreviewAberto}
+          onClose={() => {
+            setModalPreviewAberto(false);
+            setPessoaSelecionada(null);
+          }}
+        />
+      )}
+      {pessoaParaEditar && (
+        <ModalEdicao
+          pessoa={pessoaParaEditar}
+          isOpen={modalEdicaoAberto}
+          onClose={() => {
+            setModalEdicaoAberto(false);
+            setPessoaParaEditar(null);
+          }}
+          onAtualizar={(pessoaAtualizada) => {
+            setPessoas(pessoas.map(p => p.id === pessoaAtualizada.id ? pessoaAtualizada : p));
+          }}
+        />
+      )}
+      <ModalCadastro
+        isOpen={modalCadastroAberto}
+        onClose={() => setModalCadastroAberto(false)}
+        onCadastrar={() => {
+          setModalCadastroAberto(false);
+          carregarPessoas();
+        }}
+      />
     </div>
   );
 };
@@ -587,16 +706,52 @@ const formatarCPF = (cpf) => {
   return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 };
 
-const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar }) => {
+const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar, onPreview }) => {
+  const hoverTimeoutRef = useRef(null);
+
+  const handleMouseEnter = () => {
+    hoverTimeoutRef.current = setTimeout(() => {
+      onPreview(pessoa, idade);
+    }, 2000);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+  };
+
+  const handleBotaoMouseEnter = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeoutRef.current) {
+        clearTimeout(hoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div className="cartao-pessoa">
+    <div 
+      className="cartao-pessoa"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onClick={() => onPreview(pessoa, idade)}
+    >
       <div className="cartao-cabecalho">
         <div className="info-principal">
           <h3 className="nome-cartao">{pessoa.nome}</h3>
           <p className="idade-cartao">{idade} anos</p>
         </div>
-        {pessoa.tipoBeneficio && (
-          <div className="badge-beneficio">{pessoa.tipoBeneficio}</div>
+        {(pessoa.beneficiosGAC && Array.isArray(pessoa.beneficiosGAC) && pessoa.beneficiosGAC.length > 0) && (
+          <div className="badge-beneficio">GAC ({pessoa.beneficiosGAC.length})</div>
+        )}
+        {(pessoa.beneficiosGoverno && Array.isArray(pessoa.beneficiosGoverno) && pessoa.beneficiosGoverno.length > 0) && (
+          <div className="badge-beneficio">Gov ({pessoa.beneficiosGoverno.length})</div>
         )}
       </div>
 
@@ -620,10 +775,12 @@ const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar }) => {
           </div>
         )}
 
-        <div className="linha-info">
-          <span className="label">Endereço:</span>
-          <span className="valor">{pessoa.endereco}</span>
-        </div>
+        {pessoa.endereco && (
+          <div className="linha-info">
+            <span className="label">Endereço:</span>
+            <span className="valor">{pessoa.endereco}</span>
+          </div>
+        )}
 
         {pessoa.bairro && (
           <div className="linha-info">
@@ -638,45 +795,27 @@ const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar }) => {
             <span className="valor">{pessoa.cidade}{pessoa.estado ? ` - ${pessoa.estado}` : ''}</span>
           </div>
         )}
-
-        {pessoa.cep && (
-          <div className="linha-info">
-            <span className="label">CEP:</span>
-            <span className="valor">{pessoa.cep}</span>
-          </div>
-        )}
-
-        {pessoa.observacoes && (
-          <div className="linha-info">
-            <span className="label">Observações:</span>
-            <span className="valor observacao">{pessoa.observacoes}</span>
-          </div>
-        )}
-
-        <div className="linha-info">
-          <span className="label">Cadastrado em:</span>
-          <span className="valor">{new Date(pessoa.dataCriacao).toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-        </div>
-
-        {pessoa.dataAtualizacao && (
-          <div className="linha-info">
-            <span className="label">Editado em:</span>
-            <span className="valor">{new Date(pessoa.dataAtualizacao).toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-          </div>
-        )}
       </div>
 
       <div className="cartao-rodape">
         <button
           className="botao-cartao botao-editar"
-          onClick={onEditar}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEditar();
+          }}
+          onMouseEnter={handleBotaoMouseEnter}
           title="Editar"
         >
           <Edit2 size={16} /> Editar
         </button>
         <button
           className="botao-cartao botao-deletar"
-          onClick={onDeletar}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeletar();
+          }}
+          onMouseEnter={handleBotaoMouseEnter}
           title="Deletar"
         >
           <Trash2 size={16} /> Deletar

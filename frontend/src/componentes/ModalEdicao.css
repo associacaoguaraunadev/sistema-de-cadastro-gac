@@ -1,0 +1,347 @@
+/* Modal de Edição - Overlay */
+.modal-edicao-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Container do Modal */
+.modal-edicao-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25), 0 10px 30px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 900px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Header do Modal */
+.modal-edicao-header {
+  background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+  color: white;
+  padding: 28px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: none;
+  flex-shrink: 0;
+  box-shadow: 0 2px 12px rgba(27, 94, 32, 0.15);
+}
+
+.modal-edicao-titulo {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+/* Botão Fechar */
+.modal-edicao-close {
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.modal-edicao-close:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(90deg) scale(1.05);
+}
+
+.modal-edicao-close:active {
+  transform: rotate(90deg) scale(0.98);
+}
+
+/* Conteúdo do Modal - com scroll */
+.modal-edicao-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: linear-gradient(135deg, #fafafa 0%, #ffffff 50%, #f5f5f5 100%);
+  padding: 28px 32px;
+  min-height: 0;
+}
+
+/* Formulário */
+.modal-edicao-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Seções do Formulário */
+.form-secao {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid #e3f2fd;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  margin-bottom: 4px;
+  transition: all 0.3s ease;
+}
+
+.form-secao:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border-color: #bbdefb;
+}
+
+.form-secao-titulo {
+  margin: 0 0 20px 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1b5e20;
+  border-bottom: 3px solid #c8e6c9;
+  padding-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Grupos de Formulário */
+.form-group {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #424242;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Inputs */
+.form-input {
+  padding: 14px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.25s ease;
+  background: white;
+  color: #333;
+}
+
+.form-input::placeholder {
+  color: #bdbdbd;
+  font-style: italic;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #2e7d32;
+  box-shadow: 0 0 0 4px rgba(46, 125, 50, 0.12);
+  background: #fafafa;
+}
+
+.form-input:hover:not(:focus) {
+  border-color: #bdbdbd;
+}
+
+/* NOVO: Estilos para input com erro */
+.form-input-erro {
+  border-color: #d32f2f !important;
+  background-color: #ffebee;
+}
+
+.form-input-erro:focus {
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.12) !important;
+}
+
+.form-input-erro::placeholder {
+  color: #ef9a9a;
+}
+
+/* Mensagem de erro do campo */
+.form-erro-msg {
+  color: #d32f2f;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 6px;
+  display: block;
+  animation: slideInError 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+@keyframes slideInError {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 110px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Grids */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .form-grid-2,
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-edicao-container {
+    width: 95%;
+    height: 95vh;
+  }
+}
+
+/* Footer do Modal - FIXO NA BASE */
+.modal-edicao-footer {
+  background: white;
+  padding: 20px 32px;
+  border-top: 2px solid #e8f5e9;
+  display: flex;
+  gap: 16px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+}
+
+/* Botões */
+.btn {
+  padding: 14px 32px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-width: 140px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 8px 24px rgba(27, 94, 32, 0.35);
+  transform: translateY(-3px);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(27, 94, 32, 0.2);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, #f5f5f5 0%, #eeeeee 100%);
+  color: #424242;
+  border: 1.5px solid #d0d0d0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #eeeeee 0%, #e0e0e0 100%);
+  border-color: #bdbdbd;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Scrollbar customizado */
+.modal-edicao-content::-webkit-scrollbar {
+  width: 12px;
+}
+
+.modal-edicao-content::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, #f0f0f0 0%, #e8e8e8 100%);
+  border-radius: 10px;
+}
+
+.modal-edicao-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+  border-radius: 10px;
+  border: 3px solid #f0f0f0;
+  box-shadow: 0 0 6px rgba(27, 94, 32, 0.2);
+}
+
+.modal-edicao-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #1b5e20 0%, #0d3a1a 100%);
+  box-shadow: 0 0 8px rgba(27, 94, 32, 0.35);
+}
+
+/* Styling para campos opcionais */
+.campo-opcional {
+  font-weight: 400;
+  font-size: 12px;
+  color: #999;
+  margin-left: 4px;
+}

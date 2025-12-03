@@ -5,7 +5,7 @@ import { Copy, Trash2, Check, Loader, AlertCircle, X } from 'lucide-react';
 import axios from 'axios';
 import './GerenciadorTokens.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const GerenciadorTokens = ({ onFechar }) => {
   const [email, setEmail] = useState('');
@@ -31,7 +31,8 @@ export const GerenciadorTokens = ({ onFechar }) => {
       setTokens(response.data);
     } catch (erro) {
       console.error('❌ Erro ao carregar tokens:', erro);
-      erroToast('Erro ao carregar tokens: ' + erro.message);
+      const mensagem = erro.response?.data?.erro || 'Não foi possível carregar os tokens';
+      erroToast(mensagem);
     } finally {
       setCarregando(false);
     }
@@ -39,7 +40,7 @@ export const GerenciadorTokens = ({ onFechar }) => {
 
   const gerarToken = async () => {
     if (!email) {
-      aviso('Digite um email');
+      aviso('Por favor, digite um email');
       return;
     }
 
@@ -58,16 +59,28 @@ export const GerenciadorTokens = ({ onFechar }) => {
       );
 
       console.log('✅ Token gerado:', response.data);
-      sucesso('Token gerado com sucesso!');
+      sucesso('✅ Token gerado com sucesso!');
       setEmail('');
       await carregarTokens();
     } catch (erro) {
       console.error('❌ Erro ao gerar token:', erro);
+      let mensagem = 'Erro ao gerar token';
+      
       if (erro.response?.status === 409) {
-        erroToast(erro.response.data?.erro || 'Email já possui conta ou token pendente');
+        mensagem = erro.response.data?.erro || 'Email já possui conta ou token pendente';
+      } else if (erro.response?.status === 400) {
+        mensagem = erro.response.data?.erro || 'Email inválido';
+      } else if (erro.response?.status === 401) {
+        mensagem = 'Você não tem permissão para gerar tokens';
+      } else if (erro.response?.data?.erro) {
+        mensagem = erro.response.data.erro;
+      } else if (erro.code === 'ERR_NETWORK') {
+        mensagem = 'Erro de conexão com o servidor';
       } else {
-        erroToast(erro.response?.data?.erro || 'Erro ao gerar token: ' + erro.message);
+        mensagem = erro.message || 'Erro desconhecido ao gerar token';
       }
+      
+      erroToast(mensagem);
     } finally {
       setGerando(false);
     }
@@ -94,11 +107,21 @@ export const GerenciadorTokens = ({ onFechar }) => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      sucesso('Token revogado com sucesso!');
+      sucesso('✅ Token revogado com sucesso!');
       await carregarTokens();
     } catch (erro) {
       console.error('❌ Erro ao revogar token:', erro);
-      erroToast(erro.response?.data?.erro || 'Erro ao revogar token: ' + erro.message);
+      let mensagem = 'Erro ao revogar token';
+      
+      if (erro.response?.data?.erro) {
+        mensagem = erro.response.data.erro;
+      } else if (erro.code === 'ERR_NETWORK') {
+        mensagem = 'Erro de conexão com o servidor';
+      } else {
+        mensagem = erro.message || 'Erro desconhecido';
+      }
+      
+      erroToast(mensagem);
     } finally {
       setDialogRevogar({ aberto: false, tokenId: null });
     }

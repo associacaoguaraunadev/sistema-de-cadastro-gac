@@ -2,6 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexto/AuthContext';
+import { ToastProvider } from './contexto/ToastContext';
+import { ToastContainer } from './componentes/Toast';
+import { useGlobalToast } from './contexto/ToastContext';
 import { RotaPrivada } from './componentes/RotaPrivada';
 import { FormularioLogin, FormularioRegistro } from './componentes/FormularioAutenticacao';
 import { FormularioRecuperacaoSenha } from './componentes/FormularioRecuperacaoSenha';
@@ -10,6 +13,21 @@ import { ListaComunidades } from './componentes/ListaComunidades';
 import { FormularioPessoa } from './componentes/FormularioPessoa';
 import { TransferenciaPessoas } from './componentes/TransferenciaPessoas';
 import './index.css';
+
+// Limpar cache ao iniciar
+if ('caches' in window) {
+  caches.keys().then(cacheNames => {
+    cacheNames.forEach(cacheName => {
+      caches.delete(cacheName);
+    });
+  });
+}
+
+// Limpar localStorage se necessário
+// localStorage.clear();
+
+// Limpar sessionStorage
+// sessionStorage.clear();
 
 function App() {
   const { autenticado } = useAuth();
@@ -81,11 +99,23 @@ function App() {
   );
 }
 
+function AppWrapper() {
+  const { toasts, removerToast } = useGlobalToast();
+  return (
+    <>
+      <App />
+      <ToastContainer toasts={toasts} onClose={removerToast} />
+    </>
+  );
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <ToastProvider>
+          <AppWrapper />
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

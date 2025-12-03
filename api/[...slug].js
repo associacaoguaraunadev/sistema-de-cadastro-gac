@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import { gerarTokenGeracao, listarTokens, revogarToken } from './autenticacao/tokens.js';
 
 // Pool de conexão Prisma - CRUCIAL para serverless
 let prisma;
@@ -165,10 +166,6 @@ async function rotear(req, res, slug) {
     return autenticacaoValidarToken(req, res);
   }
 
-  if (rota === 'autenticacao/convite/validar' && req.method === 'POST') {
-    return validarConvite(req, res);
-  }
-
   if (rota === 'autenticacao/token/validar' && req.method === 'POST') {
     return validarTokenGeracao(req, res);
   }
@@ -183,7 +180,8 @@ async function rotear(req, res, slug) {
 
   if (rota.startsWith('autenticacao/token/') && req.method === 'DELETE') {
     const id = slug[2];
-    return revogarToken(req, res, id);
+    req.params = { id };
+    return revogarToken(req, res);
   }
 
   // PESSOAS
@@ -220,8 +218,10 @@ async function rotear(req, res, slug) {
 // ==================== AUTENTICAÇÃO ====================
 
 async function autenticacaoEntrar(req, res) {
-  const prisma = getPrisma();
+  // NÃO usar getPrisma() aqui pois pode interferir na resposta
   try {
+    const prisma = getPrisma();
+    
     // DEBUG COMPLETO: Verificar o que está chegando no body
     log(`\n========== LOGIN DEBUG START ==========`);
     log(`📦 Tipo de req.body: ${typeof req.body}`);
@@ -292,7 +292,8 @@ async function autenticacaoEntrar(req, res) {
 
     log(`✅ Token gerado com sucesso`);
     log(`✅ Login bem-sucedido: ${email}`);
-    res.status(200).json({
+    
+    const resposta = {
       token,
       usuario: {
         id: usuario.id,
@@ -300,7 +301,11 @@ async function autenticacaoEntrar(req, res) {
         nome: usuario.nome,
         funcao: usuario.funcao
       }
-    });
+    };
+    
+    log(`✅ Enviando resposta: ${JSON.stringify(resposta).substring(0, 100)}`);
+    res.status(200).json(resposta);
+    log(`✅ RESPOSTA ENVIADA COM SUCESSO`);
   } catch (erro) {
     log(`\n❌ ERRO NO LOGIN ❌`, 'error');
     log(`Mensagem: ${erro.message}`, 'error');
@@ -341,7 +346,7 @@ async function autenticacaoRegistrar(req, res) {
       return res.status(409).json({ erro: 'Email já registrado' });
     }
 
-    const ehToken = codigoConvite.startsWith('GAC-TOKEN-');
+    const ehToken = codigoConvite.startsWith('GAC-GEN-') || codigoConvite.startsWith('GAC-TOKEN-');
     let usuarioFuncao = 'usuario';
     let codigoValido = false;
 
@@ -375,34 +380,9 @@ async function autenticacaoRegistrar(req, res) {
       usuarioFuncao = 'funcionario';
       codigoValido = true;
     } else {
-      // VALIDAR CÓDIGO CONVITE
-      log(`📧 Validando CÓDIGO para ${email}`);
-      const convite = await prisma.codigoConvite.findUnique({ 
-        where: { codigo: codigoConvite } 
-      });
-
-      if (!convite) {
-        log(`Código não encontrado: ${codigoConvite}`, 'error');
-        return res.status(401).json({ erro: 'Código de convite inválido' });
-      }
-
-      if (convite.usado) {
-        log(`Código já foi utilizado: ${codigoConvite}`, 'error');
-        return res.status(401).json({ erro: 'Código de convite já foi utilizado' });
-      }
-
-      if (convite.dataExpiracao && new Date() > new Date(convite.dataExpiracao)) {
-        log(`Código expirado: ${codigoConvite}`, 'error');
-        return res.status(401).json({ erro: 'Código de convite expirado' });
-      }
-
-      if (convite.email !== email) {
-        log(`Email não bate: ${email} vs ${convite.email}`, 'error');
-        return res.status(401).json({ erro: 'Este código de convite é para outro email' });
-      }
-
-      usuarioFuncao = 'usuario';
-      codigoValido = true;
+      // Se não é token, é inválido (removemos suporte a convites)
+      log(`Apenas tokens GAC-GEN- são aceitos: ${codigoConvite}`, 'error');
+      return res.status(400).json({ erro: 'Código de convite inválido. Use apenas tokens GAC-GEN-' });
     }
 
     if (!codigoValido) {
@@ -428,28 +408,14 @@ async function autenticacaoRegistrar(req, res) {
 
     log(`✅ Usuário criado: ${usuario.id} - ${email}`);
 
-    // Marcar como usado
-    if (ehToken) {
-      await prisma.tokenGeracao.update({
-        where: { token: codigoConvite },
-        data: {
-          usado: true,
-          usadoPor: email,
-          usadoEm: new Date()
-        }
-      });
-      log(`Token marcado como usado`);
-    } else {
-      await prisma.codigoConvite.update({
-        where: { codigo: codigoConvite },
-        data: {
-          usado: true,
-          usadoPorId: usuario.id,
-          usadoEm: new Date()
-        }
-      });
-      log(`Código marcado como usado`);
-    }
+    // Marcar token como usado
+    await prisma.tokenGeracao.update({
+      where: { token: codigoConvite },
+      data: {
+        usado: true
+      }
+    });
+    log(`✅ Token marcado como usado`);
 
     const token = jwt.sign(
       { id: usuario.id, email: usuario.email, funcao: usuario.funcao },
@@ -676,33 +642,6 @@ async function autenticacaoValidarToken(req, res) {
   }
 }
 
-async function validarConvite(req, res) {
-  const prisma = getPrisma();
-  try {
-    const { codigo, email } = req.body;
-    log(`📧 Validando CONVITE: ${codigo}`);
-
-    const convite = await prisma.codigoConvite.findUnique({ where: { codigo } });
-
-    if (!convite || convite.usado) {
-      return res.status(401).json({ valido: false, erro: 'Código inválido' });
-    }
-
-    if (new Date() > new Date(convite.dataExpiracao)) {
-      return res.status(401).json({ valido: false, erro: 'Código expirado' });
-    }
-
-    res.status(200).json({ 
-      valido: true, 
-      email: convite.email,
-      mensagem: 'Código válido'
-    });
-  } catch (erro) {
-    log(`Erro ao validar convite: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao validar' });
-  }
-}
-
 async function validarTokenGeracao(req, res) {
   const prisma = getPrisma();
   try {
@@ -731,102 +670,6 @@ async function validarTokenGeracao(req, res) {
   } catch (erro) {
     log(`Erro ao validar token: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao validar' });
-  }
-}
-
-async function gerarTokenGeracao(req, res) {
-  const prisma = getPrisma();
-  try {
-    const usuario = autenticarToken(req);
-    if (!usuario || usuario.funcao !== 'admin') {
-      return res.status(403).json({ erro: 'Acesso negado' });
-    }
-
-    const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ erro: 'Email obrigatório' });
-    }
-
-    log(`🔑 Gerando token para: ${email}`);
-
-    const usuarioExistente = await prisma.usuario.findUnique({ where: { email } });
-    const tokenPendente = await prisma.tokenGeracao.findFirst({
-      where: { email, usado: false }
-    });
-
-    if (usuarioExistente || tokenPendente) {
-      log(`⚠️ Email ${email} já possui conta ou token pendente`, 'error');
-      return res.status(409).json({ erro: 'Email já possui conta ou token pendente' });
-    }
-
-    // Gerar token aleatório com 32 caracteres
-    const tokenGerado = `GAC-TOKEN-${Math.random().toString(36).substring(2, 34).toUpperCase()}`;
-    const dataExpiracao = new Date();
-    dataExpiracao.setDate(dataExpiracao.getDate() + 7);
-
-    log(`📝 Criando registro no banco - Email: ${email}, Token: ${tokenGerado.substring(0, 20)}...`);
-
-    const tokenDb = await prisma.tokenGeracao.create({
-      data: {
-        token: tokenGerado,
-        email,
-        dataExpiracao,
-        usado: false
-      }
-    });
-
-    log(`✅ Token gerado com sucesso para ${email}`);
-    res.status(201).json({
-      id: tokenDb.id,
-      token: tokenDb.token,
-      email: tokenDb.email,
-      dataExpiracao: tokenDb.dataExpiracao,
-      usado: tokenDb.usado
-    });
-  } catch (erro) {
-    log(`❌ Erro ao gerar token: ${erro.message}`, 'error');
-    log(`Stack: ${erro.stack}`, 'error');
-    res.status(500).json({ 
-      erro: 'Erro ao gerar token',
-      detalhes: process.env.NODE_ENV === 'development' ? erro.message : undefined
-    });
-  }
-}
-
-async function listarTokens(req, res) {
-  const prisma = getPrisma();
-  try {
-    const usuario = autenticarToken(req);
-    if (!usuario || usuario.funcao !== 'admin') {
-      return res.status(403).json({ erro: 'Acesso negado' });
-    }
-
-    const tokens = await prisma.tokenGeracao.findMany();
-    const pendentes = tokens.filter(t => !t.usado);
-    const usados = tokens.filter(t => t.usado);
-
-    res.status(200).json({ pendentes, usados });
-  } catch (erro) {
-    log(`Erro ao listar tokens: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao listar tokens' });
-  }
-}
-
-async function revogarToken(req, res, id) {
-  const prisma = getPrisma();
-  try {
-    const usuario = autenticarToken(req);
-    if (!usuario || usuario.funcao !== 'admin') {
-      return res.status(403).json({ erro: 'Acesso negado' });
-    }
-
-    await prisma.tokenGeracao.delete({ where: { id: parseInt(id) } });
-
-    log(`✅ Token revogado`);
-    res.status(204).end();
-  } catch (erro) {
-    log(`Erro ao revogar token: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao revogar token' });
   }
 }
 
@@ -1054,6 +897,17 @@ async function pessoasCriar(req, res) {
       });
     }
 
+    // Validação: CPF deve ter exatamente 11 dígitos
+    const cpfLimpo = (cpf || '').toString().replace(/\D/g, '');
+    if (cpfLimpo.length !== 11) {
+      return res.status(400).json({ 
+        erro: `CPF incompleto (${cpfLimpo.length}/11 dígitos). Digite o CPF completo.`,
+        campos: {
+          cpf: `CPF deve ter 11 dígitos (fornecidos: ${cpfLimpo.length})`
+        }
+      });
+    }
+
     // Validação: idade obrigatória
     if (idade === null || idade === undefined || idade === '') {
       return res.status(400).json({ 
@@ -1124,6 +978,42 @@ async function pessoasAtualizar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
+    // Validação: CPF deve ter exatamente 11 dígitos (se fornecido)
+    if (req.body.cpf) {
+      const cpfLimpo = (req.body.cpf || '').toString().replace(/\D/g, '');
+      if (cpfLimpo.length !== 11) {
+        return res.status(400).json({ 
+          erro: `CPF incompleto (${cpfLimpo.length}/11 dígitos). Digite o CPF completo.`,
+          campos: {
+            cpf: `CPF deve ter 11 dígitos (fornecidos: ${cpfLimpo.length})`
+          }
+        });
+      }
+    }
+
+    // Validação: Idade obrigatória
+    if (req.body.idade === null || req.body.idade === undefined || req.body.idade === '') {
+      return res.status(400).json({ 
+        erro: 'Idade é obrigatória',
+        campos: {
+          idade: 'Campo obrigatório'
+        }
+      });
+    }
+
+    // Validação: Idade deve ser um número válido
+    if (req.body.idade) {
+      const idadeNum = parseInt(req.body.idade);
+      if (isNaN(idadeNum) || idadeNum < 0 || idadeNum > 150) {
+        return res.status(400).json({ 
+          erro: 'Idade deve ser um número entre 0 e 150',
+          campos: {
+            idade: 'Valor inválido'
+          }
+        });
+      }
+    }
+
     const dataSanitizada = sanitizarPessoa(req.body);
 
     const pessoa = await prisma.pessoa.update({
@@ -1131,6 +1021,7 @@ async function pessoasAtualizar(req, res, id) {
       data: dataSanitizada
     });
 
+    log(`✅ Pessoa atualizada com sucesso: ${pessoa.nome} (ID: ${pessoa.id})`);
     res.status(200).json(pessoa);
   } catch (erro) {
     log(`Erro ao atualizar pessoa: ${erro.message}`, 'error');

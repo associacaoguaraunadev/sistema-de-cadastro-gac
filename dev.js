@@ -7,15 +7,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 console.log('🚀 Iniciando desenvolvimento...\n');
 
 // Iniciar frontend
-const frontend = spawn('npm', ['run', 'dev:frontend'], {
+const frontend = spawn('npm', ['run', 'dev'], {
   cwd: path.join(__dirname, 'frontend'),
-  stdio: 'inherit'
+  stdio: 'inherit',
+  shell: true
 });
 
-// Iniciar backend
-const backend = spawn('npm', ['run', 'dev:backend'], {
-  cwd: path.join(__dirname, 'backend'),
-  stdio: 'inherit'
+// Iniciar API (backend)
+const backend = spawn('node', ['server-local.js'], {
+  cwd: path.join(__dirname, 'api'),
+  stdio: 'inherit',
+  shell: true
 });
 
 process.on('SIGINT', () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, LogOut } from 'lucide-react';
+import { AlertCircle, LogOut, Trash2 } from 'lucide-react';
 import './ModalConfirmacao.css';
 
 export const ModalConfirmacao = ({ 
@@ -18,7 +18,8 @@ export const ModalConfirmacao = ({
   const icones = {
     alerta: <AlertCircle size={32} />,
     logout: <LogOut size={32} />,
-    deletar: <AlertCircle size={32} />
+    deletar: <Trash2 size={32} />,
+    delete: <Trash2 size={32} />
   };
 
   return (

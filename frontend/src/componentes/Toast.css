@@ -36,11 +36,22 @@
   }
 }
 
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+}
+
 /* Tipos de Toast */
 .toast-sucesso {
-  background: linear-gradient(135deg, #E6F4FF 0%, #7BB9E8 100%);
-  border-left: 4px solid #1C78C0;
-  color: #0A2A43;
+  background: linear-gradient(135deg, #E8F5E9 0%, #A5D6A7 100%);
+  border-left: 4px solid #2e7d32;
+  color: #1b5e20;
 }
 
 .toast-erro {
