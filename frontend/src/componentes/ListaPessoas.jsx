@@ -121,6 +121,11 @@ export const ListaPessoas = () => {
     
     eventSource.onopen = () => {
       console.log('✅ SSE conectado com sucesso');
+      console.log('🔍 DEBUG: Usuário conectado ao SSE:', {
+        id: usuario?.id,
+        funcao: usuario?.funcao,
+        email: usuario?.email
+      });
     };
     
     eventSource.onmessage = (event) => {
@@ -514,50 +519,34 @@ export const ListaPessoas = () => {
           </button>
         </div>
 
-        {mostrarMensagemAtualizacao && (
-          <div className="mensagem-atualizacao">
-            <span>⚠️ Alguns dados foram atualizados, favor atualizar a página.</span>
-            <button 
-              onClick={() => {
-                carregarPessoas();
-                carregarTotaisPorComunidade();
-                setMostrarMensagemAtualizacao(false);
-              }}
-              className="btn-atualizar"
-            >
-              Atualizar
-            </button>
-            <button 
-              onClick={() => setMostrarMensagemAtualizacao(false)}
-              className="btn-fechar"
-            >
-              ✕
-            </button>
-          </div>
-        )}
+
 
         {erro && <div className="alerta-erro">{erro}</div>}
 
-        {/* Mensagem de atualização */}
+        {/* Mensagem flutuante de atualização */}
         {mostrarMensagemAtualizacao && (
-          <div className="mensagem-atualizacao">
-            <span>{tipoMensagemAtualizacao}</span>
-            <button 
-              onClick={() => {
-                carregarPessoas();
-                carregarTotaisPorComunidade();
-                setMostrarMensagemAtualizacao(false);
-              }}
-              className="botao-recarregar"
-            >
-              Recarregar
-            </button>
-            <button 
-              onClick={() => setMostrarMensagemAtualizacao(false)}
-              className="botao-fechar-mensagem"
-            >
-              ×
-            </button>
+          <div className="mensagem-atualizacao-flutuante">
+            <div className="conteudo-mensagem">
+              <span className="texto-mensagem">{tipoMensagemAtualizacao}</span>
+              <div className="botoes-mensagem">
+                <button 
+                  onClick={() => {
+                    carregarPessoas();
+                    carregarTotaisPorComunidade();
+                    setMostrarMensagemAtualizacao(false);
+                  }}
+                  className="botao-recarregar"
+                >
+                  Recarregar
+                </button>
+                <button 
+                  onClick={() => setMostrarMensagemAtualizacao(false)}
+                  className="botao-fechar-mensagem"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
