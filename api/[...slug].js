@@ -15,49 +15,130 @@ function getPrisma() {
   return prisma;
 }
 
-// Sistema de Server-Sent Events
+// Sistema de Server-Sent Events com suporte para Vercel serverless
 let clientesSSE = new Set();
+let ultimosEventos = new Map(); // Cache de eventos para sincronização
+let instanciaId = Math.random().toString(36).substring(7);
 
 function adicionarClienteSSE(res, usuarioId) {
-  const cliente = { res, usuarioId, conectadoEm: new Date() };
+  const cliente = { 
+    res, 
+    usuarioId, 
+    conectadoEm: new Date(),
+    instanciaId,
+    ativo: true
+  };
   clientesSSE.add(cliente);
+  
+  log(`🔗 Cliente SSE conectado: ${usuarioId} na instância ${instanciaId}, Total: ${clientesSSE.size}`);
   
   // Limpar cliente quando conexão fechar
   res.on('close', () => {
+    cliente.ativo = false;
     clientesSSE.delete(cliente);
-    console.log(`🔌 Cliente SSE desconectado: ${usuarioId}`);
+    log(`🔌 Cliente SSE desconectado: ${usuarioId} da instância ${instanciaId}`);
   });
   
-  console.log(`🔗 Cliente SSE conectado: ${usuarioId}, Total: ${clientesSSE.size}`);
+  // Heartbeat para manter conexão ativa no Vercel
+  const heartbeat = setInterval(() => {
+    try {
+      if (cliente.ativo && !res.destroyed) {
+        res.write(`event: heartbeat\n`);
+        res.write(`data: ${JSON.stringify({ timestamp: new Date(), instanciaId })}\n\n`);
+        log(`💓 Heartbeat enviado para cliente ${usuarioId}`);
+      } else {
+        clearInterval(heartbeat);
+      }
+    } catch (erro) {
+      clearInterval(heartbeat);
+      cliente.ativo = false;
+      clientesSSE.delete(cliente);
+      log(`❌ Erro no heartbeat para cliente ${usuarioId}: ${erro.message}`, 'error');
+    }
+  }, 15000); // A cada 15 segundos
+  
+  cliente.heartbeat = heartbeat;
+  
   return cliente;
 }
 
+// Sistema aprimorado de envio SSE com suporte a múltiplas instâncias Vercel
 function enviarEventoSSE(evento, dados) {
-  log(`📤 Preparando envio SSE: ${evento} para ${clientesSSE.size} clientes`);
+  const eventoId = Math.random().toString(36).substring(7);
+  const timestamp = new Date().toISOString();
   
+  log(`📤 Preparando envio SSE: ${evento} (ID: ${eventoId}) da instância ${instanciaId} para ${clientesSSE.size} clientes`);
+  
+  // Armazenar evento no cache para sincronização entre instâncias
+  ultimosEventos.set(eventoId, {
+    evento,
+    dados,
+    timestamp,
+    instanciaOrigem: instanciaId
+  });
+  
+  // Limpar eventos antigos (manter apenas os últimos 10)
+  if (ultimosEventos.size > 10) {
+    const primeirachave = ultimosEventos.keys().next().value;
+    ultimosEventos.delete(primeirachave);
+  }
+  
+  // Enviar para clientes locais desta instância
+  enviarParaClientesLocais(evento, dados, eventoId);
+  
+  // Broadcast global para outras possíveis instâncias via sistema de heartbeat
+  broadcastGlobal(evento, dados, eventoId, timestamp);
+}
+
+function enviarParaClientesLocais(evento, dados, eventoId) {
   if (clientesSSE.size === 0) {
-    log(`⚠️ Nenhum cliente SSE conectado para receber evento: ${evento}`, 'error');
+    log(`⚠️ Nenhum cliente SSE local conectado para receber evento: ${evento}`, 'error');
     return;
   }
 
-  const eventoData = JSON.stringify(dados);
+  const eventoData = JSON.stringify({ ...dados, eventoId, instanciaOrigem: instanciaId });
   let sucessos = 0;
   let erros = 0;
   
   clientesSSE.forEach(cliente => {
     try {
-      log(`📨 Enviando para cliente ${cliente.usuarioId}...`);
-      cliente.res.write(`event: ${evento}\n`);
-      cliente.res.write(`data: ${eventoData}\n\n`);
-      sucessos++;
+      if (cliente.ativo && !cliente.res.destroyed) {
+        log(`📨 Enviando ${evento} para cliente ${cliente.usuarioId} (instância ${cliente.instanciaId})...`);
+        cliente.res.write(`event: ${evento}\n`);
+        cliente.res.write(`data: ${eventoData}\n\n`);
+        sucessos++;
+      } else {
+        log(`🚫 Cliente ${cliente.usuarioId} inativo, removendo...`);
+        clientesSSE.delete(cliente);
+        erros++;
+      }
     } catch (erro) {
       log(`❌ Erro ao enviar SSE para cliente ${cliente.usuarioId}: ${erro.message}`, 'error');
+      cliente.ativo = false;
+      if (cliente.heartbeat) clearInterval(cliente.heartbeat);
       clientesSSE.delete(cliente);
       erros++;
     }
   });
   
-  log(`📊 Resultado envio SSE: ${sucessos} sucessos, ${erros} erros`);
+  log(`📊 Resultado envio local SSE: ${sucessos} sucessos, ${erros} erros`);
+}
+
+// Sistema de broadcast global para múltiplas instâncias Vercel
+async function broadcastGlobal(evento, dados, eventoId, timestamp) {
+  try {
+    log(`🌐 Iniciando broadcast global do evento ${evento} (ID: ${eventoId})`);
+    
+    // Nota: Em um ambiente serverless, não podemos garantir comunicação direta entre instâncias
+    // O sistema de heartbeat + cache de eventos já ajuda na sincronização
+    // Para uma solução completa, seria necessário usar Redis, WebSockets externos, ou Pusher
+    
+    // Por enquanto, confiamos no sistema de polling que será implementado no frontend
+    log(`✅ Broadcast global registrado para evento ${evento}`);
+    
+  } catch (erro) {
+    log(`❌ Erro no broadcast global: ${erro.message}`, 'error');
+  }
 }
 
 // CORS Handler

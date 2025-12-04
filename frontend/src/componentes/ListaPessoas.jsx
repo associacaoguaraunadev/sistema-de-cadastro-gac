@@ -107,91 +107,152 @@ export const ListaPessoas = () => {
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
-  // Sistema inteligente de auto-refresh com SSE (Server-Sent Events)
+  // Sistema inteligente de auto-refresh com SSE (Server-Sent Events) + suporte para Vercel
   useEffect(() => {
     if (!token || !usuario?.id) return;
 
-    console.log('🔗 Tentando conectar ao SSE...');
-    
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-    const sseUrl = `${baseUrl}/eventos/sse?token=${encodeURIComponent(token)}`;
-    console.log('📍 URL SSE:', sseUrl);
-    
-    const eventSource = new EventSource(sseUrl);
-    
-    eventSource.onopen = () => {
-      console.log('✅ SSE conectado com sucesso');
-      console.log('🔍 DEBUG: Usuário conectado ao SSE:', {
-        id: usuario?.id,
-        funcao: usuario?.funcao,
-        email: usuario?.email
-      });
-    };
-    
-    eventSource.onmessage = (event) => {
-      console.log('📨 Mensagem SSE recebida:', event);
-    };
-    
-    eventSource.onerror = (error) => {
-      console.error('❌ Erro SSE:', error);
-      console.error('📊 Estado da conexão:', eventSource.readyState);
-      if (eventSource.readyState === EventSource.CLOSED) {
-        console.log('🔌 Conexão SSE foi fechada');
+    let eventSource;
+    let reconnectTimeout;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    let isIntentionalClose = false;
+
+    const connectSSE = () => {
+      try {
+        console.log('🔗 Tentando conectar ao SSE...');
+        
+        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+        const sseUrl = `${baseUrl}/eventos/sse?token=${encodeURIComponent(token)}`;
+        console.log('📍 URL SSE:', sseUrl);
+        
+        eventSource = new EventSource(sseUrl);
+        
+        eventSource.onopen = () => {
+          console.log('✅ SSE conectado com sucesso');
+          console.log('🔍 DEBUG: Usuário conectado ao SSE:', {
+            id: usuario?.id,
+            funcao: usuario?.funcao,
+            email: usuario?.email
+          });
+          reconnectAttempts = 0; // Reset contador de tentativas
+        };
+        
+        eventSource.onmessage = (event) => {
+          console.log('📨 Mensagem SSE recebida:', event);
+        };
+        
+        // Listener para heartbeat (manter conexão ativa)
+        eventSource.addEventListener('heartbeat', (event) => {
+          const data = JSON.parse(event.data);
+          console.log('💓 Heartbeat recebido:', data);
+        });
+        
+        eventSource.onerror = (error) => {
+          console.error('❌ Erro SSE:', error);
+          console.error('📊 Estado da conexão:', eventSource.readyState);
+          
+          if (eventSource.readyState === EventSource.CLOSED) {
+            console.log('🔌 Conexão SSE foi fechada');
+            
+            // Reconectar automaticamente se não foi fechamento intencional
+            if (!isIntentionalClose && reconnectAttempts < maxReconnectAttempts) {
+              reconnectAttempts++;
+              const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Backoff exponencial
+              console.log(`🔄 Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts} em ${delay}ms`);
+              
+              reconnectTimeout = setTimeout(() => {
+                connectSSE();
+              }, delay);
+            }
+          }
+        };
+
+        const handleSSEEvent = (eventType, data) => {
+          console.log(`📡 Evento SSE recebido: ${eventType}`, data);
+          console.log(`🔍 DEBUG: Meu usuário ID: ${usuario?.id}, função: ${usuario?.funcao}`);
+          console.log(`🔍 DEBUG: Autor do evento ID: ${data.autorId}, função: ${data.autorFuncao}`);
+          console.log(`🔍 DEBUG: Comparação autorId === usuario.id:`, data.autorId === usuario?.id);
+          console.log(`🔍 DEBUG: Instância origem: ${data.instanciaOrigem}, Evento ID: ${data.eventoId}`);
+          
+          const { autorId, autorFuncao } = data;
+          
+          // Se sou o autor da ação, refresh silencioso
+          if (autorId === usuario?.id) {
+            console.log(`🔄 Refresh silencioso (própria ação): ${eventType}`);
+            carregarPessoas();
+            carregarTotaisPorComunidade();
+            return;
+          }
+          
+          // Determinar mensagem baseada na hierarquia
+          let mensagem = '';
+          if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
+            mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
+          } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
+            mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
+          }
+          
+          if (mensagem) {
+            console.log(`📢 Mostrando alerta: ${mensagem}`);
+            setTipoMensagemAtualizacao(mensagem);
+            setMostrarMensagemAtualizacao(true);
+          } else {
+            console.log(`ℹ️ Evento ignorado (mesma hierarquia): ${eventType}`);
+          }
+        };
+
+        // Eventos específicos
+        eventSource.addEventListener('pessoaCadastrada', (event) => {
+          const data = JSON.parse(event.data);
+          handleSSEEvent('pessoaCadastrada', data);
+        });
+
+        eventSource.addEventListener('pessoaAtualizada', (event) => {
+          const data = JSON.parse(event.data);
+          handleSSEEvent('pessoaAtualizada', data);
+        });
+
+        eventSource.addEventListener('pessoaDeletada', (event) => {
+          const data = JSON.parse(event.data);
+          handleSSEEvent('pessoaDeletada', data);
+        });
+
+        // Listener para eventos de conexão
+        eventSource.addEventListener('connected', (event) => {
+          const data = JSON.parse(event.data);
+          console.log('🎯 Conexão SSE estabelecida:', data);
+        });
+        
+      } catch (error) {
+        console.error('❌ Erro ao criar conexão SSE:', error);
+        
+        // Tentar reconectar se possível
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          const delay = Math.min(1000 * reconnectAttempts, 10000);
+          console.log(`🔄 Erro na conexão, tentando novamente em ${delay}ms`);
+          
+          reconnectTimeout = setTimeout(() => {
+            connectSSE();
+          }, delay);
+        }
       }
     };
 
-    const handleSSEEvent = (eventType, data) => {
-      console.log(`📡 Evento SSE recebido: ${eventType}`, data);
-      console.log(`🔍 DEBUG: Meu usuário ID: ${usuario?.id}, função: ${usuario?.funcao}`);
-      console.log(`🔍 DEBUG: Autor do evento ID: ${data.autorId}, função: ${data.autorFuncao}`);
-      console.log(`🔍 DEBUG: Comparação autorId === usuario.id:`, data.autorId === usuario?.id);
-      
-      const { autorId, autorFuncao } = data;
-      
-      // Se sou o autor da ação, refresh silencioso
-      if (autorId === usuario?.id) {
-        console.log(`🔄 Refresh silencioso (própria ação): ${eventType}`);
-        carregarPessoas();
-        carregarTotaisPorComunidade();
-        return;
-      }
-      
-      // Determinar mensagem baseada na hierarquia
-      let mensagem = '';
-      if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
-        mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
-      } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
-        mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
-      }
-      
-      if (mensagem) {
-        console.log(`📢 Mostrando alerta: ${mensagem}`);
-        setTipoMensagemAtualizacao(mensagem);
-        setMostrarMensagemAtualizacao(true);
-      } else {
-        console.log(`ℹ️ Evento ignorado (mesma hierarquia): ${eventType}`);
-      }
-    };
-
-    // Eventos específicos
-    eventSource.addEventListener('pessoaCadastrada', (event) => {
-      const data = JSON.parse(event.data);
-      handleSSEEvent('pessoaCadastrada', data);
-    });
-
-    eventSource.addEventListener('pessoaAtualizada', (event) => {
-      const data = JSON.parse(event.data);
-      handleSSEEvent('pessoaAtualizada', data);
-    });
-
-    eventSource.addEventListener('pessoaDeletada', (event) => {
-      const data = JSON.parse(event.data);
-      handleSSEEvent('pessoaDeletada', data);
-    });
+    // Iniciar primeira conexão
+    connectSSE();
 
     return () => {
       console.log('🔌 Desconectando SSE...');
-      eventSource.close();
+      isIntentionalClose = true;
+      
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      
+      if (eventSource) {
+        eventSource.close();
+      }
     };
   }, [token, usuario?.id, usuario?.funcao]);
 
