@@ -51,7 +51,12 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
 
   return (
     <div className="modal-preview-overlay" onClick={onClose}>
-      <div className="modal-preview-container" onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="modal-preview-container" 
+        onClick={(e) => e.stopPropagation()}
+        data-modal="preview"
+        data-pessoa-id={pessoa?.id}
+      >
         {/* Botão fechar */}
         <button className="modal-close-btn" onClick={onClose}>
           <X size={24} />

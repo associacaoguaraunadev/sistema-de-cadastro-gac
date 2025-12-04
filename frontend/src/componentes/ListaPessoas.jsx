@@ -46,10 +46,10 @@ export const ListaPessoas = () => {
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(Date.now());
   const [alertaEdicaoAtiva, setAlertaEdicaoAtiva] = useState(null);
   const [mostrarAlertaEdicao, setMostrarAlertaEdicao] = useState(false);
+  const [pessoaExcluidaDuranteEdicao, setPessoaExcluidaDuranteEdicao] = useState(null);
   const timeoutRef = useRef(null);
   const abasWrapperRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
-  // ❌ REMOVIDO: Não precisamos mais de polling timeout
   
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
@@ -102,6 +102,20 @@ export const ListaPessoas = () => {
       clearTimeout(timeoutRef.current);
       setBusca(buscaInput);
       setPagina(1);
+    }
+  };
+  
+  // 🔄 Função para atualizar dados da pessoa no preview silenciosamente
+  const atualizarPessoaPreview = async (pessoaId) => {
+    if (!token || !pessoaId) return;
+    
+    try {
+      const { obterPessoa } = await import('../servicos/api');
+      const pessoaAtualizada = await obterPessoa(token, pessoaId);
+      setPessoaSelecionada(pessoaAtualizada);
+      console.log(`✨ Preview atualizado silenciosamente: ${pessoaAtualizada.nome}`);
+    } catch (erro) {
+      console.error(`❌ Erro ao atualizar preview da pessoa ${pessoaId}:`, erro);
     }
   };
 
@@ -176,28 +190,127 @@ export const ListaPessoas = () => {
           
           const { autorId, autorFuncao, pessoa } = data;
           
-          // 🔍 VERIFICAR CONFLITO DE EDIÇÃO
+          // 🔍 VERIFICAR CONFLITOS EM MODAIS ABERTOS
           const modalEdicaoAberto = document.querySelector('[data-modal="edicao"]');
+          const modalPreviewAberto = document.querySelector('[data-modal="preview"]');
           const pessoaEditandoId = modalEdicaoAberto?.getAttribute('data-pessoa-id');
+          const pessoaPreviewId = modalPreviewAberto?.getAttribute('data-pessoa-id');
           
+          // 📝 MODAL EDICAO: Detectar exclusão (incluindo mesmo usuário)
           if (pessoaEditandoId && pessoa?.id && 
               String(pessoaEditandoId) === String(pessoa.id) &&
-              autorId !== usuario?.id) { // Só alertar se outro usuário fez a mudança
+              eventType === 'pessoaDeletada') {
             
-            // ⚠️ CONFLITO DETECTADO: Mostrar alerta específico
-            const tipoConflito = eventType === 'pessoaDeletada' ? 'excluido' : 'atualizado';
+            // 🗑️ EXCLUSÃO DURANTE EDIÇÃO: Bloquear modal
+            setPessoaExcluidaDuranteEdicao({
+              pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
+              autorFuncao,
+              isProprioUsuario: autorId === usuario?.id,
+              timestamp: Date.now()
+            });
+            
+            // 🕒 Fechar modal após 10 segundos
+            setTimeout(() => {
+              setModalEdicaoAberto(false);
+              setPessoaExcluidaDuranteEdicao(null);
+            }, 10000);
+            
+            console.log(`🚨 EXCLUSÃO: Pessoa ${pessoa.nome} foi excluída durante edição`);
+          }
+          
+          // ✏️ MODAL EDICAO: Conflitos de modificação
+          else if (pessoaEditandoId && pessoa?.id &&
+              String(pessoaEditandoId) === String(pessoa.id)) {
+            
+            if (eventType === 'pessoaDeletada') {
+              // 🗑️ EXCLUSÃO DURANTE EDIÇÃO: Bloquear modal
+              setPessoaExcluidaDuranteEdicao({
+                pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
+                autorFuncao,
+                isProprioUsuario: autorId === usuario?.id,
+                timestamp: Date.now()
+              });
+              
+              // 🕒 Fechar modal após 10 segundos
+              setTimeout(() => {
+                setModalEdicaoAberto(false);
+                setPessoaExcluidaDuranteEdicao(null);
+              }, 10000);
+              
+              console.log(`🚨 EXCLUSÃO: Pessoa ${pessoa.nome} foi excluída durante edição`);
+            } else if (autorId !== usuario?.id) {
+              // ✏️ MODIFICAÇÃO POR OUTRO USUÁRIO: Alerta visual
+              setAlertaEdicaoAtiva({
+                pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
+                tipo: 'atualizado',
+                autorFuncao,
+                timestamp: Date.now()
+              });
+              setMostrarAlertaEdicao(true);
+              
+              // 🔔 Auto-esconder após 10 segundos
+              setTimeout(() => setMostrarAlertaEdicao(false), 10000);
+              
+              console.log(`⚠️ CONFLITO: Pessoa ${pessoa.nome} foi atualizada enquanto editava`);
+            }
+          }
+          
+          // 🔍 MODAL PREVIEW: Update silencioso se for a mesma pessoa
+          if (pessoaPreviewId && pessoa?.id && 
+              String(pessoaPreviewId) === String(pessoa.id) &&
+              eventType !== 'pessoaDeletada') {
+            // Atualizar dados da pessoa selecionada silenciosamente
+            setPessoaSelecionada(prevPessoa => {
+              if (prevPessoa && prevPessoa.id === pessoa.id) {
+                console.log(`🔄 UPDATE SILENCIOSO: Preview da pessoa ${pessoa.nome} atualizado`);
+                // Buscar dados atualizados da pessoa para o preview
+                return { ...prevPessoa, ...pessoa };
+              }
+              return prevPessoa;
+            });
+          }
+          
+          // 🔍 MODAL PREVIEW: Auto-refresh silencioso
+          if (pessoaPreviewId && pessoa?.id && 
+              String(pessoaPreviewId) === String(pessoa.id)) {
+            if (eventType === 'pessoaDeletada') {
+              // Fechar preview se pessoa foi excluída
+              setModalPreviewAberto(false);
+              setPessoaSelecionada(null);
+              console.log(`🗑️ PREVIEW FECHADO: Pessoa ${pessoa.nome} foi excluída`);
+            } else {
+              // Update silencioso dos dados
+              atualizarPessoaPreview(pessoa.id);
+            }
+          }
+          
+          // ✏️ MODAL EDICAO: Conflitos de modificação (só outros usuários)
+          else if (pessoaEditandoId && pessoa?.id &&
+                   String(pessoaEditandoId) === String(pessoa.id) &&
+                   autorId !== usuario?.id) {
+            
             setAlertaEdicaoAtiva({
               pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
-              tipo: tipoConflito,
+              tipo: 'atualizado',
               autorFuncao,
               timestamp: Date.now()
             });
             setMostrarAlertaEdicao(true);
             
-            // 🔔 Auto-esconder após 10 segundos
             setTimeout(() => setMostrarAlertaEdicao(false), 10000);
-            
-            console.log(`⚠️ CONFLITO: Pessoa ${pessoa.nome} foi ${tipoConflito} enquanto editava`);
+            console.log(`⚠️ CONFLITO: Pessoa ${pessoa.nome} foi atualizada enquanto editava`);
+          }
+          
+          // 🔍 MODAL PREVIEW: Auto-refresh silencioso
+          if (pessoaPreviewId && pessoa?.id && 
+              String(pessoaPreviewId) === String(pessoa.id)) {
+            if (eventType === 'pessoaDeletada') {
+              setModalPreviewAberto(false);
+              setPessoaSelecionada(null);
+              console.log(`🗑️ PREVIEW FECHADO: Pessoa ${pessoa.nome} foi excluída`);
+            } else {
+              atualizarPessoaPreview(pessoa.id);
+            }
           }
           
           // 🔄 REFRESH INTELIGENTE: Preservar estado do usuário
@@ -270,75 +383,7 @@ export const ListaPessoas = () => {
           console.log('🎯 Conexão SSE estabelecida:', data);
         });
 
-        // ❌ REMOVIDO: Função de polling substituída por auto-refresh em tempo real
-        /* const verificarAtualizacoesExternas = async () => {
-          try {
-            const response = await fetch(`${baseUrl}/pessoas/ultima-atualizacao`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            if (response.ok) {
-              const { ultimaAtualizacao: serverUltimaAtualizacao, ultimoAutor } = await response.json();
-              const serverTime = new Date(serverUltimaAtualizacao).getTime();
-              
-              console.log('🔍 Verificando atualizações externas:', {
-                meuUltimo: new Date(ultimaAtualizacao).toISOString(),
-                servidor: new Date(serverTime).toISOString(),
-                diferenca: serverTime - ultimaAtualizacao,
-                diferencaSegundos: Math.round((serverTime - ultimaAtualizacao) / 1000),
-                ultimoAutor,
-                meuId: usuario?.id,
-                autorId: ultimoAutor?.id,
-                saoIguais: ultimoAutor?.id === usuario?.id
-              });
-              
-              // Se há atualizações mais recentes de outros usuários
-              if (serverTime > ultimaAtualizacao && ultimoAutor?.id !== usuario?.id) {
-                console.log('🚨 Detectada atualização externa! Autor:', ultimoAutor);
-                
-                // Determinar mensagem baseada na hierarquia
-                let mensagem = '';
-                if (ultimoAutor.funcao === 'admin' && usuario?.funcao === 'funcionario') {
-                  mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
-                } else if (ultimoAutor.funcao === 'funcionario' && usuario?.funcao === 'admin') {
-                  mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
-                }
-                
-                if (mensagem) {
-                  console.log(`📢 Mostrando alerta (via polling): ${mensagem}`);
-                  setTipoMensagemAtualizacao(mensagem);
-                  setMostrarMensagemAtualizacao(true);
-                  // IMPORTANTE: Atualizar timestamp IMEDIATAMENTE para evitar alertas repetitivos
-                  setUltimaAtualizacao(serverTime);
-                  
-                  // Auto-dismiss após 15 segundos para ser menos invasivo
-                  setTimeout(() => {
-                    setMostrarMensagemAtualizacao(false);
-                  }, 40000);
-                } else {
-                  console.log(`ℹ️ Sem alerta - mesma hierarquia ou condição não atendida:`, {
-                    autorFuncao: ultimoAutor.funcao,
-                    meuFuncao: usuario?.funcao,
-                    condicao1: `${ultimoAutor.funcao} === 'admin' && ${usuario?.funcao} === 'funcionario'`,
-                    condicao2: `${ultimoAutor.funcao} === 'funcionario' && ${usuario?.funcao} === 'admin'`,
-                    resultado1: ultimoAutor.funcao === 'admin' && usuario?.funcao === 'funcionario',
-                    resultado2: ultimoAutor.funcao === 'funcionario' && usuario?.funcao === 'admin'
-                  });
-                }
-              } else {
-                console.log(`⏭️ Nenhuma atualização externa detectada:`, {
-                  tempoValido: serverTime > ultimaAtualizacao,
-                  autorDiferente: ultimoAutor?.id !== usuario?.id,
-                  serverTime: new Date(serverTime).toISOString(),
-                  ultimaAtualizacao: new Date(ultimaAtualizacao).toISOString(),
-                  diferenca: serverTime - ultimaAtualizacao
-                });
-              }
-            }
-          } catch (erro) {
-            console.error('❌ Erro ao verificar atualizações externas:', erro);
-          }
-        }; */
+
         
       } catch (error) {
         console.error('❌ Erro ao criar conexão SSE:', error);
@@ -660,27 +705,47 @@ export const ListaPessoas = () => {
       
       {/* 🚨 ALERTA FLUTUANTE PARA CONFLITOS DE EDIÇÃO */}
       {mostrarAlertaEdicao && alertaEdicaoAtiva && (
-        <div 
-          className={`alerta-edicao-flutuante ${alertaEdicaoAtiva.tipo}`}
-          onClick={() => setMostrarAlertaEdicao(false)}
-        >
-          <div className="alerta-edicao-conteudo">
-            <div className="alerta-edicao-icone">
-              {alertaEdicaoAtiva.tipo === 'excluido' ? '🗑️' : '✏️'}
+        <div className="alerta-edicao-overlay">
+          <div 
+            className={`alerta-edicao-card ${alertaEdicaoAtiva.tipo}`}
+            onClick={() => setMostrarAlertaEdicao(false)}
+          >
+            <div className="alerta-edicao-header">
+              <div className="alerta-edicao-icone-wrapper">
+                <div className="alerta-edicao-icone">
+                  {alertaEdicaoAtiva.tipo === 'excluido' ? '🗑️' : '✏️'}
+                </div>
+              </div>
+              <div className="alerta-edicao-badge">
+                {alertaEdicaoAtiva.tipo === 'excluido' ? 'EXCLUÍDO' : 'MODIFICADO'}
+              </div>
             </div>
-            <div className="alerta-edicao-texto">
-              <strong>Conflito de Edição Detectado</strong>
-              <p>
-                O beneficiário <strong>{alertaEdicaoAtiva.pessoaNome}</strong> que você está editando 
-                foi <strong>{alertaEdicaoAtiva.tipo === 'excluido' ? 'excluído' : 'modificado'}</strong> 
-                por {alertaEdicaoAtiva.autorFuncao === 'admin' ? 'um administrador' : 'outro funcionário'}.
-              </p>
-              <p style={{fontSize: '12px', fontStyle: 'italic', marginTop: '4px'}}>
+            
+            <div className="alerta-edicao-corpo">
+              <div className="alerta-edicao-titulo">
+                Conflito de Edição Detectado
+              </div>
+              
+              <div className="alerta-edicao-mensagem">
+                O beneficiário <span className="nome-beneficiario">{alertaEdicaoAtiva.pessoaNome}</span> que você está editando foi <span className={`acao-realizada ${alertaEdicaoAtiva.tipo}`}>
+                  {alertaEdicaoAtiva.tipo === 'excluido' ? 'excluído' : 'modificado'}
+                </span> por <span className="autor">
+                  {alertaEdicaoAtiva.autorFuncao === 'admin' ? 'um administrador' : 'outro funcionário'}
+                </span>.
+              </div>
+              
+              <div className="alerta-edicao-subtexto">
                 {alertaEdicaoAtiva.tipo === 'excluido' 
-                  ? 'Este beneficiário foi removido do sistema.' 
-                  : 'Os dados deste beneficiário foram alterados por outra pessoa.'}
-              </p>
-              <span className="alerta-edicao-dica">Clique para fechar</span>
+                  ? '💔 Este beneficiário foi removido do sistema.' 
+                  : '📝 Os dados foram alterados por outra pessoa.'}
+              </div>
+            </div>
+            
+            <div className="alerta-edicao-footer">
+              <div className="alerta-edicao-dica">
+                <span>💡</span>
+                Clique para fechar este alerta
+              </div>
             </div>
           </div>
         </div>

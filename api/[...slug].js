@@ -20,14 +20,7 @@ let clientesSSE = new Set();
 let ultimosEventos = new Map(); // Cache de eventos para sincronização
 let instanciaId = Math.random().toString(36).substring(7);
 
-// 🚀 SISTEMA DE CACHE INTELIGENTE
-let cacheUltimaAtualizacao = {
-  data: null,
-  timestamp: 0,
-  ttl: 30000 // Cache válido por 30 segundos
-};
-
-// 🛡️ RATE LIMITING POR USUÁRIO
+// 🛡️ RATE LIMITING POR USUÁRIO (mantido para outras funções se necessário)
 let rateLimitMap = new Map(); // userId -> { requests: number, resetTime: number }
 
 function adicionarClienteSSE(res, usuarioId) {
@@ -388,9 +381,7 @@ async function rotear(req, res, slug) {
     return pessoasValidarCPF(req, res);
   }
 
-  if (rota === 'pessoas/ultima-atualizacao' && req.method === 'GET') {
-    return pessoasUltimaAtualizacao(req, res);
-  }
+
 
   if (rota === 'pessoas/totais/por-comunidade' && req.method === 'GET') {
     return pessoasTotaisPorComunidade(req, res);

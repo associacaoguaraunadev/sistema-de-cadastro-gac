@@ -1167,118 +1167,7 @@
   }
 }
 
-/* MENSAGEM DE ATUALIZAÇÃO */
-.mensagem-atualizacao {
-  background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
-  border: 1px solid #ffc107;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin: 16px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #f57f17;
-  font-weight: 500;
-  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
-  animation: slideDown 0.3s ease-out;
-}
 
-.mensagem-atualizacao span {
-  flex: 1;
-}
-
-.mensagem-atualizacao .btn-atualizar {
-  background: #ffc107;
-  color: #fff;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-left: 12px;
-  transition: all 0.2s ease;
-}
-
-.mensagem-atualizacao .btn-atualizar:hover {
-  background: #ff9800;
-  transform: translateY(-1px);
-}
-
-.mensagem-atualizacao .btn-fechar {
-  background: none;
-  border: none;
-  color: #f57f17;
-  font-size: 18px;
-  cursor: pointer;
-  margin-left: 8px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  transition: all 0.2s ease;
-}
-
-.mensagem-atualizacao .btn-fechar:hover {
-  background: rgba(245, 127, 23, 0.1);
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Mensagem flutuante discreta */
-.mensagem-atualizacao-flutuante {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 999;
-  max-width: 350px;
-  animation: slideInUp 0.4s ease-out;
-}
-
-@keyframes slideInUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.conteudo-mensagem {
-  background: rgba(255, 243, 205, 0.95);
-  border: 1px solid #f0ad4e;
-  border-radius: 12px;
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  color: #856404;
-  font-size: 13px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(10px);
-}
-
-.texto-mensagem {
-  flex: 1;
-  font-weight: 500;
-  line-height: 1.4;
-  font-size: 12px;
-}
-
-.botoes-mensagem {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 
 .botoes-mensagem .botao-recarregar {
   background: #f0ad4e;
@@ -1314,95 +1203,211 @@
   color: #664d03;
 }
 
-/* 🚨 ALERTA FLUTUANTE PARA CONFLITOS DE EDIÇÃO */
-.alerta-edicao-flutuante {
+/* 🚨 ALERTA FLUTUANTE PARA CONFLITOS DE EDIÇÃO - DESIGN MODERNO */
+.alerta-edicao-overlay {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 9999;
-  max-width: 400px;
-  background: linear-gradient(135deg, #fff3cd 0%, #fdf6e3 100%);
-  border: 2px solid #f0ad4e;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(240, 173, 78, 0.3), 0 4px 16px rgba(0, 0, 0, 0.1);
-  animation: slideInRight 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.alerta-edicao-flutuante:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px rgba(240, 173, 78, 0.4), 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.alerta-edicao-flutuante.excluido {
-  background: linear-gradient(135deg, #f8d7da 0%, #fce4ec 100%);
-  border-color: #dc3545;
-  box-shadow: 0 8px 32px rgba(220, 53, 69, 0.3), 0 4px 16px rgba(0, 0, 0, 0.1);
-}
-
-.alerta-edicao-flutuante.excluido:hover {
-  box-shadow: 0 12px 40px rgba(220, 53, 69, 0.4), 0 6px 20px rgba(0, 0, 0, 0.15);
-}
-
-.alerta-edicao-conteudo {
-  padding: 16px 20px;
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  justify-content: flex-end;
+  padding: 24px;
+  pointer-events: none;
+}
+
+.alerta-edicao-card {
+  max-width: 420px;
+  width: 100%;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  box-shadow: 
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(59, 130, 246, 0.05);
+  animation: slideInBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border-left: 6px solid #3b82f6;
+  overflow: hidden;
+}
+
+.alerta-edicao-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 32px 64px -12px rgba(0, 0, 0, 0.15),
+    0 16px 32px -8px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(59, 130, 246, 0.1);
+}
+
+.alerta-edicao-card.excluido {
+  border-left-color: #ef4444;
+  background: linear-gradient(145deg, #fefefe 0%, #fef2f2 100%);
+}
+
+.alerta-edicao-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.alerta-edicao-icone-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-radius: 50%;
+  position: relative;
+}
+
+.alerta-edicao-card.excluido .alerta-edicao-icone-wrapper {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
 }
 
 .alerta-edicao-icone {
   font-size: 24px;
-  flex-shrink: 0;
-  margin-top: 2px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
-.alerta-edicao-texto {
-  flex: 1;
-  line-height: 1.4;
+.alerta-edicao-badge {
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  text-transform: uppercase;
 }
 
-.alerta-edicao-texto strong {
-  color: #856404;
+.alerta-edicao-card.excluido .alerta-edicao-badge {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.alerta-edicao-corpo {
+  padding: 20px 24px;
+}
+
+.alerta-edicao-titulo {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 12px;
+  letter-spacing: -0.025em;
+}
+
+.alerta-edicao-mensagem {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #475569;
+  margin-bottom: 16px;
+}
+
+.nome-beneficiario {
+  font-weight: 700;
+  color: #1e293b;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.acao-realizada {
   font-weight: 600;
-  display: block;
-  margin-bottom: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
 }
 
-.alerta-edicao-flutuante.excluido .alerta-edicao-texto strong {
-  color: #721c24;
+.acao-realizada.atualizado {
+  color: #1d4ed8;
+  background: rgba(59, 130, 246, 0.1);
 }
 
-.alerta-edicao-texto p {
-  margin: 0 0 8px 0;
-  color: #6c5ce7;
-  font-size: 14px;
+.acao-realizada.excluido {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
 }
 
-.alerta-edicao-flutuante.excluido .alerta-edicao-texto p {
-  color: #721c24;
+.autor {
+  font-weight: 600;
+  color: #7c3aed;
+}
+
+.alerta-edicao-subtexto {
+  font-size: 13px;
+  color: #64748b;
+  font-style: italic;
+  padding: 12px 16px;
+  background: rgba(148, 163, 184, 0.05);
+  border-radius: 8px;
+  border-left: 3px solid #94a3b8;
+}
+
+.alerta-edicao-footer {
+  padding: 16px 24px 20px;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
 }
 
 .alerta-edicao-dica {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 12px;
-  color: #856404;
-  opacity: 0.8;
-  font-style: italic;
+  color: #94a3b8;
+  font-weight: 500;
+  justify-content: center;
 }
 
-.alerta-edicao-flutuante.excluido .alerta-edicao-dica {
-  color: #721c24;
+.alerta-edicao-dica span {
+  font-size: 14px;
 }
 
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
+@keyframes slideInBounce {
+  0% {
+    transform: translateX(100%) scale(0.8);
     opacity: 0;
   }
-  to {
-    transform: translateX(0);
+  60% {
+    transform: translateX(-10px) scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(0) scale(1);
     opacity: 1;
+  }
+}
+
+/* Responsividade */
+@media (max-width: 480px) {
+  .alerta-edicao-overlay {
+    padding: 16px;
+  }
+  
+  .alerta-edicao-card {
+    max-width: 100%;
+  }
+  
+  .alerta-edicao-header {
+    padding: 16px 20px 12px;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .alerta-edicao-corpo {
+    padding: 16px 20px;
+  }
+  
+  .alerta-edicao-footer {
+    padding: 12px 20px 16px;
   }
 }
 
