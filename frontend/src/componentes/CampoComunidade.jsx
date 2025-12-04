@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Settings } from 'lucide-react';
-import GerenciadorComunidades from './GerenciadorComunidades';
+import { ChevronDown } from 'lucide-react';
 import './CampoComunidade.css';
 
 const CampoComunidade = ({ 
@@ -15,7 +14,6 @@ const CampoComunidade = ({
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [comunidades, setComunidades] = useState([]);
-  const [showGerenciador, setShowGerenciador] = useState(false);
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -87,10 +85,7 @@ const CampoComunidade = ({
     setIsDropdownOpen(false);
   };
 
-  const abrirGerenciador = () => {
-    setIsDropdownOpen(false);
-    setShowGerenciador(true);
-  };
+
 
   return (
     <>
@@ -126,15 +121,6 @@ const CampoComunidade = ({
             <div className="campo-comunidade-dropdown">
               <div className="dropdown-header">
                 <span>Selecionar Comunidade</span>
-                <button
-                  type="button"
-                  className="btn-gerenciar"
-                  onClick={abrirGerenciador}
-                  title="Gerenciar comunidades"
-                >
-                  <Settings size={14} />
-                  Gerenciar
-                </button>
               </div>
 
               <div className="dropdown-list">
@@ -150,13 +136,6 @@ const CampoComunidade = ({
                 {comunidades.length === 0 ? (
                   <div className="dropdown-empty">
                     <span>Nenhuma comunidade encontrada</span>
-                    <button
-                      type="button"
-                      className="btn-adicionar-primeira"
-                      onClick={abrirGerenciador}
-                    >
-                      Adicionar primeira comunidade
-                    </button>
                   </div>
                 ) : (
                   comunidades.map((comunidade, index) => {
@@ -183,10 +162,7 @@ const CampoComunidade = ({
         )}
       </div>
 
-      <GerenciadorComunidades 
-        isOpen={showGerenciador}
-        onClose={() => setShowGerenciador(false)}
-      />
+
     </>
   );
 };

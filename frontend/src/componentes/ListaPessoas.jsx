@@ -42,6 +42,8 @@ export const ListaPessoas = () => {
   const [pessoaParaDeleter, setPessoaParaDeleter] = useState(null);
   const [deletandoPessoa, setDeletandoPessoa] = useState(false);
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
+  const [mostrarMensagemAtualizacao, setMostrarMensagemAtualizacao] = useState(false);
+  const [tipoMensagemAtualizacao, setTipoMensagemAtualizacao] = useState('');
   const timeoutRef = useRef(null);
   const abasWrapperRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
@@ -104,6 +106,93 @@ export const ListaPessoas = () => {
     carregarPessoas();
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
+
+  // Sistema inteligente de auto-refresh
+  useEffect(() => {
+    const handlePessoaCadastrada = (event) => {
+      const { autorId, autorFuncao } = event.detail;
+      
+      // Se sou o autor da ação, refresh silencioso
+      if (autorId === usuario?.id) {
+        carregarPessoas();
+        carregarTotaisPorComunidade();
+        return;
+      }
+      
+      // Determinar mensagem baseada na hierarquia
+      let mensagem = '';
+      if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
+        mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
+      } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
+        mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
+      }
+      
+      if (mensagem) {
+        setTipoMensagemAtualizacao(mensagem);
+        setMostrarMensagemAtualizacao(true);
+      }
+    };
+
+    const handlePessoaAtualizada = (event) => {
+      const { autorId, autorFuncao, pessoaUsuarioId } = event.detail;
+      
+      // Se sou o autor da ação, refresh silencioso
+      if (autorId === usuario?.id) {
+        carregarPessoas();
+        carregarTotaisPorComunidade();
+        return;
+      }
+      
+      // Determinar mensagem baseada na hierarquia
+      let mensagem = '';
+      if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
+        mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
+      } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
+        mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
+      }
+      
+      if (mensagem) {
+        setTipoMensagemAtualizacao(mensagem);
+        setMostrarMensagemAtualizacao(true);
+      }
+    };
+
+    const handlePessoaDeletada = (event) => {
+      const { autorId, autorFuncao } = event.detail;
+      
+      // Se sou o autor da ação, refresh silencioso
+      if (autorId === usuario?.id) {
+        carregarPessoas();
+        carregarTotaisPorComunidade();
+        return;
+      }
+      
+      // Determinar mensagem baseada na hierarquia
+      let mensagem = '';
+      if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
+        mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
+      } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
+        mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
+      }
+      
+      if (mensagem) {
+        setTipoMensagemAtualizacao(mensagem);
+        setMostrarMensagemAtualizacao(true);
+      }
+    };
+
+    window.addEventListener('pessoaCadastrada', handlePessoaCadastrada);
+    window.addEventListener('pessoaAtualizada', handlePessoaAtualizada);
+    window.addEventListener('pessoaDeletada', handlePessoaDeletada);
+
+    return () => {
+      window.removeEventListener('pessoaCadastrada', handlePessoaCadastrada);
+      window.removeEventListener('pessoaAtualizada', handlePessoaAtualizada);
+      window.removeEventListener('pessoaDeletada', handlePessoaDeletada);
+    };
+  }, [usuario?.id, usuario?.funcao]);
+
+
 
   // Resetar página quando comunidade for selecionada
   useEffect(() => {
@@ -189,6 +278,15 @@ export const ListaPessoas = () => {
       setTotal(dados.total);
     } catch (erro) {
       console.error('❌ [ListaPessoas] Erro ao carregar:', erro);
+      
+      // Interceptador de sessão expirada
+      if (erro.response?.status === 401) {
+        console.log('Token expirado, redirecionando para login...');
+        sair();
+        navegar('/entrar');
+        return;
+      }
+      
       setErro('Erro ao carregar pessoas: ' + erro.message);
     } finally {
       setCarregando(false);
@@ -203,6 +301,7 @@ export const ListaPessoas = () => {
   const confirmarDeletar = async () => {
     if (!pessoaParaDeleter || deletandoPessoa) return;
     
+    const pessoaParaDeletar = pessoas.find(p => p.id === pessoaParaDeleter);
     setDeletandoPessoa(true);
     
     try {
@@ -210,8 +309,29 @@ export const ListaPessoas = () => {
       setPessoas(pessoas.filter(p => p.id !== pessoaParaDeleter));
       setTotal(total - 1);
       sucesso('Sucesso', 'Beneficiário deletado com sucesso!');
+      
+      // Auto-refresh: Disparar evento para atualizar lista
+      window.dispatchEvent(new CustomEvent('pessoaDeletada', { 
+        detail: { 
+          pessoaId: pessoaParaDeleter,
+          pessoaUsuarioId: pessoaParaDeletar?.usuarioId,
+          autorId: usuario?.id,
+          autorFuncao: usuario?.funcao,
+          tipo: 'exclusao'
+        } 
+      }));
+      
     } catch (erro) {
       console.error('❌ Erro ao deletar pessoa:', erro);
+      
+      // Interceptador de sessão expirada
+      if (erro.response?.status === 401) {
+        console.log('Token expirado, redirecionando para login...');
+        sair();
+        navegar('/entrar');
+        return;
+      }
+      
       erroToast('Erro ao Deletar', 'Não foi possível deletar o beneficiário');
     } finally {
       setDeletandoPessoa(false);
@@ -405,7 +525,52 @@ export const ListaPessoas = () => {
           </button>
         </div>
 
+        {mostrarMensagemAtualizacao && (
+          <div className="mensagem-atualizacao">
+            <span>⚠️ Alguns dados foram atualizados, favor atualizar a página.</span>
+            <button 
+              onClick={() => {
+                carregarPessoas();
+                carregarTotaisPorComunidade();
+                setMostrarMensagemAtualizacao(false);
+              }}
+              className="btn-atualizar"
+            >
+              Atualizar
+            </button>
+            <button 
+              onClick={() => setMostrarMensagemAtualizacao(false)}
+              className="btn-fechar"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {erro && <div className="alerta-erro">{erro}</div>}
+
+        {/* Mensagem de atualização */}
+        {mostrarMensagemAtualizacao && (
+          <div className="mensagem-atualizacao">
+            <span>{tipoMensagemAtualizacao}</span>
+            <button 
+              onClick={() => {
+                carregarPessoas();
+                carregarTotaisPorComunidade();
+                setMostrarMensagemAtualizacao(false);
+              }}
+              className="botao-recarregar"
+            >
+              Recarregar
+            </button>
+            <button 
+              onClick={() => setMostrarMensagemAtualizacao(false)}
+              className="botao-fechar-mensagem"
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         {carregando && <div className="carregando">Carregando...</div>}
 

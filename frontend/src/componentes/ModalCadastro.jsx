@@ -1,11 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { criarPessoa } from '../servicos/api';
+import { criarPessoa, validarCPF } from '../servicos/api';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { useAuth } from '../contexto/AuthContext';
 import GerenciadorBeneficiosGAC from './GerenciadorBeneficiosGAC';
 import CampoComunidade from './CampoComunidade';
 import './ModalEdicao.css';
+
+// Função para formatação monetária
+const formatarMoeda = (valor) => {
+  // Garante que valor é string
+  valor = (valor || '').toString();
+  // Remove tudo que não é número
+  valor = valor.replace(/\D/g, '');
+  // Converte para número e formata com 2 casas decimais
+  const numero = parseInt(valor || '0', 10) / 100;
+  return numero.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+
+// Função para extrair valor numérico da moeda
+const extrairValorMoeda = (valor) => {
+  // Remove formatação e extrai apenas o número
+  valor = (valor || '').toString();
+  return parseFloat(valor.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+};
 
 const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
   const [formData, setFormData] = useState({
@@ -56,7 +79,56 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
   const [adicionandoNovoTipo, setAdicionandoNovoTipo] = useState(false);
   const [novoTipoBeneficio, setNovoTipoBeneficio] = useState('');
   const { sucesso, erro: erroToast } = useGlobalToast();
-  const { token } = useAuth();
+  const { token, usuario } = useAuth();
+
+  // Função para gerar dados de teste aleatórios
+  const gerarDadosTeste = () => {
+    const nomes = ['João Silva', 'Maria Santos', 'Pedro Oliveira', 'Ana Costa', 'Carlos Ferreira', 'Lucia Almeida', 'José Pereira', 'Fernanda Lima', 'Roberto Souza', 'Patricia Rocha'];
+    const enderecos = ['Rua das Flores, 123', 'Av. Brasil, 456', 'Rua São João, 789', 'Rua da Paz, 321', 'Av. Paulista, 654'];
+    const bairros = ['Centro', 'Vila Nova', 'Jardim das Rosas', 'Parque Industrial', 'Vila São José', 'Residencial Santos'];
+    const cidades = ['São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Salvador', 'Brasília', 'Fortaleza'];
+    const estados = ['SP', 'RJ', 'MG', 'BA', 'DF', 'CE'];
+    const comunidades = ['Barragem', 'Vila Verde', 'Centro Comunitário', 'Jardim Esperança'];
+    
+    // Gerar CPF aleatório (apenas para teste)
+    const gerarCPF = () => {
+      const nums = [];
+      for (let i = 0; i < 9; i++) {
+        nums.push(Math.floor(Math.random() * 10));
+      }
+      return nums.join('').replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3-') + '00';
+    };
+    
+    // Gerar telefone aleatório
+    const gerarTelefone = () => {
+      return `(11) 9${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+    };
+    
+    const dadosTeste = {
+      nome: nomes[Math.floor(Math.random() * nomes.length)],
+      cpf: gerarCPF(),
+      email: `teste${Math.floor(Math.random() * 1000)}@gmail.com`,
+      telefone: gerarTelefone(),
+      endereco: enderecos[Math.floor(Math.random() * enderecos.length)],
+      bairro: bairros[Math.floor(Math.random() * bairros.length)],
+      cidade: cidades[Math.floor(Math.random() * cidades.length)],
+      estado: estados[Math.floor(Math.random() * estados.length)],
+      cep: `${Math.floor(Math.random() * 99999).toString().padStart(5, '0')}-${Math.floor(Math.random() * 999).toString().padStart(3, '0')}`,
+      idade: Math.floor(Math.random() * 80) + 1,
+      comunidade: comunidades[Math.floor(Math.random() * comunidades.length)],
+      rendaFamiliar: formatarMoeda((Math.floor(Math.random() * 5000) + 500).toString()),
+      numeroMembros: Math.floor(Math.random() * 8) + 1,
+      dependentes: Math.floor(Math.random() * 5),
+      beneficiosGAC: [],
+      beneficiosGoverno: [],
+      observacoes: 'Dados gerados automaticamente para teste'
+    };
+    
+    setFormData(dadosTeste);
+    
+    // Limpar campos tocados para não mostrar erros
+    setCamposTocados({});
+  };
 
   // Carregar tipos de benefícios do localStorage
   useEffect(() => {
@@ -146,6 +218,12 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
     
     // Marcar o campo como tocado
     setCamposTocados(prev => ({ ...prev, [name]: true }));
+    
+    // Formatação específica por campo
+    if (name === 'rendaFamiliar') {
+      setFormData(prev => ({ ...prev, [name]: formatarMoeda(value) }));
+      return;
+    }
     
     if (name === 'cpf') {
       setFormData(prev => ({ ...prev, [name]: formatarCPF(value) }));
@@ -288,6 +366,23 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
       );
       return;
     }
+
+    // VALIDAR CPF DUPLICADO
+    try {
+      const cpfLimpo = (formData.cpf || '').replace(/\D/g, '');
+      await validarCPF(token, cpfLimpo);
+    } catch (erro) {
+      if (erro.response?.status === 409) {
+        erroToast(
+          'CPF já cadastrado',
+          `Já existe um beneficiário cadastrado com o CPF ${formData.cpf}. Verifique os dados ou edite o beneficiário existente.`
+        );
+        return;
+      } else {
+        erroToast('Erro de Validação', 'Não foi possível validar o CPF. Tente novamente.');
+        return;
+      }
+    }
     
     // PREPARAR DADOS PARA ENVIO
     const dadosEnvio = {
@@ -298,7 +393,7 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
       telefone: (formData.telefone || '').replace(/\D/g, ''),
       cep: (formData.cep || '').replace(/\D/g, ''),
       idade: parseInt(formData.idade),
-      rendaFamiliar: formData.rendaFamiliar ? parseFloat(formData.rendaFamiliar) : null,
+      rendaFamiliar: formData.rendaFamiliar ? extrairValorMoeda(formData.rendaFamiliar) : null,
       numeroMembros: formData.numeroMembros ? parseInt(formData.numeroMembros) : null,
       dependentes: formData.dependentes ? parseInt(formData.dependentes) : null
     };
@@ -309,6 +404,16 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
       const resultado = await criarPessoa(token, dadosEnvio);
       sucesso('Sucesso', 'Beneficiário cadastrado!');
       onCadastrar?.(dadosEnvio);
+      
+      // Auto-refresh: Disparar evento para atualizar lista
+      window.dispatchEvent(new CustomEvent('pessoaCadastrada', { 
+        detail: { 
+          pessoa: resultado, 
+          autorId: usuario?.id,
+          autorFuncao: usuario?.funcao,
+          tipo: 'cadastro'
+        } 
+      }));
       
       // Limpar formulário
       setFormData({
@@ -456,15 +561,26 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
         {/* HEADER */}
         <div className="modal-edicao-header">
           <h2 className="modal-edicao-titulo">Novo Cadastro de Beneficiário</h2>
-          <button
-            className="modal-edicao-close"
-            onClick={onClose}
-            type="button"
-            disabled={carregando}
-            title="Fechar (ESC)"
-          >
-            <X size={20} />
-          </button>
+          <div className="modal-header-actions">
+            <button
+              className="botao-template"
+              onClick={gerarDadosTeste}
+              type="button"
+              disabled={carregando}
+              title="Preencher com dados de teste"
+            >
+              🎲 Teste
+            </button>
+            <button
+              className="modal-edicao-close"
+              onClick={onClose}
+              type="button"
+              disabled={carregando}
+              title="Fechar (ESC)"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* CONTEÚDO ROLÁVEL */}
@@ -992,9 +1108,8 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
                   <label htmlFor="rendaFamiliar">Renda Familiar <span className="campo-opcional">(Opcional)</span></label>
                   <input
                     id="rendaFamiliar"
-                    type="number"
+                    type="text"
                     name="rendaFamiliar"
-                    step="0.01"
                     value={formData.rendaFamiliar || ''}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}

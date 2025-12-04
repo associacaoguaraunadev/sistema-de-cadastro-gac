@@ -185,8 +185,19 @@ async function rotear(req, res, slug) {
   }
 
   // PESSOAS
+  // Rotas específicas devem vir ANTES das genéricas
+  if (rota === 'pessoas/validar-cpf' && req.method === 'GET') {
+    return pessoasValidarCPF(req, res);
+  }
+
   if (rota === 'pessoas/totais/por-comunidade' && req.method === 'GET') {
     return pessoasTotaisPorComunidade(req, res);
+  }
+
+  // Rota para atualizar comunidade em lote (renomear comunidade em todas as pessoas)
+  if (rota === 'pessoas/comunidade/atualizar' && req.method === 'PATCH') {
+    log(`🔄 Chamando atualizarComunidadeEmLote para rota: ${rota}`);
+    return atualizarComunidadeEmLote(req, res);
   }
 
   if (rota === 'pessoas' && req.method === 'GET') {
@@ -197,12 +208,7 @@ async function rotear(req, res, slug) {
     return pessoasCriar(req, res);
   }
 
-  // Rota para atualizar comunidade em lote (renomear comunidade em todas as pessoas)
-  if (rota === 'pessoas/comunidade/atualizar' && req.method === 'PATCH') {
-    log(`🔄 Chamando atualizarComunidadeEmLote para rota: ${rota}`);
-    return atualizarComunidadeEmLote(req, res);
-  }
-
+  // Rota genérica com ID (deve vir por último)
   if (rota.startsWith('pessoas/') && req.method === 'GET') {
     const id = slug[1];
     return pessoasObter(req, res, id);
@@ -746,6 +752,68 @@ async function atualizarComunidadeEmLote(req, res) {
     res.status(500).json({ 
       erro: 'Erro ao atualizar comunidade nas pessoas',
       codigo: 'UPDATE_COMMUNITY_BATCH_ERROR'
+    });
+  }
+}
+
+async function pessoasValidarCPF(req, res) {
+  const prisma = getPrisma();
+  try {
+    console.log('🚨 DENTRO DA FUNÇÃO pessoasValidarCPF!');
+    log(`🔍 Validando CPF: ${req.query.cpf}`);
+    
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { cpf, excluir } = req.query;
+
+    if (!cpf) {
+      return res.status(400).json({ erro: 'CPF é obrigatório' });
+    }
+
+    // Limpar CPF (apenas números)
+    const cpfLimpo = cpf.replace(/\D/g, '');
+    log(`📋 CPF limpo: ${cpfLimpo}, Excluir ID: ${excluir || 'nenhum'}`);
+
+    // Verificar se já existe pessoa com esse CPF
+    const where = { cpf: cpfLimpo };
+    
+    // Se estamos editando uma pessoa, excluir ela da verificação
+    if (excluir) {
+      where.id = { not: parseInt(excluir) };
+    }
+
+    log(`🔍 Consulta where: ${JSON.stringify(where)}`);
+    const pessoaExistente = await prisma.pessoa.findFirst({ where });
+    log(`📊 Resultado da consulta: ${pessoaExistente ? 'CPF já existe' : 'CPF disponível'}`);
+
+    if (pessoaExistente) {
+      log(`❌ CPF ${cpf} já cadastrado para: ${pessoaExistente.nome} (ID: ${pessoaExistente.id})`);
+      return res.status(409).json({ 
+        erro: 'CPF já cadastrado',
+        mensagem: `Já existe um beneficiário cadastrado com o CPF ${cpf}`,
+        pessoa: {
+          id: pessoaExistente.id,
+          nome: pessoaExistente.nome
+        }
+      });
+    }
+
+    log(`✅ CPF ${cpf} disponível para cadastro`);
+    res.status(200).json({ 
+      valido: true,
+      mensagem: 'CPF disponível para cadastro'
+    });
+
+  } catch (erro) {
+    log(`❌ Erro ao validar CPF ${req.query.cpf}: ${erro.message}`, 'error');
+    console.error('Stack trace:', erro.stack);
+    res.status(500).json({ 
+      erro: 'Erro ao validar CPF',
+      codigo: 'VALIDATE_CPF_ERROR',
+      detalhes: erro.message
     });
   }
 }

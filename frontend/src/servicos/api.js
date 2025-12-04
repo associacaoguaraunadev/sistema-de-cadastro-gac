@@ -3,13 +3,34 @@ import axios from 'axios';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 export const criarClienteAPI = (token) => {
-  return axios.create({
+  const cliente = axios.create({
     baseURL: API_URL,
     headers: {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` })
     }
   });
+
+  // Interceptador para renovação automática de sessão
+  cliente.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        // Token expirado - redirecionar para login
+        console.log('🔄 Token expirado detectado, redirecionando para login...');
+        
+        // Limpar localStorage
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('usuario');
+        
+        // Redirecionar para login
+        window.location.href = '/entrar';
+      }
+      return Promise.reject(error);
+    }
+  );
+
+  return cliente;
 };
 
 export const obterPessoas = async (token, { pagina = 1, limite = 10, busca = '', filtrosAvancados = null } = {}) => {
@@ -26,6 +47,15 @@ export const obterPessoas = async (token, { pagina = 1, limite = 10, busca = '',
 export const obterTotaisPorComunidade = async (token) => {
   const cliente = criarClienteAPI(token);
   const resposta = await cliente.get('/pessoas/totais/por-comunidade');
+  return resposta.data;
+};
+
+export const validarCPF = async (token, cpf, idPessoaExcluir = null) => {
+  const cliente = criarClienteAPI(token);
+  const params = { cpf };
+  if (idPessoaExcluir) params.excluir = idPessoaExcluir;
+  
+  const resposta = await cliente.get('/pessoas/validar-cpf', { params });
   return resposta.data;
 };
 

@@ -1,11 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
-import { atualizarPessoa } from '../servicos/api';
+import { atualizarPessoa, validarCPF } from '../servicos/api';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { useAuth } from '../contexto/AuthContext';
 import GerenciadorBeneficiosGAC from './GerenciadorBeneficiosGAC';
 import CampoComunidade from './CampoComunidade';
 import './ModalEdicao.css';
+
+// Função para formatar moeda
+const formatarMoeda = (valor) => {
+  valor = (valor || '').toString();
+  valor = valor.replace(/\D/g, '');
+  const numero = parseInt(valor || '0', 10) / 100;
+  return numero.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+};
+
+// Função para extrair valor numérico da moeda
+const extrairValorMoeda = (valor) => {
+  valor = (valor || '').toString();
+  return parseFloat(valor.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
+};
 
 const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
   const [formData, setFormData] = useState(pessoa || {});
@@ -18,7 +37,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
   const [adicionandoNovoTipo, setAdicionandoNovoTipo] = useState(false);
   const [novoTipoBeneficio, setNovoTipoBeneficio] = useState('');
   const { sucesso, erro: erroToast } = useGlobalToast();
-  const { token } = useAuth();
+  const { token, usuario } = useAuth();
 
   // Carregar tipos de benefícios do localStorage
   useEffect(() => {
@@ -43,7 +62,11 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
 
   useEffect(() => {
     if (pessoa) {
-      setFormData(pessoa);
+      const dadosFormatados = {
+        ...pessoa,
+        rendaFamiliar: pessoa.rendaFamiliar ? formatarMoeda((pessoa.rendaFamiliar * 100).toString()) : ''
+      };
+      setFormData(dadosFormatados);
     }
   }, [pessoa, isOpen]);
 
@@ -136,7 +159,10 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
     
     let novoValor = value;
     
-    if (name === 'cpf') {
+    if (name === 'rendaFamiliar') {
+      setFormData(prev => ({ ...prev, [name]: formatarMoeda(value) }));
+      return;
+    } else if (name === 'cpf') {
       novoValor = formatarCPF(value);
     } else if (name === 'telefone') {
       novoValor = formatarTelefone(value);
@@ -368,6 +394,23 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       );
       return;
     }
+
+    // VALIDAR CPF DUPLICADO (excluindo a própria pessoa)
+    try {
+      const cpfLimpo = (formData.cpf || '').replace(/\D/g, '');
+      await validarCPF(token, cpfLimpo, pessoa.id);
+    } catch (erro) {
+      if (erro.response?.status === 409) {
+        erroToast(
+          'CPF já cadastrado',
+          `Já existe outro beneficiário cadastrado com o CPF ${formData.cpf}. Verifique os dados.`
+        );
+        return;
+      } else {
+        erroToast('Erro de Validação', 'Não foi possível validar o CPF. Tente novamente.');
+        return;
+      }
+    }
     
     // PREPARAR DADOS PARA ENVIO
     const dadosEnvio = {
@@ -378,7 +421,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       telefone: (formData.telefone || '').replace(/\D/g, ''),
       cep: (formData.cep || '').replace(/\D/g, ''),
       idade: parseInt(formData.idade),
-      rendaFamiliar: formData.rendaFamiliar ? parseFloat(formData.rendaFamiliar) : null,
+      rendaFamiliar: formData.rendaFamiliar ? extrairValorMoeda(formData.rendaFamiliar) : null,
       numeroMembros: formData.numeroMembros ? parseInt(formData.numeroMembros) : null,
       dependentes: formData.dependentes ? parseInt(formData.dependentes) : null
     };
@@ -389,6 +432,18 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       const resultado = await atualizarPessoa(token, pessoa.id, dadosEnvio);
       sucesso('Sucesso', 'Beneficiário atualizado!');
       onAtualizar?.(dadosEnvio);
+      
+      // Auto-refresh: Disparar evento para atualizar lista
+      window.dispatchEvent(new CustomEvent('pessoaAtualizada', { 
+        detail: { 
+          pessoa: resultado, 
+          pessoaUsuarioId: pessoa.usuarioId,
+          autorId: usuario?.id,
+          autorFuncao: usuario?.funcao,
+          tipo: 'edicao'
+        } 
+      }));
+      
       setTimeout(onClose, 500);
     } catch (erro) {
       const mensagemErro = erro.response?.data?.erro || erro.message || 'Erro desconhecido ao atualizar';
@@ -600,13 +655,13 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                   <label htmlFor="rendaFamiliar">Renda Familiar <span className="campo-opcional">(Opcional)</span></label>
                   <input
                     id="rendaFamiliar"
-                    type="number"
+                    type="text"
                     name="rendaFamiliar"
-                    step="0.01"
                     value={formData.rendaFamiliar || ''}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
                     className="form-input"
+                    placeholder="R$ 0,00"
                   />
                 </div>
                 <div className="form-group">
