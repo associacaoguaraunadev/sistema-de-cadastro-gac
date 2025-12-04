@@ -12,9 +12,9 @@ export const criarClienteAPI = (token) => {
   });
 };
 
-export const obterPessoas = async (token, { pagina = 1, limite = 10, busca = '', status = 'ativo', filtrosAvancados = null } = {}) => {
+export const obterPessoas = async (token, { pagina = 1, limite = 10, busca = '', filtrosAvancados = null } = {}) => {
   const cliente = criarClienteAPI(token);
-  const params = { pagina, limite, status };
+  const params = { pagina, limite };
   
   if (busca) params.busca = busca;
   if (filtrosAvancados) params.filtros = JSON.stringify(filtrosAvancados);
@@ -50,6 +50,15 @@ export const atualizarPessoa = async (token, id, dados) => {
 export const deletarPessoa = async (token, id) => {
   const cliente = criarClienteAPI(token);
   await cliente.delete(`/pessoas/${id}`);
+};
+
+export const atualizarComunidadeEmLote = async (token, nomeAntigo, nomeNovo) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.patch('/pessoas/comunidade/atualizar', {
+    nomeAntigo,
+    nomeNovo
+  });
+  return resposta.data;
 };
 
 // ========== COMUNIDADES ==========

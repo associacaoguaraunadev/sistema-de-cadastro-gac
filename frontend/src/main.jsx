@@ -9,12 +9,10 @@ import { RotaPrivada } from './componentes/RotaPrivada';
 import { FormularioLogin, FormularioRegistro } from './componentes/FormularioAutenticacao';
 import { FormularioRecuperacaoSenha } from './componentes/FormularioRecuperacaoSenha';
 import { ListaPessoas } from './componentes/ListaPessoas';
-import { ListaComunidades } from './componentes/ListaComunidades';
-import { FormularioPessoa } from './componentes/FormularioPessoa';
-import { TransferenciaPessoas } from './componentes/TransferenciaPessoas';
 import Navbar from './componentes/Navbar';
 import PaginaTokens from './pages/PaginaTokens';
 import PaginaComunidades from './pages/PaginaComunidades';
+import PaginaGerenciamentoComunidades from './pages/PaginaGerenciamentoComunidades';
 import PaginaTransferencia from './pages/PaginaTransferencia';
 import './index.css';
 
@@ -81,15 +79,16 @@ function App() {
         } 
       />
       <Route 
-        path="/pessoas" 
+        path="/gerenciamento/comunidades" 
         element={
           <RotaPrivada>
             <LayoutComNavbar>
-              <ListaPessoas />
+              <PaginaGerenciamentoComunidades />
             </LayoutComNavbar>
           </RotaPrivada>
         } 
       />
+
       <Route 
         path="/transferencia" 
         element={
@@ -110,36 +109,7 @@ function App() {
           </RotaPrivada>
         } 
       />
-      <Route 
-        path="/pessoas/novo" 
-        element={
-          <RotaPrivada>
-            <LayoutComNavbar>
-              <FormularioPessoa />
-            </LayoutComNavbar>
-          </RotaPrivada>
-        } 
-      />
-      <Route 
-        path="/pessoas/:id" 
-        element={
-          <RotaPrivada>
-            <LayoutComNavbar>
-              <FormularioPessoa />
-            </LayoutComNavbar>
-          </RotaPrivada>
-        } 
-      />
-      <Route 
-        path="/transferir" 
-        element={
-          <RotaPrivada>
-            <LayoutComNavbar>
-              <TransferenciaPessoas />
-            </LayoutComNavbar>
-          </RotaPrivada>
-        } 
-      />
+
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );

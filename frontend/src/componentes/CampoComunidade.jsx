@@ -10,17 +10,26 @@ const CampoComunidade = ({
   disabled = false,
   required = false,
   label = "Comunidade",
-  placeholder = "Selecione uma comunidade"
+  placeholder = "Selecione uma comunidade",
+  onKeyDown
 }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isGerenciadorOpen, setIsGerenciadorOpen] = useState(false);
   const [comunidades, setComunidades] = useState([]);
+  const [showGerenciador, setShowGerenciador] = useState(false);
   const containerRef = useRef(null);
-
-  // Todas as comunidades são editáveis agora
 
   useEffect(() => {
     carregarComunidades();
+  }, []);
+
+  // Escutar atualizações de comunidades
+  useEffect(() => {
+    const handleComunidadesAtualizadas = () => {
+      carregarComunidades();
+    };
+    
+    window.addEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
+    return () => window.removeEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
   }, []);
 
   // Fechar dropdown ao clicar fora
@@ -37,31 +46,37 @@ const CampoComunidade = ({
     }
   }, [isDropdownOpen]);
 
-  // Recarregar comunidades quando são atualizadas
-  useEffect(() => {
-    const handleComunidadesAtualizadas = () => {
-      carregarComunidades();
-    };
-
-    window.addEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
-    return () => window.removeEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
-  }, []);
-
   const carregarComunidades = () => {
     let todasComunidades = JSON.parse(localStorage.getItem('comunidadesCustomizadas') || '[]');
     
-    // Se não houver comunidades, criar algumas iniciais
+    // Garantir que as comunidades iniciais existam se não há nenhuma comunidade
+    const comunidadesIniciais = [
+      'Jardim Guarauna',
+      'Vila Novo Eldorado', 
+      'Jardim Apura',
+      'Vila Cheba',
+      'Morro da Vila',
+      'Barragem',
+      'Parque Centenario'
+    ];
+
     if (todasComunidades.length === 0) {
-      todasComunidades = [
-        'Jardim Guarauna',
-        'Vila Novo Eldorado',
-        'Jardim Apura',
-        'Vila Cheba',
-        'Morro da Vila',
-        'Barragem',
-        'Parque Centenario'
-      ];
+      todasComunidades = [...comunidadesIniciais];
       localStorage.setItem('comunidadesCustomizadas', JSON.stringify(todasComunidades));
+    } else {
+      // Verificar se faltam comunidades iniciais e adicionar se necessário
+      let foiAtualizado = false;
+      comunidadesIniciais.forEach(comunidade => {
+        if (!todasComunidades.includes(comunidade)) {
+          todasComunidades.push(comunidade);
+          foiAtualizado = true;
+        }
+      });
+
+      if (foiAtualizado) {
+        todasComunidades.sort();
+        localStorage.setItem('comunidadesCustomizadas', JSON.stringify(todasComunidades));
+      }
     }
     
     setComunidades(todasComunidades.sort());
@@ -72,44 +87,43 @@ const CampoComunidade = ({
     setIsDropdownOpen(false);
   };
 
-  const abrirGerenciador = (e) => {
-    e.stopPropagation();
+  const abrirGerenciador = () => {
     setIsDropdownOpen(false);
-    setIsGerenciadorOpen(true);
-  };
-
-  const handleGerenciadorChange = (novaComunidade) => {
-    if (novaComunidade) {
-      onChange(novaComunidade);
-    }
-    carregarComunidades(); // Recarregar para atualizar a lista
-    
-    // Também notificar outros componentes para recarregar
-    window.dispatchEvent(new CustomEvent('comunidadesAtualizadas'));
+    setShowGerenciador(true);
   };
 
   return (
-    <div className="campo-comunidade" ref={containerRef}>
-      <label className={`campo-comunidade-label ${error ? 'error' : ''}`}>
-        {label} {required && '*'}
-      </label>
-      
-      <div className={`campo-comunidade-container ${error ? 'error' : ''} ${disabled ? 'disabled' : ''}`}>
-        <div 
-          className="campo-comunidade-input"
-          onClick={() => !disabled && setIsDropdownOpen(!isDropdownOpen)}
-        >
-          <span className={value ? 'selected' : 'placeholder'}>
-            {value || placeholder}
-          </span>
-          <ChevronDown 
-            size={16} 
-            className={`chevron ${isDropdownOpen ? 'rotated' : ''}`}
-          />
-        </div>
+    <>
+      <div className="campo-comunidade" ref={containerRef}>
+        <label className={`campo-comunidade-label ${error ? 'error' : ''}`}>
+          {label} {required && '*'}
+        </label>
+        
+        <div className={`campo-comunidade-container ${error ? 'error' : ''} ${disabled ? 'disabled' : ''}`}>
+          <div 
+            className="campo-comunidade-input"
+            onClick={() => !disabled && setIsDropdownOpen(!isDropdownOpen)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (!disabled) setIsDropdownOpen(!isDropdownOpen);
+              } else if (onKeyDown) {
+                onKeyDown(e);
+              }
+            }}
+            tabIndex={disabled ? -1 : 0}
+          >
+            <span className={value ? 'selected' : 'placeholder'}>
+              {value || placeholder}
+            </span>
+            <ChevronDown 
+              size={16} 
+              className={`chevron ${isDropdownOpen ? 'rotated' : ''}`}
+            />
+          </div>
 
-        {isDropdownOpen && (
-          <div className="campo-comunidade-dropdown">
+          {isDropdownOpen && (
+            <div className="campo-comunidade-dropdown">
               <div className="dropdown-header">
                 <span>Selecionar Comunidade</span>
                 <button
@@ -146,38 +160,34 @@ const CampoComunidade = ({
                   </div>
                 ) : (
                   comunidades.map((comunidade, index) => {
-                    const isFixa = comunidadesFixas.includes(comunidade);
                     const isSelected = value === comunidade;
                     
                     return (
                       <div
                         key={index}
-                        className={`dropdown-item ${isSelected ? 'selected' : ''} ${isFixa ? 'fixa' : 'customizada'}`}
+                        className={`dropdown-item ${isSelected ? 'selected' : ''}`}
                         onClick={() => selecionarComunidade(comunidade)}
                       >
                         <span className="comunidade-nome">{comunidade}</span>
-                        {isFixa && <span className="badge-tipo">Padrão</span>}
-                        {!isFixa && <span className="badge-tipo custom">Personalizada</span>}
                       </div>
                     );
                   })
                 )}
               </div>
             </div>
+          )}
+        </div>
+
+        {error && (
+          <span className="campo-comunidade-error">{error}</span>
         )}
       </div>
 
-      {error && (
-        <span className="campo-comunidade-error">{error}</span>
-      )}
-
-      <GerenciadorComunidades
-        isOpen={isGerenciadorOpen}
-        onClose={() => setIsGerenciadorOpen(false)}
-        onComunidadeChange={handleGerenciadorChange}
-        valorSelecionado={value}
+      <GerenciadorComunidades 
+        isOpen={showGerenciador}
+        onClose={() => setShowGerenciador(false)}
       />
-    </div>
+    </>
   );
 };
 

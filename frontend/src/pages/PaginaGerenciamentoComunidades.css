@@ -1,0 +1,49 @@
+/* Estilos para Página de Gerenciamento de Comunidades */
+
+.pagina-gerenciamento-comunidades {
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+.pagina-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.pagina-header {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.pagina-header h1 {
+  margin: 0 0 8px 0;
+  color: #212529;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.pagina-header p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 16px;
+}
+
+.pagina-conteudo {
+  margin-top: 24px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .pagina-container {
+    padding: 16px;
+  }
+  
+  .pagina-header h1 {
+    font-size: 24px;
+  }
+  
+  .pagina-header p {
+    font-size: 14px;
+  }
+}

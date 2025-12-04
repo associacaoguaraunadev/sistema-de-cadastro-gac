@@ -146,7 +146,9 @@ export const GerenciadorTokens = ({ onFechar }) => {
       <div className="gerenciador-tokens-modal" onClick={(e) => e.stopPropagation()}>
         <div className="tokens-cabecalho">
           <h2>🔑 Gerar Tokens de Acesso</h2>
-          <button className="botao-fechar" onClick={onFechar}>✕</button>
+          <button className="botao-fechar" onClick={onFechar}>
+            <X size={18} />
+          </button>
         </div>
 
         <div className="tokens-conteudo">

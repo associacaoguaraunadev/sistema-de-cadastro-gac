@@ -53,7 +53,6 @@ model Pessoa {
   dependentes     Int?      // Quantidade de dependentes
   
   observacoes     String?
-  status          String   @default("ativo")
   usuarioId       Int
   
   usuario         Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
@@ -72,6 +71,8 @@ model TokenGeracao {
   token         String    @unique
   email         String    @unique
   usado         Boolean   @default(false)
+  usadoPor      String?   // Nome de quem usou o token
+  usadoEm       DateTime? // Quando foi usado
   dataCriacao   DateTime  @default(now())
   dataExpiracao DateTime
   

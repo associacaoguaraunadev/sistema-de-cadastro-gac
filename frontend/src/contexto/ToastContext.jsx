@@ -14,18 +14,18 @@ export const ToastProvider = ({ children }) => {
       ...config
     };
 
-    console.log('[ToastContext] Adicionando toast:', novoToast);
+
     setToasts(prevToasts => [...prevToasts, novoToast]);
     return id;
   }, []);
 
   const removerToast = useCallback((id) => {
-    console.log('[ToastContext] Removendo toast:', id);
+
     setToasts(prevToasts => prevToasts.filter(toast => toast.id !== id));
   }, []);
 
   const sucesso = useCallback((titulo, mensagem) => {
-    console.log('[ToastContext] Toast sucesso:', titulo);
+
     return adicionarToast({
       tipo: 'sucesso',
       titulo,
@@ -35,7 +35,7 @@ export const ToastProvider = ({ children }) => {
   }, [adicionarToast]);
 
   const erro = useCallback((titulo, mensagem) => {
-    console.log('[ToastContext] Toast erro:', titulo);
+
     return adicionarToast({
       tipo: 'erro',
       titulo,

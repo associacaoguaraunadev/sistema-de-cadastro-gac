@@ -53,6 +53,7 @@
   background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
   color: white;
   padding: 16px 24px;
+  padding: 20px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -93,13 +94,748 @@
   transform: rotate(90deg) scale(0.98);
 }
 
+/* Estilos para Benefícios GAC */
+.beneficio-gac-secao {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 16px 0;
+}
+
+.beneficio-gac-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.beneficio-gac-lista {
+  margin-bottom: 20px;
+}
+
+.beneficio-gac-card {
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+  border: 1px solid #c8e6c9;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.beneficio-gac-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
+}
+
+.beneficio-gac-info {
+  flex: 1;
+}
+
+.beneficio-gac-tipo {
+  font-weight: 600;
+  color: #2e7d32;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.beneficio-gac-datas {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.beneficio-gac-data-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #4caf50;
+  font-size: 14px;
+}
+
+.beneficio-gac-data-icon {
+  font-size: 12px;
+}
+
+.beneficio-gac-remover {
+  background: #f44336 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.beneficio-gac-remover:hover:not(:disabled) {
+  background: #d32f2f !important;
+  transform: scale(1.1) !important;
+}
+
+.beneficio-gac-vazio {
+  text-align: center;
+  padding: 24px;
+  color: #757575;
+  font-style: italic;
+  background: #fafafa;
+  border: 2px dashed #e0e0e0;
+  border-radius: 6px;
+}
+
+/* Formulário de adicionar benefício GAC */
+.beneficio-gac-form {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.beneficio-gac-form-titulo {
+  color: #2e7d32;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+
+.beneficio-gac-campos {
+  display: grid;
+  gap: 16px;
+}
+
+.beneficio-gac-campos-data {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .beneficio-gac-campos-data {
+    grid-template-columns: 1fr;
+  }
+}
+
+.beneficio-gac-botao-adicionar {
+  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  align-self: flex-start;
+}
+
+.beneficio-gac-botao-adicionar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #43a047 0%, #5cb85c 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3) !important;
+}
+
+.beneficio-gac-botao-editar-tipos {
+  background: #1b5e20 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: all 0.3s ease !important;
+}
+
+.beneficio-gac-botao-editar-tipos:hover:not(:disabled) {
+  background: #2e7d32 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Estilos para Benefícios do Governo */
+.beneficio-governo-secao {
+  background: linear-gradient(135deg, #fff9e6 0%, #fff3e0 100%);
+  border: 2px solid #ffe0b2;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 20px 0;
+  box-shadow: 0 2px 10px rgba(255, 224, 178, 0.15);
+  transition: all 0.3s ease;
+}
+
+.beneficio-governo-secao:hover {
+  box-shadow: 0 4px 20px rgba(255, 224, 178, 0.25);
+  transform: translateY(-1px);
+}
+
+.beneficio-governo-lista {
+  margin-bottom: 20px;
+}
+
+.beneficio-governo-card {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  border: 1px solid #ffcc02;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.beneficio-governo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+}
+
+.beneficio-governo-info {
+  flex: 1;
+}
+
+.beneficio-governo-nome {
+  font-weight: 600;
+  color: #e65100;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.beneficio-governo-valor {
+  color: #ff8f00;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.beneficio-governo-remover {
+  background: #f44336 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+  flex-shrink: 0 !important;
+}
+
+.beneficio-governo-remover:hover:not(:disabled) {
+  background: #d32f2f !important;
+  transform: scale(1.1) !important;
+}
+
+.beneficio-governo-vazio {
+  text-align: center;
+  padding: 24px;
+  color: #757575;
+  font-style: italic;
+  background: #fafafa;
+  border: 2px dashed #e0e0e0;
+  border-radius: 6px;
+}
+
+.beneficio-governo-form {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.beneficio-governo-form-titulo {
+  color: #e65100;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+
+.beneficio-governo-campos {
+  display: grid;
+  gap: 16px;
+}
+
+.beneficio-governo-botao-adicionar {
+  background: linear-gradient(135deg, #ff9800 0%, #ffa726 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  align-self: flex-start;
+}
+
+.beneficio-governo-botao-adicionar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3) !important;
+}
+
+.beneficio-governo-total {
+  background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+  color: white;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-top: 16px;
+  text-align: center;
+}
+
+.beneficio-governo-total-label {
+  font-size: 14px;
+  margin-bottom: 6px;
+  opacity: 0.9;
+}
+
+.beneficio-governo-total-valor {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Estilos específicos para GerenciadorBeneficiosGAC */
+.gerenciador-beneficios-modal {
+  max-width: 600px !important;
+}
+
+/* =================================================== */
+/* ESTILOS APRIMORADOS PARA CAMPOS DE DATA E FORMULÁRIOS */
+/* =================================================== */
+
+/* Estrutura de linhas do formulário de benefícios GAC */
+.beneficio-gac-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .beneficio-gac-form-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Grupos de campos do formulário */
+.beneficio-gac-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.beneficio-gac-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1b5e20;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Primeira definição de data inputs removida para evitar duplicação */
+}
+
+/* Melhorando o cabeçalho das seções de benefícios */
+.beneficio-gac-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e8f5e8;
+}
+
+.beneficio-gac-cabecalho .form-secao-titulo {
+  margin: 0 !important;
+  color: #1b5e20 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+}
+
+/* Melhorias para inputs de benefícios do governo */
+.beneficio-gac-input-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.beneficio-gac-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e65100;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.beneficio-gac-input {
+  padding: 12px 16px !important;
+  border: 2px solid #ffe0b2 !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-family: inherit !important;
+  background: white !important;
+  transition: all 0.3s ease !important;
+  color: #e65100 !important;
+}
+
+.beneficio-gac-input:focus {
+  outline: none !important;
+  border-color: #ff9800 !important;
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1) !important;
+  background: #fff9f0 !important;
+}
+
+.beneficio-gac-input:hover:not(:focus) {
+  border-color: #ffcc02 !important;
+  background: #fffef9 !important;
+}
+
+/* Melhorias para o botão adicionar */
+.beneficio-gac-adicionar {
+  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 14px 28px !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  margin-top: 8px !important;
+  align-self: flex-start !important;
+}
+
+.beneficio-gac-adicionar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #43a047 0%, #5cb85c 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3) !important;
+}
+
+/* Estilo especial para benefícios do governo */
+.beneficio-governo-secao .beneficio-gac-adicionar {
+  background: linear-gradient(135deg, #ff9800 0%, #ffa726 100%) !important;
+}
+
+.beneficio-governo-secao .beneficio-gac-adicionar:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%) !important;
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3) !important;
+}
+
+/* Melhorias para títulos das seções */
+.beneficio-gac-titulo {
+  color: #e65100 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  margin: 0 0 20px 0 !important;
+  padding-bottom: 12px !important;
+  border-bottom: 2px solid #ffe0b2 !important;
+}
+
+/* Melhorando a área de lista vazia */
+.beneficio-gac-vazio {
+  text-align: center !important;
+  padding: 32px 20px !important;
+  color: #757575 !important;
+  font-style: italic !important;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  border: 2px dashed #dee2e6 !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+}
+
+/* Melhorias no total dos benefícios */
+.beneficio-gac-total {
+  background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%) !important;
+  color: white !important;
+  padding: 20px !important;
+  border-radius: 10px !important;
+  margin: 20px 0 !important;
+  text-align: center !important;
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.2) !important;
+}
+
+.beneficio-gac-total-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.beneficio-gac-total-label {
+  font-size: 14px !important;
+  opacity: 0.9 !important;
+  font-weight: 500 !important;
+}
+
+.beneficio-gac-total-valor {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+}
+
+.gerenciador-beneficios-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.gerenciador-secao {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+}
+
+.gerenciador-secao-titulo {
+  color: #1b5e20;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gerenciador-secao-descricao {
+  color: #666;
+  font-size: 14px;
+  margin: 0 0 16px 0;
+  line-height: 1.4;
+}
+
+.gerenciador-lista-container {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  min-height: 200px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.gerenciador-lista {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gerenciador-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+  border: 1px solid #c8e6c9;
+  border-radius: 6px;
+  padding: 12px 16px;
+  transition: all 0.3s ease;
+}
+
+.gerenciador-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(46, 125, 50, 0.1);
+}
+
+.gerenciador-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gerenciador-item-nome {
+  color: #2e7d32;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.gerenciador-item-index {
+  color: #4caf50;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.gerenciador-item-remover {
+  background: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.gerenciador-item-remover:hover:not(.disabled) {
+  background: #ff5252;
+  transform: scale(1.1);
+}
+
+.gerenciador-item-remover.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.gerenciador-lista-vazia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  color: #666;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.gerenciador-adicionar-form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.gerenciador-adicionar-campo {
+  flex: 1;
+}
+
+.gerenciador-adicionar-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.gerenciador-adicionar-input:focus {
+  border-color: #2e7d32;
+  background-color: #f1f8f6;
+}
+
+.gerenciador-adicionar-botao {
+  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.gerenciador-adicionar-botao:hover:not(.disabled) {
+  background: linear-gradient(135deg, #43a047 0%, #5cb85c 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.gerenciador-adicionar-botao.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+}
+
+.gerenciador-footer-info {
+  display: flex;
+  align-items: center;
+}
+
+.gerenciador-contador {
+  color: #666;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.gerenciador-footer-acoes {
+  display: flex;
+  gap: 12px;
+}
+
+.gerenciador-botao-secundario {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.gerenciador-botao-secundario:hover:not(:disabled) {
+  background: #e0e0e0;
+  border-color: #bbb;
+}
+
+.gerenciador-botao-primario {
+  background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gerenciador-botao-primario:hover:not(:disabled) {
+  background: linear-gradient(135deg, #388e3c 0%, #43a047 100%);
+  transform: translateY(-1px);
+}
+
+.gerenciador-botao-primario:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.gerenciador-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Conteúdo do Modal - com scroll */
 .modal-edicao-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   background: linear-gradient(135deg, #fafafa 0%, #ffffff 50%, #f5f5f5 100%);
-  padding: 28px 32px;
+  padding: 20px 24px;
   min-height: 0;
 }
 
@@ -113,7 +849,7 @@
 /* Seções do Formulário */
 .form-secao {
   background: white;
-  padding: 24px;
+  padding: 18px;
   border-radius: 12px;
   border: 1px solid #e3f2fd;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -127,38 +863,39 @@
 }
 
 .form-secao-titulo {
-  margin: 0 0 20px 0;
-  font-size: 17px;
+  margin: 0 0 16px 0;
+  font-size: 15px;
   font-weight: 700;
   color: #1b5e20;
   border-bottom: 3px solid #c8e6c9;
-  padding-bottom: 14px;
+  padding-bottom: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 /* Grupos de Formulário */
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 .form-group label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #424242;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 /* Inputs */
 .form-input {
-  padding: 14px 16px;
+  padding: 11px 14px;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13px;
   font-family: inherit;
   transition: all 0.25s ease;
   background: white;
@@ -231,12 +968,14 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+  align-items: start;
 }
 
 .form-grid-3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
+  align-items: start;
 }
 
 @media (max-width: 768px) {
@@ -506,6 +1245,184 @@
   font-weight: 700;
 }
 
+/* =================================================== */
+/* ESTILOS APRIMORADOS PARA CAMPOS DE DATA E FORMULÁRIOS */
+/* =================================================== */
+
+/* Estrutura de linhas do formulário de benefícios GAC */
+.beneficio-gac-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* Grupos de campos do formulário */
+.beneficio-gac-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.beneficio-gac-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1b5e20;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Wrapper para campos de data com ícone */
+.data-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Estilos para inputs de data */
+.beneficio-gac-data-input {
+  width: 100% !important;
+  padding: 12px 16px !important;
+  padding-right: 45px !important;
+  border: 2px solid #c8e6c9 !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-family: inherit !important;
+  background: white !important;
+  transition: all 0.3s ease !important;
+  cursor: pointer !important;
+  color: #2e7d32 !important;
+  font-weight: 500 !important;
+}
+
+.beneficio-gac-data-input:focus {
+  outline: none !important;
+  border-color: #4caf50 !important;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1) !important;
+  background: #f9fdf9 !important;
+}
+
+.beneficio-gac-data-input:hover:not(:focus) {
+  border-color: #81c784 !important;
+  background: #fafffe !important;
+}
+
+/* Esconder o ícone padrão do navegador para inputs de data (seção 2) */
+.beneficio-gac-data-input::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.beneficio-gac-data-input::-webkit-inner-spin-button,
+.beneficio-gac-data-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Ícone do calendário customizado */
+.data-input-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 18px;
+  color: #4caf50;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Melhorias para inputs de benefícios do governo */
+.beneficio-gac-input-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.beneficio-gac-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e65100;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.beneficio-gac-input {
+  padding: 12px 16px !important;
+  border: 2px solid #ffe0b2 !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-family: inherit !important;
+  background: white !important;
+  transition: all 0.3s ease !important;
+  color: #e65100 !important;
+}
+
+.beneficio-gac-input:focus {
+  outline: none !important;
+  border-color: #ff9800 !important;
+  box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1) !important;
+  background: #fff9f0 !important;
+}
+
+.beneficio-gac-input:hover:not(:focus) {
+  border-color: #ffcc02 !important;
+  background: #fffef9 !important;
+}
+
+/* Melhorias para títulos das seções */
+.beneficio-gac-titulo {
+  color: #e65100 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  margin: 0 0 20px 0 !important;
+  padding-bottom: 12px !important;
+  border-bottom: 2px solid #ffe0b2 !important;
+}
+
+/* Melhorando a área de lista vazia */
+.beneficio-gac-vazio {
+  text-align: center !important;
+  padding: 32px 20px !important;
+  color: #757575 !important;
+  font-style: italic !important;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  border: 2px dashed #dee2e6 !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+}
+
+/* Melhorias no total dos benefícios */
+.beneficio-gac-total {
+  background: linear-gradient(135deg, #2e7d32 0%, #388e3c 100%) !important;
+  color: white !important;
+  padding: 20px !important;
+  border-radius: 10px !important;
+  margin: 20px 0 !important;
+  text-align: center !important;
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.2) !important;
+}
+
+.beneficio-gac-total-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.beneficio-gac-total-label {
+  font-size: 14px !important;
+  opacity: 0.9 !important;
+  font-weight: 500 !important;
+}
+
+.beneficio-gac-total-valor {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+}
+
 /* Responsividade para telas menores */
 @media (max-width: 768px) {
   .modal-edicao-container {
@@ -537,4 +1454,75 @@
     font-size: 13px;
     min-width: 100px;
   }
+  
+  .beneficio-gac-form-row {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+}
+
+/* Prevenir seleção de texto nos campos de data */
+input[type="date"] {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Prevenir seleção de texto no wrapper dos campos de data */
+.data-input-wrapper {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Aplicar também aos inputs específicos de data dos benefícios */
+.beneficio-gac-data-input {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Prevenir seleção em todos os elementos dentro do wrapper de data */
+.data-input-wrapper * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Regras específicas para campos de data do ModalCadastro */
+#dataInicioBeneficio,
+#dataFinalBeneficio {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Prevenir seleção nos elementos internos do input date */
+#dataInicioBeneficio::-webkit-datetime-edit,
+#dataFinalBeneficio::-webkit-datetime-edit,
+#dataInicioBeneficio::-webkit-datetime-edit-text,
+#dataFinalBeneficio::-webkit-datetime-edit-text,
+#dataInicioBeneficio::-webkit-datetime-edit-month-field,
+#dataFinalBeneficio::-webkit-datetime-edit-month-field,
+#dataInicioBeneficio::-webkit-datetime-edit-day-field,
+#dataFinalBeneficio::-webkit-datetime-edit-day-field,
+#dataInicioBeneficio::-webkit-datetime-edit-year-field,
+#dataFinalBeneficio::-webkit-datetime-edit-year-field {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  pointer-events: none !important;
 }

@@ -1,13 +1,12 @@
 import React from 'react';
 import { useAuth } from '../contexto/AuthContext';
-import { Navigate, useNavigate } from 'react-router-dom';
-import GerenciadorComunidades from '../componentes/GerenciadorComunidades';
+import { Navigate } from 'react-router-dom';
+import ListaComunidadesGerenciamento from '../componentes/ListaComunidadesGerenciamento';
 import Breadcrumb from '../componentes/Breadcrumb';
-import './PaginaComunidades.css';
+import './PaginaGerenciamentoComunidades.css';
 
-const PaginaComunidades = () => {
+const PaginaGerenciamentoComunidades = () => {
   const { usuario } = useAuth();
-  const navegar = useNavigate();
 
   // Proteção: apenas admins podem acessar
   if (usuario?.funcao !== 'admin') {
@@ -15,12 +14,12 @@ const PaginaComunidades = () => {
   }
 
   return (
-    <div className="pagina-comunidades">
+    <div className="pagina-gerenciamento-comunidades">
       <div className="pagina-container">
         <Breadcrumb 
           items={[
             { label: 'Gerenciamento', path: null },
-            { label: 'Comunidades', path: '/comunidades' }
+            { label: 'Comunidades', path: '/gerenciamento/comunidades' }
           ]} 
         />
         
@@ -30,14 +29,11 @@ const PaginaComunidades = () => {
         </div>
 
         <div className="pagina-conteudo">
-          <GerenciadorComunidades 
-            isOpen={true}
-            onClose={() => navegar('/dashboard')}
-          />
+          <ListaComunidadesGerenciamento />
         </div>
       </div>
     </div>
   );
 };
 
-export default PaginaComunidades;
+export default PaginaGerenciamentoComunidades;

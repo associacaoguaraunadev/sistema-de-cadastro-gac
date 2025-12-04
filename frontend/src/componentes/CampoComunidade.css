@@ -1,16 +1,16 @@
 /* Campo Comunidade */
 .campo-comunidade {
-  margin-bottom: 18px;
+  margin-bottom: 14px;
   display: flex;
   flex-direction: column;
   position: relative;
 }
 
 .campo-comunidade-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: #424242;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
@@ -27,16 +27,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 11px 14px;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   background: white;
   cursor: pointer;
   transition: all 0.25s ease;
-  font-size: 14px;
+  font-size: 13px;
   font-family: inherit;
   color: #333;
-  min-height: 20px;
+  min-height: 19px;
 }
 
 .campo-comunidade-input:hover {
@@ -95,9 +95,10 @@
   left: 0;
   right: 0;
   background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  border: 2px solid #2e7d32;
+  border-top: 1px solid #e0e0e0;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 8px 24px rgba(46, 125, 50, 0.15);
   z-index: 1001;
   margin-top: 4px;
   animation: dropdownSlide 0.2s ease;

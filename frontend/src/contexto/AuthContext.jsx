@@ -29,9 +29,7 @@ export const AuthProvider = ({ children }) => {
     setCarregando(true);
     setErro(null);
     try {
-      console.log(`📝 [FRONTEND] Registrando novo usuário: ${email}`);
-      console.log(`📝 [FRONTEND] Código/Token: ${codigoConvite?.substring(0, 20)}...`);
-      console.log(`📝 [FRONTEND] URL da API: ${API_URL}`);
+
 
       const resposta = await axios.post(`${API_URL}/autenticacao/registrar`, {
         email,
@@ -40,9 +38,7 @@ export const AuthProvider = ({ children }) => {
         codigoConvite
       });
       
-      console.log(`✅ [FRONTEND] Registro sucesso - Status:`, resposta.status);
-      console.log(`✅ [FRONTEND] Token recebido:`, resposta.data.token ? 'SIM' : 'NÃO');
-      console.log(`✅ [FRONTEND] Usuário criado:`, resposta.data.usuario);
+
 
       localStorage.setItem('token', resposta.data.token);
       localStorage.setItem('usuario', JSON.stringify(resposta.data.usuario));
@@ -50,7 +46,7 @@ export const AuthProvider = ({ children }) => {
       setToken(resposta.data.token);
       setUsuario(resposta.data.usuario);
       
-      console.log(`✅ [FRONTEND] Registro completo!`);
+
       return resposta.data;
     } catch (erro) {
       console.error(`❌ [FRONTEND] Erro no registro:`, erro);

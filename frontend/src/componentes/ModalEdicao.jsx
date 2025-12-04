@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { atualizarPessoa } from '../servicos/api';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { useAuth } from '../contexto/AuthContext';
+import GerenciadorBeneficiosGAC from './GerenciadorBeneficiosGAC';
 import CampoComunidade from './CampoComunidade';
 import './ModalEdicao.css';
 
@@ -12,8 +13,33 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
   const [camposTocados, setCamposTocados] = useState({});
   const [novoBeneficioGAC, setNovoBeneficioGAC] = useState({ tipo: '', dataInicio: '', dataFinal: '' });
   const [novoBeneficioGoverno, setNovoBeneficioGoverno] = useState({ nome: '', valor: '' });
+  const [mostrarGerenciadorBeneficios, setMostrarGerenciadorBeneficios] = useState(false);
+  const [tiposBeneficios, setTiposBeneficios] = useState([]);
+  const [adicionandoNovoTipo, setAdicionandoNovoTipo] = useState(false);
+  const [novoTipoBeneficio, setNovoTipoBeneficio] = useState('');
   const { sucesso, erro: erroToast } = useGlobalToast();
   const { token } = useAuth();
+
+  // Carregar tipos de benefícios do localStorage
+  useEffect(() => {
+    const salvo = localStorage.getItem('beneficiosGACTipos');
+    if (salvo) {
+      setTiposBeneficios(JSON.parse(salvo));
+    } else {
+      const defaults = ['Cesta Básica', 'Auxílio Alimentação', 'Auxílio Financeiro', 'Bolsa Cultura', 'Outro'];
+      setTiposBeneficios(defaults);
+      localStorage.setItem('beneficiosGACTipos', JSON.stringify(defaults));
+    }
+  }, []);
+
+  // Escutar atualizações de tipos de benefícios
+  useEffect(() => {
+    const handleBeneficiosAtualizados = (e) => {
+      setTiposBeneficios(e.detail);
+    };
+    window.addEventListener('beneficiosGACAtualizados', handleBeneficiosAtualizados);
+    return () => window.removeEventListener('beneficiosGACAtualizados', handleBeneficiosAtualizados);
+  }, []);
 
   useEffect(() => {
     if (pessoa) {
@@ -173,10 +199,27 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
     return validarCampo(nome, formData[nome]);
   };
 
+  // Função para calcular total dos benefícios do governo
+  const calcularTotalBeneficiosGoverno = () => {
+    if (!Array.isArray(formData.beneficiosGoverno)) return 0;
+    return formData.beneficiosGoverno.reduce((total, beneficio) => {
+      const valor = typeof beneficio.valor === 'string' 
+        ? parseFloat(beneficio.valor.replace(/[R$\s.,]/g, '').replace(/,/g, '.')) || 0
+        : typeof beneficio.valor === 'number' ? beneficio.valor : 0;
+      return total + valor;
+    }, 0);
+  };
+
   // Funções para gerenciar Benefícios GAC
   const adicionarBeneficioGAC = () => {
     if (!novoBeneficioGAC.tipo || !novoBeneficioGAC.dataInicio) {
       erroToast('Campos Obrigatórios', 'Preencha tipo e data de início do benefício');
+      return;
+    }
+
+    // Validação de datas: data final não pode ser anterior à data inicial
+    if (novoBeneficioGAC.dataFinal && novoBeneficioGAC.dataInicio > novoBeneficioGAC.dataFinal) {
+      erroToast('Datas Inválidas', 'A data final não pode ser anterior à data inicial do benefício');
       return;
     }
     
@@ -187,6 +230,28 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
     }));
     
     setNovoBeneficioGAC({ tipo: '', dataInicio: '', dataFinal: '' });
+    sucesso('Benefício Adicionado', 'Benefício GAC adicionado com sucesso');
+  };
+
+  // Adicionar novo tipo de benefício
+  const adicionarNovoTipoBeneficio = () => {
+    const tipoTrimmed = novoTipoBeneficio.trim();
+    
+    if (!tipoTrimmed) {
+      erroToast('Campo Vazio', 'Digite o nome do benefício');
+      return;
+    }
+
+    if (tiposBeneficios.includes(tipoTrimmed)) {
+      erroToast('Duplicado', 'Este benefício já existe');
+      return;
+    }
+
+    const novosTipos = [...tiposBeneficios, tipoTrimmed];
+    setTiposBeneficios(novosTipos);
+    localStorage.setItem('beneficiosGACTipos', JSON.stringify(novosTipos));
+    setNovoTipoBeneficio('');
+    sucesso('Benefício Adicionado', `${tipoTrimmed} foi adicionado`);
   };
 
   const removerBeneficioGAC = (index) => {
@@ -220,6 +285,52 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       ...prev,
       beneficiosGoverno: (prev.beneficiosGoverno || []).filter((_, i) => i !== index)
     }));
+  };
+
+  // Função para lidar com Enter em todos os campos
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      // Se for um dropdown (select), simula um clique para abrir/fechar
+      if (e.target.tagName === 'SELECT') {
+        // Para dropdowns, apenas previne o comportamento padrão
+        // O usuário pode navegar com as setas e Enter para selecionar
+        return;
+      }
+      
+      // Tratar casos especiais de benefícios
+      if (e.target.id === 'valorBeneficioGoverno') {
+        // Se está no campo valor do benefício do governo, adiciona o benefício
+        if (novoBeneficioGoverno.nome && novoBeneficioGoverno.valor) {
+          adicionarBeneficioGoverno();
+          return;
+        }
+      }
+      
+      if (e.target.id === 'nomeBeneficioGoverno') {
+        // Se está no campo nome do benefício do governo, vai para o valor
+        const valorInput = document.getElementById('valorBeneficioGoverno');
+        if (valorInput) {
+          valorInput.focus();
+          return;
+        }
+      }
+      
+      // Para outros campos, tenta focar no próximo campo
+      const form = e.target.closest('form');
+      if (form) {
+        const elementos = form.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+        const indiceAtual = Array.from(elementos).indexOf(e.target);
+        
+        if (indiceAtual > -1 && indiceAtual < elementos.length - 1) {
+          elementos[indiceAtual + 1].focus();
+        } else {
+          // Se for o último campo, submete o formulário
+          form.querySelector('button[type="submit"]')?.click();
+        }
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -287,8 +398,9 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
     }
   };
 
+  if (!isOpen || !pessoa) return null;
+
   return (
-    <>
     <div className="modal-edicao-overlay" onClick={onClose}>
       <div className="modal-edicao-container" onClick={(e) => e.stopPropagation()}>
         {/* HEADER */}
@@ -315,6 +427,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     name="nome"
                     value={formData.nome || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className={`form-input ${obterErrosCampo('nome') ? 'form-input-erro' : ''}`}
                   />
                   {obterErrosCampo('nome') && <span className="form-erro-msg">{obterErrosCampo('nome')}</span>}
@@ -327,6 +440,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     name="cpf"
                     value={formData.cpf || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className={`form-input ${obterErrosCampo('cpf') ? 'form-input-erro' : ''}`}
                   />
                   {obterErrosCampo('cpf') && <span className="form-erro-msg">{obterErrosCampo('cpf')}</span>}
@@ -344,6 +458,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     max="150"
                     value={formData.idade || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className={`form-input ${obterErrosCampo('idade') ? 'form-input-erro' : ''}`}
                   />
                   {obterErrosCampo('idade') && <span className="form-erro-msg">{obterErrosCampo('idade')}</span>}
@@ -355,6 +470,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                       setCamposTocados(prev => ({ ...prev, comunidade: true }));
                       setFormData(prev => ({ ...prev, comunidade: valor }));
                     }}
+                    onKeyDown={handleKeyDown}
                     error={obterErrosCampo('comunidade')}
                     disabled={carregando}
                     required={true}
@@ -362,19 +478,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     placeholder="Selecione uma comunidade"
                   />
                 </div>
-                <div className="form-group">
-                  <label htmlFor="status">Status <span className="campo-opcional">(Opcional)</span></label>
-                  <select
-                    id="status"
-                    name="status"
-                    value={formData.status || 'ativo'}
-                    onChange={handleChange}
-                    className="form-input"
-                  >
-                    <option value="ativo">Ativo</option>
-                    <option value="inativo">Inativo</option>
-                  </select>
-                </div>
+
               </div>
             </div>
 
@@ -391,6 +495,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     name="email"
                     value={formData.email || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className="form-input"
                   />
                 </div>
@@ -402,6 +507,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     name="telefone"
                     value={formData.telefone || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className={`form-input ${obterErrosCampo('telefone') ? 'form-input-erro' : ''}`}
                   />
                   {obterErrosCampo('telefone') && <span className="form-erro-msg">{obterErrosCampo('telefone')}</span>}
@@ -421,6 +527,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                   name="endereco"
                   value={formData.endereco || ''}
                   onChange={handleChange}
+                  onKeyDown={handleKeyDown}
                   className={`form-input ${obterErrosCampo('endereco') ? 'form-input-erro' : ''}`}
                 />
                 {obterErrosCampo('endereco') && <span className="form-erro-msg">{obterErrosCampo('endereco')}</span>}
@@ -435,6 +542,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     name="bairro"
                     value={formData.bairro || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className={`form-input ${obterErrosCampo('bairro') ? 'form-input-erro' : ''}`}
                   />
                   {obterErrosCampo('bairro') && <span className="form-erro-msg">{obterErrosCampo('bairro')}</span>}
@@ -447,6 +555,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     name="cidade"
                     value={formData.cidade || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className={`form-input ${obterErrosCampo('cidade') ? 'form-input-erro' : ''}`}
                   />
                   {obterErrosCampo('cidade') && <span className="form-erro-msg">{obterErrosCampo('cidade')}</span>}
@@ -459,6 +568,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     name="estado"
                     value={formData.estado || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className={`form-input ${obterErrosCampo('estado') ? 'form-input-erro' : ''}`}
                   />
                   {obterErrosCampo('estado') && <span className="form-erro-msg">{obterErrosCampo('estado')}</span>}
@@ -473,6 +583,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                   name="cep"
                   value={formData.cep || ''}
                   onChange={handleChange}
+                  onKeyDown={handleKeyDown}
                   className="form-input"
                   placeholder="06712-200"
                   maxLength="9"
@@ -494,6 +605,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     step="0.01"
                     value={formData.rendaFamiliar || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className="form-input"
                   />
                 </div>
@@ -506,6 +618,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     min="1"
                     value={formData.numeroMembros || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className="form-input"
                   />
                 </div>
@@ -518,6 +631,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     min="0"
                     value={formData.dependentes || ''}
                     onChange={handleChange}
+                    onKeyDown={handleKeyDown}
                     className="form-input"
                   />
                 </div>
@@ -525,131 +639,217 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
             </div>
 
             {/* Seção Benefícios GAC */}
-            <div className="form-secao">
-              <h3 className="form-secao-titulo">Benefícios GAC</h3>
+            <div className="beneficio-gac-secao">
+              <div className="beneficio-gac-cabecalho">
+                <h3 className="form-secao-titulo">🌿 Benefícios GAC</h3>
+                <button
+                  type="button"
+                  onClick={() => setMostrarGerenciadorBeneficios(true)}
+                  className="beneficio-gac-botao-editar-tipos"
+                  title="Gerenciar tipos de benefícios"
+                >
+                  ⚙️ Editar Tipos
+                </button>
+              </div>
               
               {/* Lista de Benefícios Existentes */}
-              {Array.isArray(formData.beneficiosGAC) && formData.beneficiosGAC.length > 0 && (
+              {Array.isArray(formData.beneficiosGAC) && formData.beneficiosGAC.length > 0 ? (
                 <div style={{ marginBottom: '20px' }}>
                   {formData.beneficiosGAC.map((beneficio, index) => (
-                    <div key={index} style={{
-                      padding: '12px',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '4px',
-                      marginBottom: '10px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      backgroundColor: '#f9f9f9'
-                    }}>
-                      <div>
-                        <strong style={{ color: '#333' }}>{beneficio.tipo}</strong>
-                        <span style={{ display: 'block', fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                          De {new Date(beneficio.dataInicio).toLocaleDateString('pt-BR')}
-                          {beneficio.dataFinal && ` até ${new Date(beneficio.dataFinal).toLocaleDateString('pt-BR')}`}
-                        </span>
+                    <div key={index} className="beneficio-gac-card">
+                      <div className="beneficio-gac-info">
+                        <div className="beneficio-gac-tipo">{beneficio.tipo}</div>
+                        <div className="beneficio-gac-datas">
+                          <div className="beneficio-gac-data-item">
+                            <span className="beneficio-gac-data-icon">📅</span>
+                            <span>{new Date(beneficio.dataInicio).toLocaleDateString('pt-BR')}</span>
+                          </div>
+                          {beneficio.dataFinal && (
+                            <div className="beneficio-gac-data-item">
+                              <span className="beneficio-gac-data-icon">→</span>
+                              <span>{new Date(beneficio.dataFinal).toLocaleDateString('pt-BR')}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       <button
                         type="button"
                         onClick={() => removerBeneficioGAC(index)}
-                        style={{
-                          background: '#ff6b6b',
-                          color: 'white',
-                          border: 'none',
-                          padding: '4px 8px',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          fontSize: '16px'
-                        }}
+                        className="beneficio-gac-remover"
+                        title="Remover benefício"
                       >
-                        ✕
+                        ×
                       </button>
                     </div>
                   ))}
                 </div>
+              ) : (
+                <div className="beneficio-gac-lista">
+                  <div className="beneficio-gac-vazio">Nenhum benefício GAC adicionado</div>
+                </div>
               )}
 
               {/* Formulário para adicionar novo benefício GAC */}
-              <div style={{ backgroundColor: '#f0f0f0', padding: '15px', borderRadius: '6px', marginBottom: '20px' }}>
-                <div className="form-group">
+              <div className="beneficio-gac-form">
+                {/* Campo de seleção de tipo */}
+                <div className="beneficio-gac-form-group">
                   <label htmlFor="tipoBeneficio">Tipo de Benefício</label>
                   <select
                     id="tipoBeneficio"
                     value={novoBeneficioGAC.tipo}
                     onChange={(e) => setNovoBeneficioGAC(prev => ({ ...prev, tipo: e.target.value }))}
-                    className="form-input"
+                    onKeyDown={handleKeyDown}
+                    className="beneficio-gac-data-input"
                   >
                     <option value="">Selecione um tipo</option>
-                    <option value="Cesta Básica">Cesta Básica</option>
-                    <option value="Auxílio Alimentação">Auxílio Alimentação</option>
-                    <option value="Auxílio Financeiro">Auxílio Financeiro</option>
-                    <option value="Bolsa Cultura">Bolsa Cultura</option>
-                    <option value="Outro">Outro</option>
+                    {tiposBeneficios.map((tipo, idx) => (
+                      <option key={idx} value={tipo}>{tipo}</option>
+                    ))}
                   </select>
                 </div>
 
-                <div className="form-grid-2">
-                  <div className="form-group">
-                    <label htmlFor="dataInicioBeneficio">Data de Início</label>
-                    <input
-                      id="dataInicioBeneficio"
-                      type="date"
-                      value={novoBeneficioGAC.dataInicio}
-                      onChange={(e) => setNovoBeneficioGAC(prev => ({ ...prev, dataInicio: e.target.value }))}
-                      className="form-input"
-                    />
+                {/* 2️⃣ PAINEL GERENCIAR TIPOS (Colapsável) */}
+                {adicionandoNovoTipo && (
+                  <div style={{
+                    background: '#f9fdf9',
+                    border: '2px solid #2e7d32',
+                    borderRadius: '8px',
+                    padding: '14px',
+                    marginBottom: '14px'
+                  }}>
+                    {/* Lista Tipos Atuais */}
+                    <div style={{ marginBottom: '14px' }}>
+                      <h5 style={{ margin: '0 0 10px 0', fontSize: '11px', fontWeight: '700', color: '#1b5e20', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        ✓ Tipos Atuais
+                      </h5>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto' }}>
+                        {tiposBeneficios.map((tipo, idx) => (
+                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'white', border: '1px solid #c8e6c9', borderRadius: '6px', fontSize: '13px' }}>
+                            <span>{tipo}</span>
+                            <button type="button" onClick={() => { const ns = tiposBeneficios.filter((_, i) => i !== idx); setTiposBeneficios(ns); localStorage.setItem('beneficiosGACTipos', JSON.stringify(ns)); sucesso('✓', tipo); }} style={{ background: '#ff6b6b', color: 'white', border: 'none', width: '24px', height: '24px', borderRadius: '50%', cursor: 'pointer', fontSize: '13px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Linha Divisória */}
+                    <div style={{ borderTop: '1px solid #c8e6c9', marginBottom: '14px' }} />
+
+                    {/* Adicionar Novo Tipo */}
+                    <div>
+                      <h5 style={{ margin: '0 0 10px 0', fontSize: '11px', fontWeight: '700', color: '#1b5e20', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        + Novo Tipo
+                      </h5>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <input type="text" value={novoTipoBeneficio} onChange={(e) => setNovoTipoBeneficio(e.target.value)} onKeyDown={handleKeyDown} onKeyPress={(e) => e.key === 'Enter' && adicionarNovoTipoBeneficio()} placeholder="Ex: Auxílio Emergencial" style={{ flex: 1, padding: '8px 10px', border: '1px solid #2e7d32', borderRadius: '6px', fontSize: '12px' }} />
+                        <button type="button" onClick={adicionarNovoTipoBeneficio} style={{ background: '#2e7d32', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap' }}>+ Adicionar</button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="dataFinalBeneficio">Data Final</label>
-                    <input
-                      id="dataFinalBeneficio"
-                      type="date"
-                      value={novoBeneficioGAC.dataFinal}
-                      onChange={(e) => setNovoBeneficioGAC(prev => ({ ...prev, dataFinal: e.target.value }))}
-                      className="form-input"
-                    />
+                )}
+
+                {/* Campos de data */}
+                <div className="beneficio-gac-form-row">
+                  <div className="beneficio-gac-form-group">
+                    <label htmlFor="dataInicioBeneficio">Data de Início</label>
+                    <div 
+                      className="data-input-wrapper"
+                      onClick={(e) => {
+                        const input = e.currentTarget.querySelector('input[type="date"]');
+                        if (input && input.showPicker) {
+                          input.showPicker();
+                        } else if (input) {
+                          input.focus();
+                          input.click();
+                        }
+                      }}
+                    >
+                      <input
+                        id="dataInicioBeneficio"
+                        type="date"
+                        value={novoBeneficioGAC.dataInicio}
+                        onChange={(e) => setNovoBeneficioGAC(prev => ({ ...prev, dataInicio: e.target.value }))}
+                        onKeyDown={handleKeyDown}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onSelectStart={(e) => e.preventDefault()}
+                        onFocus={(e) => e.target.blur()}
+                        className="beneficio-gac-data-input"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (e.target.showPicker) {
+                            e.target.showPicker();
+                          }
+                        }}
+                      />
+                      <span className="data-input-icon">📆</span>
+                    </div>
+                  </div>
+                  <div className="beneficio-gac-form-group">
+                    <label htmlFor="dataFinalBeneficio">Data Final (opcional)</label>
+                    <div 
+                      className="data-input-wrapper"
+                      onClick={(e) => {
+                        const input = e.currentTarget.querySelector('input[type="date"]');
+                        if (input && input.showPicker) {
+                          input.showPicker();
+                        } else if (input) {
+                          input.focus();
+                          input.click();
+                        }
+                      }}
+                    >
+                      <input
+                        id="dataFinalBeneficio"
+                        type="date"
+                        value={novoBeneficioGAC.dataFinal}
+                        onChange={(e) => setNovoBeneficioGAC(prev => ({ ...prev, dataFinal: e.target.value }))}
+                        onKeyDown={handleKeyDown}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onSelectStart={(e) => e.preventDefault()}
+                        onFocus={(e) => e.target.blur()}
+                        className="beneficio-gac-data-input"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (e.target.showPicker) {
+                            e.target.showPicker();
+                          }
+                        }}
+                      />
+                      <span className="data-input-icon">📆</span>
+                    </div>
                   </div>
                 </div>
 
+                {/* Botão adicionar */}
                 <button
                   type="button"
                   onClick={adicionarBeneficioGAC}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    backgroundColor: '#2e7d32',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500'
-                  }}
+                  className="beneficio-gac-adicionar"
                 >
-                  + Adicionar Benefício GAC
+                  🌿 Adicionar Benefício GAC
                 </button>
               </div>
             </div>
 
             {/* Seção Benefícios do Governo */}
-            <div className="form-secao">
-              <h3 className="form-secao-titulo">Benefícios do Governo</h3>
-              <p className="form-secao-descricao">Adicione os benefícios do governo que a pessoa recebe com seus respectivos valores (opcional)</p>
+            <div className="beneficio-governo-secao">
+              <h3 className="beneficio-gac-titulo">🏦 Benefícios do Governo</h3>
               
               {/* Lista de Benefícios Existentes */}
-              {Array.isArray(formData.beneficiosGoverno) && formData.beneficiosGoverno.length > 0 && (
-                <div className="lista-beneficios-governo">
-                  <h4 className="lista-beneficios-titulo">Benefícios Adicionados:</h4>
+              {Array.isArray(formData.beneficiosGoverno) && formData.beneficiosGoverno.length > 0 ? (
+                <div className="beneficio-gac-lista">
                   {formData.beneficiosGoverno.map((beneficio, index) => (
-                    <div key={index} className="item-beneficio-governo">
-                      <div className="info-beneficio-governo">
-                        <strong className="nome-beneficio-governo">{beneficio.nome}</strong>
-                        <span className="valor-beneficio-governo">
-                          {typeof beneficio.valor === 'number' 
+                    <div key={index} className="beneficio-gac-card">
+                      <div className="beneficio-gac-info">
+                        <div className="beneficio-gac-tipo">{beneficio.nome}</div>
+                        <div className="beneficio-gac-valor" style={{ color: '#1b5e20', fontWeight: '600' }}>
+                          💵 {typeof beneficio.valor === 'number' 
                             ? beneficio.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                            : 'R$ 0,00'
+                            : typeof beneficio.valor === 'string' && beneficio.valor
+                              ? `R$ ${beneficio.valor}`
+                              : 'R$ 0,00'
                           }
-                        </span>
+                        </div>
                       </div>
                       <button
                         type="button"
@@ -662,61 +862,89 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     </div>
                   ))}
                 </div>
+              ) : (
+                <div className="beneficio-gac-vazio">
+                  Nenhum benefício do governo adicionado
+                </div>
+              )}
+
+              {/* Total de Benefícios do Governo */}
+              {Array.isArray(formData.beneficiosGoverno) && formData.beneficiosGoverno.length > 0 && (
+                <div className="beneficio-gac-form" style={{ 
+                  marginBottom: '20px', 
+                  backgroundColor: '#e8f5e9', 
+                  borderColor: '#2e7d32',
+                  borderStyle: 'solid'
+                }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    padding: '12px 0'
+                  }}>
+                    <span style={{ 
+                      fontSize: '14px', 
+                      fontWeight: '600', 
+                      color: '#1b5e20' 
+                    }}>
+                      💰 Total de Benefícios do Governo:
+                    </span>
+                    <span style={{ 
+                      fontSize: '16px', 
+                      fontWeight: '700', 
+                      color: '#1b5e20',
+                      backgroundColor: '#ffffff',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid #2e7d32'
+                    }}>
+                      {calcularTotalBeneficiosGoverno().toLocaleString('pt-BR', { 
+                        style: 'currency', 
+                        currency: 'BRL' 
+                      })}
+                    </span>
+                  </div>
+                </div>
               )}
 
               {/* Formulário para adicionar novo benefício do governo */}
-              <div className="secao-adicionar">
-                <h4 className="secao-adicionar-titulo">Adicionar Benefício</h4>
-                <div className="form-group">
-                  <label htmlFor="nomeBeneficioGoverno">Nome do Benefício</label>
-                  <input
-                    id="nomeBeneficioGoverno"
-                    type="text"
-                    value={novoBeneficioGoverno.nome}
-                    onChange={(e) => setNovoBeneficioGoverno(prev => ({ ...prev, nome: e.target.value }))}
-                    className="form-input"
-                    placeholder="Ex: LOAS, Bolsa Família, BPC, etc."
-                    disabled={carregando}
-                  />
-                </div>
+              <div className="beneficio-gac-form">
+                <div className="beneficio-gac-form-row">
+                  <div className="beneficio-gac-input-group">
+                    <label htmlFor="nomeBeneficioGoverno" className="beneficio-gac-label">Nome do Benefício</label>
+                    <input
+                      id="nomeBeneficioGoverno"
+                      type="text"
+                      value={novoBeneficioGoverno.nome}
+                      onChange={(e) => setNovoBeneficioGoverno(prev => ({ ...prev, nome: e.target.value }))}
+                      onKeyDown={handleKeyDown}
+                      className="beneficio-gac-input"
+                      placeholder="Ex: LOAS, Bolsa Família, BPC, etc."
+                    />
+                  </div>
 
-                <div className="form-group">
-                  <label htmlFor="valorBeneficioGoverno">Valor do Benefício</label>
-                  <input
-                    id="valorBeneficioGoverno"
-                    type="text"
-                    value={novoBeneficioGoverno.valor}
-                    onChange={(e) => setNovoBeneficioGoverno(prev => ({ 
-                      ...prev, 
-                      valor: formatarMoeda(e.target.value)
-                    }))}
-                    className="form-input"
-                    placeholder="R$ 0,00"
-                    disabled={carregando}
-                  />
+                  <div className="beneficio-gac-input-group">
+                    <label htmlFor="valorBeneficioGoverno" className="beneficio-gac-label">Valor do Benefício</label>
+                    <input
+                      id="valorBeneficioGoverno"
+                      type="text"
+                      value={novoBeneficioGoverno.valor}
+                      onChange={(e) => setNovoBeneficioGoverno(prev => ({ ...prev, valor: e.target.value }))}
+                      onKeyDown={handleKeyDown}
+                      className="beneficio-gac-input"
+                      placeholder="R$ 0,00"
+                    />
+                  </div>
                 </div>
 
                 <button
                   type="button"
-                  className="botao-adicionar-beneficio"
                   onClick={adicionarBeneficioGoverno}
-                  disabled={carregando}
+                  className="beneficio-gac-adicionar"
                 >
-                  + Adicionar
+                  🏦 Adicionar Benefício do Governo
                 </button>
               </div>
-
-              {/* Total de benefícios */}
-              {Array.isArray(formData.beneficiosGoverno) && formData.beneficiosGoverno.length > 0 && (
-                <div className="total-beneficios">
-                  <strong className="total-beneficios-label">Total de Benefícios do Governo:</strong>
-                  <span className="valor-total">
-                    {formData.beneficiosGoverno.reduce((total, beneficio) => {
-                      return total + (typeof beneficio.valor === 'number' ? beneficio.valor : 0);
-                    }, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Seção Observações */}
@@ -730,6 +958,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                   name="observacoes"
                   value={formData.observacoes || ''}
                   onChange={handleChange}
+                  onKeyDown={handleKeyDown}
                   rows="4"
                   className="form-input form-textarea"
                 />
@@ -758,8 +987,13 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
           </button>
         </div>
       </div>
-      </div>
-    </>
+
+      {/* Modal de gerenciador de benefícios */}
+      <GerenciadorBeneficiosGAC
+        isOpen={mostrarGerenciadorBeneficios}
+        onClose={() => setMostrarGerenciadorBeneficios(false)}
+      />
+    </div>
   );
 };
 

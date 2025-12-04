@@ -139,7 +139,7 @@ async function runTests() {
     await test('Listar pessoas simples', 'GET', '/pessoas', null, token);
     await test('Listar com paginação', 'GET', '/pessoas?pagina=1&limite=5', null, token);
     await test('Listar com busca', 'GET', '/pessoas?busca=João', null, token);
-    await test('Listar com filtro status', 'GET', '/pessoas?status=ativo', null, token);
+
   }
 
   // ==================== 3. PESSOAS - CRUD ====================
@@ -165,8 +165,7 @@ async function runTests() {
       cep: '60000-000',
       idade: 30,
       comunidade: 'Teste',
-      tipoBeneficio: 'Cesta Básica',
-      status: 'ativo'
+      tipoBeneficio: 'Cesta Básica'
     };
 
     const criada = await test('Criar pessoa', 'POST', '/pessoas', novaPessoa, token);

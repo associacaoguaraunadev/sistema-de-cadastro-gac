@@ -26,29 +26,40 @@ export const ModalConfirmacao = ({
     <>
       <div className="modal-backdrop" onClick={onCancelar}></div>
       <div className={`modal-confirmacao modal-${tipo}`}>
-        <div className="modal-conteudo">
-          <div className={`modal-icone modal-icone-${tipo}`}>
-            {icones[tipo]}
-          </div>
-          <h2 className="modal-titulo">{titulo}</h2>
-          <p className="modal-mensagem">{mensagem}</p>
-          
-          <div className="modal-botoes">
-            <button
-              className="botao-modal botao-cancelar"
-              onClick={onCancelar}
-              disabled={carregando}
-            >
-              {botaoCancelarTexto}
-            </button>
-            <button
-              className={`botao-modal botao-confirmar botao-confirmar-${tipo}`}
-              onClick={onConfirmar}
-              disabled={carregando}
-            >
-              {carregando ? '⏳ Processando...' : botaoPrincipalTexto}
-            </button>
-          </div>
+        <div className={`modal-icone modal-icone-${tipo}`}>
+          {icones[tipo]}
+        </div>
+        <h2 className="modal-titulo">{titulo}</h2>
+        <p className="modal-mensagem">{mensagem}</p>
+        
+        <div className="modal-botoes">
+          <button
+            className="botao-modal botao-cancelar"
+            onClick={onCancelar}
+            disabled={carregando}
+          >
+            {botaoCancelarTexto}
+          </button>
+          <button
+            className={`botao-modal botao-confirmar botao-confirmar-${tipo}`}
+            onClick={onConfirmar}
+            disabled={carregando}
+          >
+{carregando ? (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                <span style={{ 
+                  display: 'inline-block', 
+                  width: '16px', 
+                  height: '16px', 
+                  border: '2px solid transparent',
+                  borderTop: '2px solid currentColor',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite'
+                }}></span>
+                Deletando...
+              </span>
+            ) : botaoPrincipalTexto}
+          </button>
         </div>
       </div>
     </>

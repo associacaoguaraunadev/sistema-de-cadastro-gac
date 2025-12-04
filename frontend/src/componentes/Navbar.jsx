@@ -84,7 +84,7 @@ const Navbar = () => {
             <div className="navbar-dropdown">
               <button 
                 className={`navbar-item dropdown-trigger ${
-                  isActive('/comunidades') || isActive('/tokens') ? 'active' : ''
+                  isActive('/gerenciamento/comunidades') || isActive('/tokens') ? 'active' : ''
                 }`}
                 onClick={toggleGerenciamento}
               >
@@ -99,8 +99,8 @@ const Navbar = () => {
               {gerenciamentoAberto && (
                 <div className="dropdown-menu">
                   <button 
-                    className={`dropdown-item ${isActive('/comunidades') ? 'active' : ''}`}
-                    onClick={() => navegarPara('/comunidades')}
+                    className={`dropdown-item ${isActive('/gerenciamento/comunidades') ? 'active' : ''}`}
+                    onClick={() => navegarPara('/gerenciamento/comunidades')}
                   >
                     <MapPin size={16} />
                     <span>Comunidades</span>
@@ -160,8 +160,8 @@ const Navbar = () => {
             <>
               <div className="mobile-section">Gerenciamento</div>
               <button 
-                className={`mobile-item indent ${isActive('/comunidades') ? 'active' : ''}`}
-                onClick={() => navegarPara('/comunidades')}
+                className={`mobile-item indent ${isActive('/gerenciamento/comunidades') ? 'active' : ''}`}
+                onClick={() => navegarPara('/gerenciamento/comunidades')}
               >
                 <MapPin size={18} />
                 <span>Comunidades</span>

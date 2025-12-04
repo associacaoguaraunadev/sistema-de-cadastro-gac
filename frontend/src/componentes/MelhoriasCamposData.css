@@ -1,0 +1,65 @@
+/* =================================================== */
+/* MELHORIAS PARA CAMPOS DE DATA E CORES PADRONIZADAS */
+/* =================================================== */
+
+/* Título dos benefícios do governo padronizado */
+.beneficio-governo-titulo {
+  color: #e65100 !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  margin: 0 0 20px 0 !important;
+  padding-bottom: 12px !important;
+  border-bottom: 2px solid #ffe0b2 !important;
+}
+
+/* Melhorias para calendário nativo */
+.beneficio-gac-data-input::-webkit-calendar-picker-indicator {
+  opacity: 0 !important;
+  position: absolute !important;
+  right: 12px !important;
+  width: 20px !important;
+  height: 20px !important;
+  cursor: pointer !important;
+  z-index: 2 !important;
+}
+
+/* Firefox date input */
+.beneficio-gac-data-input[type="date"] {
+  -moz-appearance: textfield !important;
+}
+
+/* Melhorar interação com ícone */
+.data-input-wrapper:hover .data-input-icon {
+  color: #2e7d32 !important;
+  transform: translateY(-50%) scale(1.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Z-index para campos de data */
+.beneficio-gac-data-input {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Wrapper clicável para abrir calendário */
+.data-input-wrapper {
+  cursor: pointer !important;
+}
+
+.data-input-wrapper:hover {
+  opacity: 0.95;
+}
+
+/* Garantir que o ícone não interfira com o calendário nativo */
+.data-input-icon {
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+/* Melhorar aparência dos campos de data no foco */
+.beneficio-gac-data-input:focus {
+  outline: none !important;
+  border-color: #4caf50 !important;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1) !important;
+  background: #f9fdf9 !important;
+}

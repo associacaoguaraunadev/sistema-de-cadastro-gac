@@ -197,6 +197,12 @@ async function rotear(req, res, slug) {
     return pessoasCriar(req, res);
   }
 
+  // Rota para atualizar comunidade em lote (renomear comunidade em todas as pessoas)
+  if (rota === 'pessoas/comunidade/atualizar' && req.method === 'PATCH') {
+    log(`🔄 Chamando atualizarComunidadeEmLote para rota: ${rota}`);
+    return atualizarComunidadeEmLote(req, res);
+  }
+
   if (rota.startsWith('pessoas/') && req.method === 'GET') {
     const id = slug[1];
     return pessoasObter(req, res, id);
@@ -212,6 +218,7 @@ async function rotear(req, res, slug) {
     return pessoasDeletar(req, res, id);
   }
 
+  log(`❌ Rota não encontrada: "${rota}" | Método: ${req.method}`);
   return res.status(404).json({ erro: 'Rota não encontrada', rota });
 }
 
@@ -412,10 +419,12 @@ async function autenticacaoRegistrar(req, res) {
     await prisma.tokenGeracao.update({
       where: { token: codigoConvite },
       data: {
-        usado: true
+        usado: true,
+        usadoPor: nome,
+        usadoEm: new Date()
       }
     });
-    log(`✅ Token marcado como usado`);
+    log(`✅ Token marcado como usado por: ${nome}`);
 
     const token = jwt.sign(
       { id: usuario.id, email: usuario.email, funcao: usuario.funcao },
@@ -675,6 +684,72 @@ async function validarTokenGeracao(req, res) {
 
 // ==================== PESSOAS ====================
 
+async function atualizarComunidadeEmLote(req, res) {
+  log(`🔄 INICIANDO atualizarComunidadeEmLote`);
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { nomeAntigo, nomeNovo } = req.body;
+
+    if (!nomeAntigo || !nomeNovo) {
+      return res.status(400).json({ 
+        erro: 'Nome antigo e nome novo são obrigatórios',
+        campos: {
+          nomeAntigo: !nomeAntigo ? 'Campo obrigatório' : null,
+          nomeNovo: !nomeNovo ? 'Campo obrigatório' : null
+        }
+      });
+    }
+
+    log(`🏘️ Atualizando comunidade em lote: "${nomeAntigo}" → "${nomeNovo}"`);
+
+    // Contar quantas pessoas serão afetadas
+    const pessoasAfetadas = await prisma.pessoa.count({
+      where: {
+        comunidade: nomeAntigo
+      }
+    });
+
+    if (pessoasAfetadas === 0) {
+      log(`⚠️ Nenhuma pessoa encontrada com a comunidade "${nomeAntigo}"`);
+      return res.status(200).json({ 
+        message: `Nenhuma pessoa encontrada com a comunidade "${nomeAntigo}"`,
+        pessoasAtualizadas: 0
+      });
+    }
+
+    // Atualizar todas as pessoas com a comunidade antiga
+    const resultado = await prisma.pessoa.updateMany({
+      where: {
+        comunidade: nomeAntigo
+      },
+      data: {
+        comunidade: nomeNovo
+      }
+    });
+
+    log(`✅ ${resultado.count} pessoas atualizadas de "${nomeAntigo}" para "${nomeNovo}"`);
+
+    res.status(200).json({
+      message: `Comunidade renomeada com sucesso`,
+      nomeAntigo,
+      nomeNovo,
+      pessoasAtualizadas: resultado.count
+    });
+
+  } catch (erro) {
+    log(`Erro ao atualizar comunidade em lote: ${erro.message}`, 'error');
+    res.status(500).json({ 
+      erro: 'Erro ao atualizar comunidade nas pessoas',
+      codigo: 'UPDATE_COMMUNITY_BATCH_ERROR'
+    });
+  }
+}
+
 async function pessoasTotaisPorComunidade(req, res) {
   const prisma = getPrisma();
   try {
@@ -683,14 +758,11 @@ async function pessoasTotaisPorComunidade(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    // Obter o total geral de pessoas ativas
-    const totalGeral = await prisma.pessoa.count({
-      where: { status: 'ativo' }
-    });
+    // Obter o total geral de pessoas
+    const totalGeral = await prisma.pessoa.count();
 
     // Agrupar por comunidade e contar
     const pessoas = await prisma.pessoa.findMany({
-      where: { status: 'ativo' },
       select: { comunidade: true }
     });
 
@@ -725,18 +797,13 @@ async function pessoasListar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { pagina = 1, limite = 50, busca = '', status = 'ativo', filtros = null } = req.query;
+    const { pagina = 1, limite = 50, busca = '', filtros = null } = req.query;
     const paginaNum = parseInt(pagina) || 1;
     const limiteNum = parseInt(limite) || 50;
     const skip = (paginaNum - 1) * limiteNum;
 
     // Construir filtros
     const where = {};
-    
-    // Filtro de status (o campo se chama 'status' no schema)
-    if (status && status !== 'todos') {
-      where.status = status;
-    }
 
     // Processar filtros avançados se fornecidos
     if (filtros) {
@@ -843,7 +910,7 @@ async function pessoasListar(req, res) {
     }
 
     // Log para debug
-    log(`👥 Listando pessoas - Página: ${paginaNum}, Limite: ${limiteNum}, Status: "${status}"`);
+    log(`👥 Listando pessoas - Página: ${paginaNum}, Limite: ${limiteNum}`);
     if (busca) log(`   Busca simples: "${busca}"`);
     if (filtros) log(`   Filtros avançados aplicados`);
 

@@ -40,6 +40,7 @@ export const ListaPessoas = () => {
   const [pessoaParaEditar, setPessoaParaEditar] = useState(null);
   const [modalDeleteAberto, setModalDeleteAberto] = useState(false);
   const [pessoaParaDeleter, setPessoaParaDeleter] = useState(null);
+  const [deletandoPessoa, setDeletandoPessoa] = useState(false);
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
   const timeoutRef = useRef(null);
   const abasWrapperRef = useRef(null);
@@ -179,7 +180,6 @@ export const ListaPessoas = () => {
         pagina,
         limite: LIMITE,
         busca,
-        status: 'ativo',
         filtrosAvancados
       });
       
@@ -201,16 +201,20 @@ export const ListaPessoas = () => {
   };
 
   const confirmarDeletar = async () => {
-    if (!pessoaParaDeleter) return;
+    if (!pessoaParaDeleter || deletandoPessoa) return;
+    
+    setDeletandoPessoa(true);
     
     try {
       await deletarPessoa(token, pessoaParaDeleter);
       setPessoas(pessoas.filter(p => p.id !== pessoaParaDeleter));
       setTotal(total - 1);
-      sucesso('Sucesso', 'Beneficiário deletado!');
+      sucesso('Sucesso', 'Beneficiário deletado com sucesso!');
     } catch (erro) {
+      console.error('❌ Erro ao deletar pessoa:', erro);
       erroToast('Erro ao Deletar', 'Não foi possível deletar o beneficiário');
     } finally {
+      setDeletandoPessoa(false);
       setModalDeleteAberto(false);
       setPessoaParaDeleter(null);
     }
@@ -245,52 +249,62 @@ export const ListaPessoas = () => {
     return 'idosos';
   };
 
-  // Comunidades pré-cadastradas com nova paleta de cores
-  const comunidadesFixas = [
-    { nome: 'Vila Cheba', cor: '#1C78C0' },
-    { nome: 'Morro da Vila', cor: '#CC3131' },
-    { nome: 'Barragem', cor: '#114E7A' },
-    { nome: 'Parque Centenario', cor: '#D39E00' },
-    { nome: 'Jardim Apura', cor: '#0A2A43' }
-  ];
-
   // Carregar comunidades customizadas do localStorage
   const [comunidadesCustomizadas, setComunidadesCustomizadas] = useState(() => {
     const salvas = localStorage.getItem('comunidadesCustomizadas');
     return salvas ? JSON.parse(salvas) : [];
   });
 
-  // Efeito para atualizar comunidades customizadas conforme pessoas são carregadas
+  // Escutar atualizações de comunidades do gerenciador
+  useEffect(() => {
+    const handleComunidadesAtualizadas = () => {
+      const comunidadesAtualizadas = JSON.parse(localStorage.getItem('comunidadesCustomizadas') || '[]');
+      setComunidadesCustomizadas(comunidadesAtualizadas);
+    };
+    
+    window.addEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
+    return () => window.removeEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
+  }, []);
+
+  // Efeito para adicionar apenas NOVAS comunidades das pessoas (sem sobrescrever)
   useEffect(() => {
     if (pessoas.length > 0) {
-      const comunidadesFixas = ['Vila Cheba', 'Morro da Vila', 'Barragem', 'Parque Centenario', 'Jardim Apura'];
-      
-      // Extrair todas as comunidades únicas das pessoas
-      const todasAsComunidades = new Set(
+      // Extrair comunidades únicas das pessoas
+      const comunidadesDasPessoas = new Set(
         pessoas
           .map(p => p.comunidade)
-          .filter(c => c && !comunidadesFixas.includes(c))
+          .filter(c => c && c.trim())
       );
 
-      // Converter para array e comparar com localStorage
-      const comunidadesNovas = Array.from(todasAsComunidades);
+      // Obter comunidades atuais do localStorage
       const comunidadesAtuais = JSON.parse(localStorage.getItem('comunidadesCustomizadas') || '[]');
       
-      // Se houver comunidades novas não salvas, adicionar
-      const comNovidade = [
-        ...new Set([...comunidadesAtuais, ...comunidadesNovas])
-      ];
+      // Adicionar apenas comunidades que ainda não existem
+      let foiAtualizado = false;
+      const comunidadesAtualizadas = [...comunidadesAtuais];
+      
+      Array.from(comunidadesDasPessoas).forEach(comunidade => {
+        if (!comunidadesAtualizadas.includes(comunidade)) {
+          comunidadesAtualizadas.push(comunidade);
+          foiAtualizado = true;
+        }
+      });
 
-      if (JSON.stringify(comNovidade.sort()) !== JSON.stringify(comunidadesAtuais.sort())) {
-        localStorage.setItem('comunidadesCustomizadas', JSON.stringify(comNovidade));
-        setComunidadesCustomizadas(comNovidade);
+      // Só atualizar se houver mudanças
+      if (foiAtualizado) {
+        const comunidadesOrdenadas = comunidadesAtualizadas.sort();
+        localStorage.setItem('comunidadesCustomizadas', JSON.stringify(comunidadesOrdenadas));
+        setComunidadesCustomizadas(comunidadesOrdenadas);
+        
+        // Notificar outros componentes
+        window.dispatchEvent(new CustomEvent('comunidadesAtualizadas'));
       }
     }
   }, [pessoas]);
 
   // Função para gerar cor consistente a partir do nome
   const gerarCorDeComunidade = (nomeComun) => {
-    const cores = ['#ec4899', '#f43f5e', '#06b6d4', '#14b8a6', '#84cc16', '#a78bfa'];
+    const cores = ['#1C78C0', '#CC3131', '#114E7A', '#D39E00', '#0A2A43', '#ec4899', '#f43f5e', '#06b6d4', '#14b8a6', '#84cc16', '#a78bfa'];
     let hash = 0;
     for (let i = 0; i < nomeComun.length; i++) {
       hash = ((hash << 5) - hash) + nomeComun.charCodeAt(i);
@@ -299,14 +313,11 @@ export const ListaPessoas = () => {
     return cores[Math.abs(hash) % cores.length];
   };
 
-  // Combinar comunidades fixas com customizadas
-  const comunidades = [
-    ...comunidadesFixas,
-    ...comunidadesCustomizadas.map(nome => ({
-      nome,
-      cor: gerarCorDeComunidade(nome)
-    }))
-  ];
+  // Usar apenas as comunidades do localStorage (que inclui as iniciais + customizadas)
+  const comunidades = comunidadesCustomizadas.map(nome => ({
+    nome,
+    cor: gerarCorDeComunidade(nome)
+  }));
 
   // Agrupar pessoas por comunidade E por faixa etária
   const pessoasAgrupadas = {};
@@ -479,15 +490,17 @@ export const ListaPessoas = () => {
                             key={pessoa.id}
                             pessoa={pessoa}
                             idade={calcularIdade(pessoa)}
-                            onEditar={() => {
-                              setPessoaParaEditar(pessoa);
-                              setModalEdicaoAberto(true);
-                            }}
+                              onEditar={() => {
+                                setPessoaParaEditar(pessoa);
+                                setModalEdicaoAberto(true);
+                              }}
                             onDeletar={() => handleDeletar(pessoa.id)}
                             onPreview={(p, i) => {
                               setPessoaSelecionada({ pessoa: p, idade: i });
                               setModalPreviewAberto(true);
                             }}
+                            deletandoPessoa={deletandoPessoa}
+                            pessoaParaDeleter={pessoaParaDeleter}
                           />
                         ))}
                       </div>
@@ -517,6 +530,8 @@ export const ListaPessoas = () => {
                               setPessoaSelecionada({ pessoa: p, idade: i });
                               setModalPreviewAberto(true);
                             }}
+                            deletandoPessoa={deletandoPessoa}
+                            pessoaParaDeleter={pessoaParaDeleter}
                           />
                         ))}
                       </div>
@@ -546,6 +561,8 @@ export const ListaPessoas = () => {
                               setPessoaSelecionada({ pessoa: p, idade: i });
                               setModalPreviewAberto(true);
                             }}
+                            deletandoPessoa={deletandoPessoa}
+                            pessoaParaDeleter={pessoaParaDeleter}
                           />
                         ))}
                       </div>
@@ -596,10 +613,12 @@ export const ListaPessoas = () => {
         botaoCancelarTexto="Cancelar"
         onConfirmar={confirmarDeletar}
         onCancelar={() => {
-          setModalDeleteAberto(false);
-          setPessoaParaDeleter(null);
+          if (!deletandoPessoa) {
+            setModalDeleteAberto(false);
+            setPessoaParaDeleter(null);
+          }
         }}
-        carregando={false}
+        carregando={deletandoPessoa}
       />
 
       {pessoaSelecionada && (
@@ -644,7 +663,7 @@ const formatarCPF = (cpf) => {
   return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 };
 
-const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar, onPreview }) => {
+const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar, onPreview, deletandoPessoa, pessoaParaDeleter }) => {
   const hoverTimeoutRef = useRef(null);
 
   const handleMouseEnter = () => {
@@ -748,15 +767,36 @@ const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar, onPreview }) => {
           <Edit2 size={16} /> Editar
         </button>
         <button
-          className="botao-cartao botao-deletar"
+          className={`botao-cartao botao-deletar ${deletandoPessoa && pessoaParaDeleter === pessoa.id ? 'carregando' : ''}`}
           onClick={(e) => {
             e.stopPropagation();
-            onDeletar();
+            if (!deletandoPessoa) {
+              onDeletar();
+            }
           }}
           onMouseEnter={handleBotaoMouseEnter}
-          title="Deletar"
+          disabled={deletandoPessoa && pessoaParaDeleter === pessoa.id}
+          title={deletandoPessoa && pessoaParaDeleter === pessoa.id ? "Deletando..." : "Deletar"}
         >
-          <Trash2 size={16} /> Deletar
+          {deletandoPessoa && pessoaParaDeleter === pessoa.id ? (
+            <>
+              <span style={{ 
+                display: 'inline-block', 
+                width: '14px', 
+                height: '14px', 
+                border: '2px solid transparent',
+                borderTop: '2px solid currentColor',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                marginRight: '6px'
+              }}></span>
+              Deletando...
+            </>
+          ) : (
+            <>
+              <Trash2 size={16} /> Deletar
+            </>
+          )}
         </button>
       </div>
     </div>

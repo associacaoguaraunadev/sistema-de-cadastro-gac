@@ -1,0 +1,410 @@
+/* Estilos para Lista de Comunidades Gerenciamento */
+
+.lista-comunidades-gerenciamento {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Seção de Adicionar */
+.secao-adicionar {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e9ecef;
+}
+
+.campo-grupo {
+  margin-bottom: 0;
+}
+
+.campo-grupo label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #495057;
+  font-size: 14px;
+}
+
+.input-com-botao {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.input-com-botao input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.input-com-botao input:focus {
+  outline: none;
+  border-color: #28a745;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.botao-adicionar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.botao-adicionar:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+}
+
+.botao-adicionar:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Lista de Comunidades */
+.lista-comunidades {
+  margin-top: 24px;
+}
+
+.cabecalho-lista {
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.cabecalho-lista h3 {
+  margin: 0;
+  color: #495057;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.lista-vazia {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9ecef;
+}
+
+.grid-comunidades {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* Card da Comunidade */
+.card-comunidade {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-comunidade:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  border-color: #28a745;
+}
+
+.info-comunidade h4 {
+  margin: 0 0 12px 0;
+  color: #212529;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-comunidade h4::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: #28a745;
+  border-radius: 50%;
+}
+
+.contador-pessoas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.contador-pessoas svg {
+  color: #28a745;
+}
+
+.badge-contador {
+  background: #28a745;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 12px;
+  min-width: 20px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(40, 167, 69, 0.3);
+}
+
+.acoes-comunidade {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+
+.botao-editar,
+.botao-excluir {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.botao-editar {
+  background: #17a2b8;
+  color: white;
+  box-shadow: 0 2px 6px rgba(23, 162, 184, 0.3);
+}
+
+.botao-editar:hover {
+  background: #138496;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(23, 162, 184, 0.4);
+}
+
+.botao-excluir {
+  background: #dc3545;
+  color: white;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+}
+
+.botao-excluir:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(220, 53, 69, 0.4);
+}
+
+/* Edição de Comunidade */
+.edicao-comunidade {
+  width: 100%;
+}
+
+.input-edicao {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #28a745;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+}
+
+.input-edicao:focus {
+  outline: none;
+  border-color: #20c997;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.acoes-edicao {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.botao-salvar,
+.botao-cancelar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.botao-salvar {
+  background: #28a745;
+  color: white;
+}
+
+.botao-salvar:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.botao-salvar:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.botao-cancelar {
+  background: #6c757d;
+  color: white;
+}
+
+.botao-cancelar:hover:not(:disabled) {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+/* Modal de Confirmação */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-confirmacao {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+.icone-aviso {
+  color: #dc3545;
+  margin-bottom: 12px;
+}
+
+.modal-confirmacao h3 {
+  margin: 0 0 8px 0;
+  color: #212529;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.modal-confirmacao p {
+  margin: 0 0 20px 0;
+  color: #6c757d;
+  line-height: 1.4;
+  font-size: 14px;
+}
+
+.modal-confirmacao p strong {
+  color: #212529;
+}
+
+.acoes-confirmacao {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.acoes-confirmacao .botao-cancelar,
+.acoes-confirmacao .botao-confirmar {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 90px;
+  font-size: 14px;
+}
+
+.acoes-confirmacao .botao-cancelar {
+  background: #6c757d;
+  color: white;
+}
+
+.acoes-confirmacao .botao-cancelar:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+}
+
+.acoes-confirmacao .botao-confirmar {
+  background: #dc3545;
+  color: white;
+}
+
+.acoes-confirmacao .botao-confirmar:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .lista-comunidades-gerenciamento {
+    padding: 16px;
+    margin: 0 16px;
+  }
+  
+
+  
+  .input-com-botao {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .botao-adicionar {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .grid-comunidades {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-confirmacao {
+    margin: 20px;
+  }
+  
+  .acoes-confirmacao {
+    flex-direction: column;
+  }
+}
