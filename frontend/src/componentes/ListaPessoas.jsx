@@ -242,7 +242,11 @@ export const ListaPessoas = () => {
                 meuUltimo: new Date(ultimaAtualizacao).toISOString(),
                 servidor: new Date(serverTime).toISOString(),
                 diferenca: serverTime - ultimaAtualizacao,
-                ultimoAutor
+                diferencaSegundos: Math.round((serverTime - ultimaAtualizacao) / 1000),
+                ultimoAutor,
+                meuId: usuario?.id,
+                autorId: ultimoAutor?.id,
+                saoIguais: ultimoAutor?.id === usuario?.id
               });
               
               // Se há atualizações mais recentes de outros usuários
@@ -262,7 +266,24 @@ export const ListaPessoas = () => {
                   setTipoMensagemAtualizacao(mensagem);
                   setMostrarMensagemAtualizacao(true);
                   setUltimaAtualizacao(serverTime);
+                } else {
+                  console.log(`ℹ️ Sem alerta - mesma hierarquia ou condição não atendida:`, {
+                    autorFuncao: ultimoAutor.funcao,
+                    meuFuncao: usuario?.funcao,
+                    condicao1: `${ultimoAutor.funcao} === 'admin' && ${usuario?.funcao} === 'funcionario'`,
+                    condicao2: `${ultimoAutor.funcao} === 'funcionario' && ${usuario?.funcao} === 'admin'`,
+                    resultado1: ultimoAutor.funcao === 'admin' && usuario?.funcao === 'funcionario',
+                    resultado2: ultimoAutor.funcao === 'funcionario' && usuario?.funcao === 'admin'
+                  });
                 }
+              } else {
+                console.log(`⏭️ Nenhuma atualização externa detectada:`, {
+                  tempoValido: serverTime > ultimaAtualizacao,
+                  autorDiferente: ultimoAutor?.id !== usuario?.id,
+                  serverTime: new Date(serverTime).toISOString(),
+                  ultimaAtualizacao: new Date(ultimaAtualizacao).toISOString(),
+                  diferenca: serverTime - ultimaAtualizacao
+                });
               }
             }
           } catch (erro) {

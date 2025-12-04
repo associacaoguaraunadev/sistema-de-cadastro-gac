@@ -1217,8 +1217,8 @@ async function pessoasUltimaAtualizacao(req, res) {
 
     const prisma = getPrisma();
     
-    // Buscar a pessoa mais recentemente modificada
-    const ultimaPessoa = await prisma.pessoa.findFirst({
+    // Buscar a pessoa mais recentemente modificada (criação ou atualização)
+    const ultimaPessoaAtualizada = await prisma.pessoa.findFirst({
       orderBy: { dataAtualizacao: 'desc' },
       include: {
         usuario: {
@@ -1227,6 +1227,25 @@ async function pessoasUltimaAtualizacao(req, res) {
       }
     });
     
+    const ultimaPessoaCriada = await prisma.pessoa.findFirst({
+      orderBy: { dataCriacao: 'desc' },
+      include: {
+        usuario: {
+          select: { id: true, nome: true, funcao: true }
+        }
+      }
+    });
+    
+    // Determinar qual é mais recente entre criação e atualização
+    let ultimaPessoa = ultimaPessoaAtualizada;
+    let ultimaData = ultimaPessoaAtualizada?.dataAtualizacao;
+    
+    if (ultimaPessoaCriada && 
+        (!ultimaData || new Date(ultimaPessoaCriada.dataCriacao) > new Date(ultimaData))) {
+      ultimaPessoa = ultimaPessoaCriada;
+      ultimaData = ultimaPessoaCriada.dataCriacao;
+    }
+    
     if (!ultimaPessoa) {
       return res.status(200).json({
         ultimaAtualizacao: new Date().toISOString(),
@@ -1234,10 +1253,10 @@ async function pessoasUltimaAtualizacao(req, res) {
       });
     }
     
-    log(`🔍 Última atualização: ${ultimaPessoa.dataAtualizacao} por ${ultimaPessoa.usuario.nome}`);
+    log(`🔍 Última modificação: ${ultimaData} por ${ultimaPessoa.usuario.nome} (${ultimaPessoa.usuario.funcao})`);
     
     res.status(200).json({
-      ultimaAtualizacao: ultimaPessoa.dataAtualizacao,
+      ultimaAtualizacao: ultimaData,
       ultimoAutor: {
         id: ultimaPessoa.usuario.id,
         nome: ultimaPessoa.usuario.nome,
