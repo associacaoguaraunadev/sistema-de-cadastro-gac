@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { obterPessoas, deletarPessoa, obterTotaisPorComunidade } from '../servicos/api';
-import { useSSE } from '../hooks/useSSE';
 import { Plus, Edit2, Trash2, Search, Users, Baby, User, Heart } from 'lucide-react';
 import { FiltroAvancado } from './FiltroAvancado';
 
@@ -109,40 +108,83 @@ export const ListaPessoas = () => {
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
   // Sistema inteligente de auto-refresh com SSE (Server-Sent Events)
-  const handleSSEEvent = (eventType, data) => {
-    const { autorId, autorFuncao } = data;
-    
-    // Se sou o autor da ação, refresh silencioso
-    if (autorId === usuario?.id) {
-      console.log(`🔄 Refresh silencioso (própria ação): ${eventType}`);
-      carregarPessoas();
-      carregarTotaisPorComunidade();
-      return;
-    }
-    
-    // Determinar mensagem baseada na hierarquia
-    let mensagem = '';
-    if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
-      mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
-    } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
-      mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
-    }
-    
-    if (mensagem) {
-      console.log(`📢 Mostrando alerta: ${mensagem}`);
-      setTipoMensagemAtualizacao(mensagem);
-      setMostrarMensagemAtualizacao(true);
-    } else {
-      console.log(`ℹ️ Evento ignorado (mesma hierarquia): ${eventType}`);
-    }
-  };
+  useEffect(() => {
+    if (!token || !usuario?.id) return;
 
-  // Conectar ao SSE para receber eventos em tempo real
-  useSSE((eventType, data) => {
-    if (['pessoaCadastrada', 'pessoaAtualizada', 'pessoaDeletada'].includes(eventType)) {
-      handleSSEEvent(eventType, data);
-    }
-  });
+    console.log('🔗 Tentando conectar ao SSE...');
+    
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    const sseUrl = `${baseUrl}/eventos/sse?token=${encodeURIComponent(token)}`;
+    console.log('📍 URL SSE:', sseUrl);
+    
+    const eventSource = new EventSource(sseUrl);
+    
+    eventSource.onopen = () => {
+      console.log('✅ SSE conectado com sucesso');
+    };
+    
+    eventSource.onmessage = (event) => {
+      console.log('📨 Mensagem SSE recebida:', event);
+    };
+    
+    eventSource.onerror = (error) => {
+      console.error('❌ Erro SSE:', error);
+      console.error('📊 Estado da conexão:', eventSource.readyState);
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.log('🔌 Conexão SSE foi fechada');
+      }
+    };
+
+    const handleSSEEvent = (eventType, data) => {
+      console.log(`📡 Evento SSE recebido: ${eventType}`, data);
+      const { autorId, autorFuncao } = data;
+      
+      // Se sou o autor da ação, refresh silencioso
+      if (autorId === usuario?.id) {
+        console.log(`🔄 Refresh silencioso (própria ação): ${eventType}`);
+        carregarPessoas();
+        carregarTotaisPorComunidade();
+        return;
+      }
+      
+      // Determinar mensagem baseada na hierarquia
+      let mensagem = '';
+      if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
+        mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
+      } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
+        mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
+      }
+      
+      if (mensagem) {
+        console.log(`📢 Mostrando alerta: ${mensagem}`);
+        setTipoMensagemAtualizacao(mensagem);
+        setMostrarMensagemAtualizacao(true);
+      } else {
+        console.log(`ℹ️ Evento ignorado (mesma hierarquia): ${eventType}`);
+      }
+    };
+
+    // Eventos específicos
+    eventSource.addEventListener('pessoaCadastrada', (event) => {
+      const data = JSON.parse(event.data);
+      handleSSEEvent('pessoaCadastrada', data);
+    });
+
+    eventSource.addEventListener('pessoaAtualizada', (event) => {
+      const data = JSON.parse(event.data);
+      handleSSEEvent('pessoaAtualizada', data);
+    });
+
+    eventSource.addEventListener('pessoaDeletada', (event) => {
+      const data = JSON.parse(event.data);
+      handleSSEEvent('pessoaDeletada', data);
+    });
+
+    return () => {
+      console.log('🔌 Desconectando SSE...');
+      eventSource.close();
+    };
+  }, [token, usuario?.id, usuario?.funcao]);
 
 
 

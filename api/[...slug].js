@@ -33,17 +33,31 @@ function adicionarClienteSSE(res, usuarioId) {
 }
 
 function enviarEventoSSE(evento, dados) {
+  log(`📤 Preparando envio SSE: ${evento} para ${clientesSSE.size} clientes`);
+  
+  if (clientesSSE.size === 0) {
+    log(`⚠️ Nenhum cliente SSE conectado para receber evento: ${evento}`, 'error');
+    return;
+  }
+
   const eventoData = JSON.stringify(dados);
+  let sucessos = 0;
+  let erros = 0;
+  
   clientesSSE.forEach(cliente => {
     try {
+      log(`📨 Enviando para cliente ${cliente.usuarioId}...`);
       cliente.res.write(`event: ${evento}\n`);
       cliente.res.write(`data: ${eventoData}\n\n`);
+      sucessos++;
     } catch (erro) {
-      console.log(`❌ Erro ao enviar SSE para cliente ${cliente.usuarioId}: ${erro.message}`);
+      log(`❌ Erro ao enviar SSE para cliente ${cliente.usuarioId}: ${erro.message}`, 'error');
       clientesSSE.delete(cliente);
+      erros++;
     }
   });
-  console.log(`📡 Evento SSE enviado: ${evento} para ${clientesSSE.size} clientes`);
+  
+  log(`📊 Resultado envio SSE: ${sucessos} sucessos, ${erros} erros`);
 }
 
 // CORS Handler
@@ -77,10 +91,11 @@ function log(msg, tipo = 'info') {
 
 // Função para iniciar conexão Server-Sent Events
 function iniciarSSE(req, res) {
-  // Para SSE, o token pode vir via query parameter
-  const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
+  // Para SSE, precisamos do token via query parameter já que EventSource não suporta headers customizados
+  const token = req.query.token;
   
   if (!token) {
+    log('❌ SSE: Token não fornecido', 'error');
     return res.status(401).json({ erro: 'Token não fornecido para SSE' });
   }
 
@@ -88,17 +103,22 @@ function iniciarSSE(req, res) {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
     usuario = decoded;
+    log(`✅ SSE: Token válido para usuário ${usuario.id} (${usuario.funcao})`);
   } catch (erro) {
+    log(`❌ SSE: Token inválido - ${erro.message}`, 'error');
     return res.status(401).json({ erro: 'Token inválido para SSE' });
   }
 
+  log(`🔧 Configurando headers SSE para usuário ${usuario.id}`);
+  
   // Configurar headers SSE
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization'
+    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true'
   });
 
   // Enviar evento inicial
@@ -267,6 +287,7 @@ async function rotear(req, res, slug) {
 
   // EVENTOS SSE
   if (rota === 'eventos/sse' && req.method === 'GET') {
+    log(`🚀 Iniciando SSE para rota: ${rota}`);
     return iniciarSSE(req, res);
   }
 
@@ -291,22 +312,26 @@ async function rotear(req, res, slug) {
   }
 
   if (rota === 'pessoas' && req.method === 'POST') {
+    console.log('🎯 ROTEAMENTO: Chamando pessoasCriar');
     return pessoasCriar(req, res);
   }
 
   // Rota genérica com ID (deve vir por último)
   if (rota.startsWith('pessoas/') && req.method === 'GET') {
     const id = slug[1];
+    console.log(`🎯 ROTEAMENTO: Chamando pessoasObter com ID ${id}`);
     return pessoasObter(req, res, id);
   }
 
   if (rota.startsWith('pessoas/') && (req.method === 'PUT' || req.method === 'PATCH')) {
     const id = slug[1];
+    console.log(`🎯 ROTEAMENTO: Chamando pessoasAtualizar com ID ${id}`);
     return pessoasAtualizar(req, res, id);
   }
 
   if (rota.startsWith('pessoas/') && req.method === 'DELETE') {
     const id = slug[1];
+    console.log(`🎯 ROTEAMENTO: Chamando pessoasDeletar com ID ${id}`);
     return pessoasDeletar(req, res, id);
   }
 
@@ -1098,6 +1123,7 @@ async function pessoasListar(req, res) {
 }
 
 async function pessoasCriar(req, res) {
+  console.log('\n🚀🚀🚀 FUNÇÃO PESSOAS CRIAR CHAMADA! 🚀🚀🚀');
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -1162,6 +1188,7 @@ async function pessoasCriar(req, res) {
     log(`✅ Pessoa criada com sucesso: ${pessoa.nome} (ID: ${pessoa.id}, Idade: ${pessoa.idade})`);
     
     // Enviar evento SSE para todos os clientes conectados
+    log(`📡 Enviando evento SSE: pessoaCadastrada para ${clientesSSE.size} clientes`);
     enviarEventoSSE('pessoaCadastrada', {
       pessoa: {
         id: pessoa.id,
@@ -1206,6 +1233,7 @@ async function pessoasObter(req, res, id) {
 }
 
 async function pessoasAtualizar(req, res, id) {
+  console.log('\n✏️✏️✏️ FUNÇÃO PESSOAS ATUALIZAR CHAMADA! ✏️✏️✏️');
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -1259,6 +1287,7 @@ async function pessoasAtualizar(req, res, id) {
     log(`✅ Pessoa atualizada com sucesso: ${pessoa.nome} (ID: ${pessoa.id})`);
     
     // Enviar evento SSE para todos os clientes conectados
+    log(`📡 Enviando evento SSE: pessoaAtualizada para ${clientesSSE.size} clientes`);
     enviarEventoSSE('pessoaAtualizada', {
       pessoa: {
         id: pessoa.id,
@@ -1279,6 +1308,7 @@ async function pessoasAtualizar(req, res, id) {
 }
 
 async function pessoasDeletar(req, res, id) {
+  console.log('\n🗑️🗑️🗑️ FUNÇÃO PESSOAS DELETAR CHAMADA! 🗑️🗑️🗑️');
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -1296,6 +1326,7 @@ async function pessoasDeletar(req, res, id) {
     
     // Enviar evento SSE para todos os clientes conectados
     if (pessoaParaDeletar) {
+      log(`📡 Enviando evento SSE: pessoaDeletada para ${clientesSSE.size} clientes`);
       enviarEventoSSE('pessoaDeletada', {
         pessoa: pessoaParaDeletar,
         autorId: usuario.id,
