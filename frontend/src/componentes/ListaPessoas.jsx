@@ -265,7 +265,13 @@ export const ListaPessoas = () => {
                   console.log(`📢 Mostrando alerta (via polling): ${mensagem}`);
                   setTipoMensagemAtualizacao(mensagem);
                   setMostrarMensagemAtualizacao(true);
+                  // IMPORTANTE: Atualizar timestamp IMEDIATAMENTE para evitar alertas repetitivos
                   setUltimaAtualizacao(serverTime);
+                  
+                  // Auto-dismiss após 15 segundos para ser menos invasivo
+                  setTimeout(() => {
+                    setMostrarMensagemAtualizacao(false);
+                  }, 15000);
                 } else {
                   console.log(`ℹ️ Sem alerta - mesma hierarquia ou condição não atendida:`, {
                     autorFuncao: ultimoAutor.funcao,

@@ -1231,45 +1231,47 @@
   }
 }
 
-/* Mensagem flutuante */
+/* Mensagem flutuante discreta */
 .mensagem-atualizacao-flutuante {
   position: fixed;
-  top: 20px;
+  bottom: 20px;
   right: 20px;
-  z-index: 1000;
-  max-width: 400px;
-  animation: slideInRight 0.3s ease-out;
+  z-index: 999;
+  max-width: 350px;
+  animation: slideInUp 0.4s ease-out;
 }
 
-@keyframes slideInRight {
+@keyframes slideInUp {
   from {
-    transform: translateX(100%);
+    transform: translateY(100%);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateY(0);
     opacity: 1;
   }
 }
 
 .conteudo-mensagem {
-  background: #fff3cd;
+  background: rgba(255, 243, 205, 0.95);
   border: 1px solid #f0ad4e;
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: 12px;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   color: #856404;
-  font-size: 14px;
-  box-shadow: 0 4px 12px rgba(240, 173, 78, 0.25);
+  font-size: 13px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(10px);
 }
 
 .texto-mensagem {
   flex: 1;
   font-weight: 500;
   line-height: 1.4;
+  font-size: 12px;
 }
 
 .botoes-mensagem {
@@ -1282,12 +1284,12 @@
   background: #f0ad4e;
   color: white;
   border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
 
 .botoes-mensagem .botao-recarregar:hover {
