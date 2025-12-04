@@ -65,7 +65,7 @@ function adicionarClienteSSE(res, usuarioId) {
       clientesSSE.delete(cliente);
       log(`❌ Erro no heartbeat para cliente ${usuarioId}: ${erro.message}`, 'error');
     }
-  }, 120000); // A cada 2 minutos (120 segundos) - mais discreto
+  }, 300000); // A cada 5 minutos (300 segundos) - apenas manter conexão
   
   cliente.heartbeat = heartbeat;
   

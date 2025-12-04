@@ -42,15 +42,12 @@ export const ListaPessoas = () => {
   const [pessoaParaDeleter, setPessoaParaDeleter] = useState(null);
   const [deletandoPessoa, setDeletandoPessoa] = useState(false);
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
-  const [mostrarMensagemAtualizacao, setMostrarMensagemAtualizacao] = useState(false);
-  const [tipoMensagemAtualizacao, setTipoMensagemAtualizacao] = useState('');
+  // ✨ ESTADOS SIMPLIFICADOS: Apenas para auto-refresh fluido
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(Date.now());
-  const [ultimoEventoProcessado, setUltimoEventoProcessado] = useState('');
-  const [contadorAlertas, setContadorAlertas] = useState(0);
   const timeoutRef = useRef(null);
   const abasWrapperRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
-  const pollingTimeoutRef = useRef(null);
+  // ❌ REMOVIDO: Não precisamos mais de polling timeout
   
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
@@ -145,39 +142,10 @@ export const ListaPessoas = () => {
           console.log('📨 Mensagem SSE recebida:', event);
         };
         
-        // 🎯 SISTEMA ADAPTATIVO: Polling baseado em contexto
-        let pollingInterval = 120000; // Início: 2 minutos
-        
-        const ajustarPolling = () => {
-          // 📊 CONTEXTO INTELIGENTE: Ajustar frequência baseado na atividade
-          if (usuario?.funcao === 'admin') {
-            pollingInterval = 90000; // Admin: 1.5 minutos (mais frequente)
-          } else if (contadorAlertas >= 2) {
-            pollingInterval = 300000; // Muitos alertas: 5 minutos (menos frequente)
-          } else {
-            pollingInterval = 120000; // Funcionário: 2 minutos (padrão)
-          }
-          
-          console.log(`🎛️ Polling ajustado para ${pollingInterval/1000}s (função: ${usuario?.funcao}, alertas: ${contadorAlertas})`);
-        };
-
-        // Listener para heartbeat com polling adaptativo
+        // 💓 HEARTBEAT SIMPLES: Apenas manter conexão ativa  
         eventSource.addEventListener('heartbeat', (event) => {
           const data = JSON.parse(event.data);
-          console.log('💓 Heartbeat recebido:', data);
-          
-          // 🎯 POLLING ADAPTATIVO: Verificar apenas se necessário
-          ajustarPolling();
-          
-          // Limpar timeout anterior
-          if (pollingTimeoutRef.current) {
-            clearTimeout(pollingTimeoutRef.current);
-          }
-          
-          // Agendar próxima verificação com intervalo adaptativo
-          pollingTimeoutRef.current = setTimeout(() => {
-            verificarAtualizacoesExternas();
-          }, pollingInterval);
+          console.log('💓 Conexão ativa:', data.instanciaId);
         });
         
         eventSource.onerror = (error) => {
@@ -200,37 +168,57 @@ export const ListaPessoas = () => {
           }
         };
 
-        const handleSSEEvent = (eventType, data) => {
-          console.log(`📡 Evento SSE recebido: ${eventType}`, data);
-          console.log(`🔍 DEBUG: Meu usuário ID: ${usuario?.id}, função: ${usuario?.funcao}`);
-          console.log(`🔍 DEBUG: Autor do evento ID: ${data.autorId}, função: ${data.autorFuncao}`);
-          console.log(`🔍 DEBUG: Comparação autorId === usuario.id:`, data.autorId === usuario?.id);
-          console.log(`🔍 DEBUG: Instância origem: ${data.instanciaOrigem}, Evento ID: ${data.eventoId}`);
+        // 🎯 AUTO-REFRESH FLUIDO E INTELIGENTE
+        const handleSSEEvent = async (eventType, data) => {
+          console.log(`📡 Auto-refresh acionado: ${eventType}`, data);
           
-          const { autorId, autorFuncao } = data;
+          const { autorId, autorFuncao, pessoa } = data;
           
-          // Se sou o autor da ação, refresh silencioso
-          if (autorId === usuario?.id) {
-            console.log(`🔄 Refresh silencioso (própria ação): ${eventType}`);
-            carregarPessoas();
-            carregarTotaisPorComunidade();
-            return;
-          }
+          // 🔄 REFRESH INTELIGENTE: Preservar estado do usuário
+          const estadoAtual = {
+            scrollY: window.scrollY,
+            paginaAtual: pagina,
+            buscaAtual: busca,
+            filtrosAtuais: { ...filtrosAvancados },
+            elementoFocado: document.activeElement?.id
+          };
           
-          // Determinar mensagem baseada na hierarquia
-          let mensagem = '';
-          if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
-            mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
-          } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
-            mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
-          }
+          console.log(`🎯 Auto-refresh por ${autorFuncao} ${autorId === usuario?.id ? '(eu mesmo)' : '(outro usuário)'}`);
           
-          if (mensagem) {
-            console.log(`📢 Mostrando alerta: ${mensagem}`);
-            setTipoMensagemAtualizacao(mensagem);
-            setMostrarMensagemAtualizacao(true);
-          } else {
-            console.log(`ℹ️ Evento ignorado (mesma hierarquia): ${eventType}`);
+          // 🚀 ATUALIZAÇÃO FLUIDA: Sem interromper o usuário
+          try {
+            // Salvar referência dos IDs atuais para detectar mudanças
+            const idsAnteriores = new Set(pessoas.map(p => p.id));
+            
+            // Recarregar dados mantendo filtros e paginação
+            await Promise.all([
+              carregarPessoas(),
+              carregarTotaisPorComunidade()
+            ]);
+            
+            // 📊 FEEDBACK VISUAL SUTIL (apenas para debug)
+            if (autorId !== usuario?.id) {
+              console.log(`✨ Dados atualizados automaticamente por ${autorFuncao}`);
+            }
+            
+            // 🎯 RESTAURAR ESTADO: Manter experiência fluida
+            setTimeout(() => {
+              // Restaurar scroll se não mudou muito
+              if (Math.abs(window.scrollY - estadoAtual.scrollY) < 100) {
+                window.scrollTo({ top: estadoAtual.scrollY, behavior: 'smooth' });
+              }
+              
+              // Restaurar foco se elemento ainda existe
+              if (estadoAtual.elementoFocado) {
+                const elemento = document.getElementById(estadoAtual.elementoFocado);
+                if (elemento && elemento.isConnected) {
+                  elemento.focus();
+                }
+              }
+            }, 100);
+            
+          } catch (erro) {
+            console.error('❌ Erro no auto-refresh:', erro);
           }
         };
 
@@ -256,8 +244,8 @@ export const ListaPessoas = () => {
           console.log('🎯 Conexão SSE estabelecida:', data);
         });
 
-        // Função para verificar atualizações de outras instâncias Vercel
-        const verificarAtualizacoesExternas = async () => {
+        // ❌ REMOVIDO: Função de polling substituída por auto-refresh em tempo real
+        /* const verificarAtualizacoesExternas = async () => {
           try {
             const response = await fetch(`${baseUrl}/pessoas/ultima-atualizacao`, {
               headers: { 'Authorization': `Bearer ${token}` }
@@ -324,7 +312,7 @@ export const ListaPessoas = () => {
           } catch (erro) {
             console.error('❌ Erro ao verificar atualizações externas:', erro);
           }
-        };
+        }; */
         
       } catch (error) {
         console.error('❌ Erro ao criar conexão SSE:', error);
@@ -688,32 +676,7 @@ export const ListaPessoas = () => {
 
         {erro && <div className="alerta-erro">{erro}</div>}
 
-        {/* Mensagem flutuante de atualização */}
-        {mostrarMensagemAtualizacao && (
-          <div className="mensagem-atualizacao-flutuante">
-            <div className="conteudo-mensagem">
-              <span className="texto-mensagem">{tipoMensagemAtualizacao}</span>
-              <div className="botoes-mensagem">
-                <button 
-                  onClick={() => {
-                    carregarPessoas();
-                    carregarTotaisPorComunidade();
-                    setMostrarMensagemAtualizacao(false);
-                  }}
-                  className="botao-recarregar"
-                >
-                  Recarregar
-                </button>
-                <button 
-                  onClick={() => setMostrarMensagemAtualizacao(false)}
-                  className="botao-fechar-mensagem"
-                >
-                  ×
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* ✨ AUTO-REFRESH FLUIDO: Sem necessidade de alertas manuais */}
 
         {carregando && <div className="carregando">Carregando...</div>}
 
