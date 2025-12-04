@@ -448,7 +448,12 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
 
   return (
     <div className="modal-edicao-overlay" onClick={onClose}>
-      <div className="modal-edicao-container" onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="modal-edicao-container" 
+        onClick={(e) => e.stopPropagation()}
+        data-modal="edicao"
+        data-pessoa-id={pessoa.id}
+      >
         {/* HEADER */}
         <div className="modal-edicao-header">
           <h2 className="modal-edicao-titulo">Editar Beneficiário</h2>

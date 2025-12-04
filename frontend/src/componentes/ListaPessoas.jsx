@@ -42,8 +42,10 @@ export const ListaPessoas = () => {
   const [pessoaParaDeleter, setPessoaParaDeleter] = useState(null);
   const [deletandoPessoa, setDeletandoPessoa] = useState(false);
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
-  // ✨ ESTADOS SIMPLIFICADOS: Apenas para auto-refresh fluido
+  // ✨ ESTADOS PARA AUTO-REFRESH E ALERTAS ESPECÍFICOS
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(Date.now());
+  const [alertaEdicaoAtiva, setAlertaEdicaoAtiva] = useState(null);
+  const [mostrarAlertaEdicao, setMostrarAlertaEdicao] = useState(false);
   const timeoutRef = useRef(null);
   const abasWrapperRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
@@ -168,11 +170,35 @@ export const ListaPessoas = () => {
           }
         };
 
-        // 🎯 AUTO-REFRESH FLUIDO E INTELIGENTE
+        // 🎯 AUTO-REFRESH FLUIDO COM DETECÇÃO DE CONFLITOS DE EDIÇÃO
         const handleSSEEvent = async (eventType, data) => {
           console.log(`📡 Auto-refresh acionado: ${eventType}`, data);
           
           const { autorId, autorFuncao, pessoa } = data;
+          
+          // 🔍 VERIFICAR CONFLITO DE EDIÇÃO
+          const modalEdicaoAberto = document.querySelector('[data-modal="edicao"]');
+          const pessoaEditandoId = modalEdicaoAberto?.getAttribute('data-pessoa-id');
+          
+          if (pessoaEditandoId && pessoa?.id && 
+              String(pessoaEditandoId) === String(pessoa.id) &&
+              autorId !== usuario?.id) { // Só alertar se outro usuário fez a mudança
+            
+            // ⚠️ CONFLITO DETECTADO: Mostrar alerta específico
+            const tipoConflito = eventType === 'pessoaDeletada' ? 'excluido' : 'atualizado';
+            setAlertaEdicaoAtiva({
+              pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
+              tipo: tipoConflito,
+              autorFuncao,
+              timestamp: Date.now()
+            });
+            setMostrarAlertaEdicao(true);
+            
+            // 🔔 Auto-esconder após 10 segundos
+            setTimeout(() => setMostrarAlertaEdicao(false), 10000);
+            
+            console.log(`⚠️ CONFLITO: Pessoa ${pessoa.nome} foi ${tipoConflito} enquanto editava`);
+          }
           
           // 🔄 REFRESH INTELIGENTE: Preservar estado do usuário
           const estadoAtual = {
@@ -631,6 +657,34 @@ export const ListaPessoas = () => {
 
   return (
     <div className="container-lista">
+      
+      {/* 🚨 ALERTA FLUTUANTE PARA CONFLITOS DE EDIÇÃO */}
+      {mostrarAlertaEdicao && alertaEdicaoAtiva && (
+        <div 
+          className={`alerta-edicao-flutuante ${alertaEdicaoAtiva.tipo}`}
+          onClick={() => setMostrarAlertaEdicao(false)}
+        >
+          <div className="alerta-edicao-conteudo">
+            <div className="alerta-edicao-icone">
+              {alertaEdicaoAtiva.tipo === 'excluido' ? '🗑️' : '✏️'}
+            </div>
+            <div className="alerta-edicao-texto">
+              <strong>Conflito de Edição Detectado</strong>
+              <p>
+                O beneficiário <strong>{alertaEdicaoAtiva.pessoaNome}</strong> que você está editando 
+                foi <strong>{alertaEdicaoAtiva.tipo === 'excluido' ? 'excluído' : 'modificado'}</strong> 
+                por {alertaEdicaoAtiva.autorFuncao === 'admin' ? 'um administrador' : 'outro funcionário'}.
+              </p>
+              <p style={{fontSize: '12px', fontStyle: 'italic', marginTop: '4px'}}>
+                {alertaEdicaoAtiva.tipo === 'excluido' 
+                  ? 'Este beneficiário foi removido do sistema.' 
+                  : 'Os dados deste beneficiário foram alterados por outra pessoa.'}
+              </p>
+              <span className="alerta-edicao-dica">Clique para fechar</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="conteudo-lista">
         <div className="barra-acoes">
