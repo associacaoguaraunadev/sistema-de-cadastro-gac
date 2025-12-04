@@ -15,10 +15,20 @@ function getPrisma() {
   return prisma;
 }
 
-// Sistema de Server-Sent Events com suporte para Vercel serverless
+// Sistema otimizado para alta concorrência (60+ funcionários)
 let clientesSSE = new Set();
 let ultimosEventos = new Map(); // Cache de eventos para sincronização
 let instanciaId = Math.random().toString(36).substring(7);
+
+// 🚀 SISTEMA DE CACHE INTELIGENTE
+let cacheUltimaAtualizacao = {
+  data: null,
+  timestamp: 0,
+  ttl: 30000 // Cache válido por 30 segundos
+};
+
+// 🛡️ RATE LIMITING POR USUÁRIO
+let rateLimitMap = new Map(); // userId -> { requests: number, resetTime: number }
 
 function adicionarClienteSSE(res, usuarioId) {
   const cliente = { 
@@ -1207,7 +1217,7 @@ async function pessoasListar(req, res) {
   }
 }
 
-// Função para verificar a última atualização (workaround para Vercel serverless)
+// 🚀 FUNÇÃO OTIMIZADA PARA ALTA CONCORRÊNCIA (60+ funcionários)
 async function pessoasUltimaAtualizacao(req, res) {
   try {
     const usuario = autenticarToken(req);
@@ -1215,36 +1225,78 @@ async function pessoasUltimaAtualizacao(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
+    // 🛡️ RATE LIMITING: Máximo 10 requests por minuto por usuário
+    const agora = Date.now();
+    const userRateLimit = rateLimitMap.get(usuario.id) || { requests: 0, resetTime: agora + 60000 };
+    
+    if (agora < userRateLimit.resetTime) {
+      if (userRateLimit.requests >= 10) {
+        log(`🚫 Rate limit excedido para usuário ${usuario.id}`, 'error');
+        return res.status(429).json({ erro: 'Muitas requisições. Tente novamente em 1 minuto.' });
+      }
+      userRateLimit.requests++;
+    } else {
+      userRateLimit.requests = 1;
+      userRateLimit.resetTime = agora + 60000;
+    }
+    rateLimitMap.set(usuario.id, userRateLimit);
+
+    // 📦 CACHE INTELIGENTE: Evitar queries desnecessárias no banco
+    if (cacheUltimaAtualizacao.data && (agora - cacheUltimaAtualizacao.timestamp < cacheUltimaAtualizacao.ttl)) {
+      log(`📦 Cache hit para usuário ${usuario.id} - evitando query no banco`);
+      
+      // Headers de cache para o cliente
+      res.setHeader('Cache-Control', 'max-age=30, must-revalidate');
+      res.setHeader('ETag', `"${cacheUltimaAtualizacao.timestamp}"`);
+      
+      return res.status(200).json(cacheUltimaAtualizacao.data);
+    }
+
+    log(`🔍 Cache miss - buscando no banco para usuário ${usuario.id}`);
+
     const prisma = getPrisma();
     
-    // Buscar a pessoa mais recentemente modificada (criação ou atualização)
-    const ultimaPessoaAtualizada = await prisma.pessoa.findFirst({
-      orderBy: { dataAtualizacao: 'desc' },
-      include: {
-        usuario: {
-          select: { id: true, nome: true, funcao: true }
+    // 🎯 QUERY OTIMIZADA: Uma única query usando UNION (mais eficiente)
+    const ultimaModificacao = await prisma.$queryRaw`
+      SELECT p.*, u.id as autor_id, u.nome as autor_nome, u.funcao as autor_funcao,
+             GREATEST(p.dataCriacao, COALESCE(p.dataAtualizacao, p.dataCriacao)) as ultima_data
+      FROM pessoa p
+      JOIN usuario u ON p.usuarioId = u.id
+      ORDER BY ultima_data DESC
+      LIMIT 1
+    `;
+    
+    if (ultimaModificacao.length === 0) {
+      resultado = {
+        ultimaAtualizacao: new Date().toISOString(),
+        ultimoAutor: null
+      };
+    } else {
+      const pessoa = ultimaModificacao[0];
+      resultado = {
+        ultimaAtualizacao: pessoa.ultima_data,
+        ultimoAutor: {
+          id: pessoa.autor_id,
+          nome: pessoa.autor_nome,
+          funcao: pessoa.autor_funcao
         }
-      }
-    });
-    
-    const ultimaPessoaCriada = await prisma.pessoa.findFirst({
-      orderBy: { dataCriacao: 'desc' },
-      include: {
-        usuario: {
-          select: { id: true, nome: true, funcao: true }
-        }
-      }
-    });
-    
-    // Determinar qual é mais recente entre criação e atualização
-    let ultimaPessoa = ultimaPessoaAtualizada;
-    let ultimaData = ultimaPessoaAtualizada?.dataAtualizacao;
-    
-    if (ultimaPessoaCriada && 
-        (!ultimaData || new Date(ultimaPessoaCriada.dataCriacao) > new Date(ultimaData))) {
-      ultimaPessoa = ultimaPessoaCriada;
-      ultimaData = ultimaPessoaCriada.dataCriacao;
+      };
     }
+
+    // 📦 ATUALIZAR CACHE para próximas requisições
+    cacheUltimaAtualizacao = {
+      data: resultado,
+      timestamp: agora,
+      ttl: 30000
+    };
+
+    log(`✅ Última modificação processada e cacheada para ${userRateLimit.requests}/10 requests`);
+
+    // Headers otimizados para cache
+    res.setHeader('Cache-Control', 'max-age=30, must-revalidate');
+    res.setHeader('ETag', `"${agora}"`);
+    
+    return res.status(200).json(resultado);
     
     if (!ultimaPessoa) {
       return res.status(200).json({

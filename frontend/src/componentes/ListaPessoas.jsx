@@ -45,9 +45,12 @@ export const ListaPessoas = () => {
   const [mostrarMensagemAtualizacao, setMostrarMensagemAtualizacao] = useState(false);
   const [tipoMensagemAtualizacao, setTipoMensagemAtualizacao] = useState('');
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(Date.now());
+  const [ultimoEventoProcessado, setUltimoEventoProcessado] = useState('');
+  const [contadorAlertas, setContadorAlertas] = useState(0);
   const timeoutRef = useRef(null);
   const abasWrapperRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
+  const pollingTimeoutRef = useRef(null);
   
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
@@ -142,13 +145,39 @@ export const ListaPessoas = () => {
           console.log('📨 Mensagem SSE recebida:', event);
         };
         
-        // Listener para heartbeat (manter conexão ativa)
+        // 🎯 SISTEMA ADAPTATIVO: Polling baseado em contexto
+        let pollingInterval = 120000; // Início: 2 minutos
+        
+        const ajustarPolling = () => {
+          // 📊 CONTEXTO INTELIGENTE: Ajustar frequência baseado na atividade
+          if (usuario?.funcao === 'admin') {
+            pollingInterval = 90000; // Admin: 1.5 minutos (mais frequente)
+          } else if (contadorAlertas >= 2) {
+            pollingInterval = 300000; // Muitos alertas: 5 minutos (menos frequente)
+          } else {
+            pollingInterval = 120000; // Funcionário: 2 minutos (padrão)
+          }
+          
+          console.log(`🎛️ Polling ajustado para ${pollingInterval/1000}s (função: ${usuario?.funcao}, alertas: ${contadorAlertas})`);
+        };
+
+        // Listener para heartbeat com polling adaptativo
         eventSource.addEventListener('heartbeat', (event) => {
           const data = JSON.parse(event.data);
           console.log('💓 Heartbeat recebido:', data);
           
-          // WORKAROUND para Vercel: Verificar se há atualizações de outras instâncias
-          verificarAtualizacoesExternas();
+          // 🎯 POLLING ADAPTATIVO: Verificar apenas se necessário
+          ajustarPolling();
+          
+          // Limpar timeout anterior
+          if (pollingTimeoutRef.current) {
+            clearTimeout(pollingTimeoutRef.current);
+          }
+          
+          // Agendar próxima verificação com intervalo adaptativo
+          pollingTimeoutRef.current = setTimeout(() => {
+            verificarAtualizacoesExternas();
+          }, pollingInterval);
         });
         
         eventSource.onerror = (error) => {
