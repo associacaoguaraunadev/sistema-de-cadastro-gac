@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { obterPessoas, deletarPessoa, obterTotaisPorComunidade } from '../servicos/api';
-import { Plus, Edit2, Trash2, Search, LogOut, Users, Baby, User, Heart, Key } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Users, Baby, User, Heart } from 'lucide-react';
 import { FiltroAvancado } from './FiltroAvancado';
-import { GerenciadorTokens } from './GerenciadorTokens';
+
+
 import { ModalConfirmacao } from './ModalConfirmacao';
 import ModalPreview from './ModalPreview';
 import ModalEdicao from './ModalEdicao';
@@ -28,9 +29,8 @@ export const ListaPessoas = () => {
   const [filtrosAvancados, setFiltrosAvancados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
-  const [modalSairAberto, setModalSairAberto] = useState(false);
-  const [saindo, setSaindo] = useState(false);
-  const [gerenciadorTokensAberto, setGerenciadorTokensAberto] = useState(false);
+
+
   const [comunidadeSelecionada, setComunidadeSelecionada] = useState(null);
   const [totalPorComunidadeReal, setTotalPorComunidadeReal] = useState({});
   const [totalGeral, setTotalGeral] = useState(0);
@@ -216,20 +216,7 @@ export const ListaPessoas = () => {
     }
   };
 
-  const handleSair = () => {
-    setModalSairAberto(true);
-  };
 
-  const confirmarSair = () => {
-    setSaindo(true);
-    setTimeout(() => {
-      sucesso('Até logo!', 'Você foi desconectado com sucesso');
-      sair();
-      setTimeout(() => {
-        navegar('/entrar');
-      }, 500);
-    }, 300);
-  };
 
   // Calcular idade baseado em dataBeneficio (ou usar dataCriacao como fallback)
   // Se houver idade no banco, usar ela. Caso contrário, calcular.
@@ -366,35 +353,6 @@ export const ListaPessoas = () => {
 
   return (
     <div className="container-lista">
-      <header className="cabecalho-lista">
-        <div className="titulo-cabecalho">
-          <button 
-            className="marca-pequena-clicavel" 
-            onClick={() => navegar('/')}
-            title="Voltar para página principal"
-          >
-            GAC
-          </button>
-        </div>
-        <div className="titulo-sistema">
-          <h2><b>Sistema de Cadastro de Beneficiários</b></h2>
-        </div>
-        <div className="info-usuario">
-          <span><b>{usuario?.nome}</b></span>
-          {usuario?.funcao === 'admin' && (
-            <button 
-              onClick={() => setGerenciadorTokensAberto(true)} 
-              className="botao-tokens" 
-              title="Gerenciar tokens de acesso"
-            >
-              <Key size={18} />
-            </button>
-          )}
-          <button onClick={handleSair} className="botao-sair" title="Sair do sistema">
-            <LogOut size={18} />
-          </button>
-        </div>
-      </header>
 
       <main className="conteudo-lista">
         <div className="barra-acoes">
@@ -428,21 +386,12 @@ export const ListaPessoas = () => {
           />
 
           <button 
-            className="botao-novo"
+            className="botao-novo-simplificado"
             onClick={() => setModalCadastroAberto(true)}
+            title="Adicionar nova pessoa ao sistema"
           >
             <Plus size={18} /> Novo Cadastro
           </button>
-
-          {usuario?.funcao === 'admin' && (
-            <button 
-              className="botao-transferencia"
-              onClick={() => navegar('/transferir')}
-              title="Transferir pessoas para outro usuário"
-            >
-              📦 Transferência
-            </button>
-          )}
         </div>
 
         {erro && <div className="alerta-erro">{erro}</div>}
@@ -637,17 +586,7 @@ export const ListaPessoas = () => {
           </>
         )}
       </main>
-      <ModalConfirmacao
-        aberto={modalSairAberto}
-        tipo="logout"
-        titulo="Sair do Sistema"
-        mensagem="Tem certeza que deseja sair? Você será redirecionado para a página de login."
-        botaoPrincipalTexto="Sair"
-        botaoCancelarTexto="Cancelar"
-        onConfirmar={confirmarSair}
-        onCancelar={() => setModalSairAberto(false)}
-        carregando={saindo}
-      />
+
       <ModalConfirmacao
         aberto={modalDeleteAberto}
         tipo="delete"
@@ -662,9 +601,7 @@ export const ListaPessoas = () => {
         }}
         carregando={false}
       />
-      {usuario?.funcao === 'admin' && gerenciadorTokensAberto && (
-        <GerenciadorTokens onFechar={() => setGerenciadorTokensAberto(false)} />
-      )}
+
       {pessoaSelecionada && (
         <ModalPreview
           pessoa={pessoaSelecionada.pessoa}
@@ -697,6 +634,7 @@ export const ListaPessoas = () => {
           carregarPessoas();
         }}
       />
+
     </div>
   );
 };

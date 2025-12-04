@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { criarPessoa } from '../servicos/api';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { useAuth } from '../contexto/AuthContext';
+import CampoComunidade from './CampoComunidade';
 import './ModalEdicao.css';
 
 const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
@@ -328,7 +329,7 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
             disabled={carregando}
             title="Fechar (ESC)"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
@@ -385,24 +386,12 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
                   {obterErrosCampo('idade') && <span className="form-erro-msg">{obterErrosCampo('idade')}</span>}
                 </div>
                 <div className="form-group">
-                  <label htmlFor="comunidade">Comunidade *</label>
-                  <select
-                    id="comunidade"
-                    name="comunidade"
+                  <CampoComunidade
                     value={formData.comunidade || ''}
-                    onChange={handleChange}
-                    className={`form-input ${obterErrosCampo('comunidade') ? 'form-input-erro' : ''}`}
-                  >
-                    <option value="">Selecione uma comunidade</option>
-                    <option value="Jardim Guarauna">Jardim Guarauna</option>
-                    <option value="Vila Novo Eldorado">Vila Novo Eldorado</option>
-                    <option value="Jardim Apura">Jardim Apura</option>
-                    {comunidadesCustomizadas.map(com => (
-                      <option key={com} value={com}>{com}</option>
-                    ))}
-                    <option value="Outra">Outra</option>
-                  </select>
-                  {obterErrosCampo('comunidade') && <span className="form-erro-msg">{obterErrosCampo('comunidade')}</span>}
+                    onChange={(valor) => handleChange({ target: { name: 'comunidade', value: valor } })}
+                    error={obterErrosCampo('comunidade')}
+                    required={true}
+                  />
                 </div>
                 <div className="form-group">
                   <label htmlFor="status">Status <span className="campo-opcional">(Opcional)</span></label>

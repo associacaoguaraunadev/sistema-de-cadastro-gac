@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { atualizarPessoa } from '../servicos/api';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { useAuth } from '../contexto/AuthContext';
+import CampoComunidade from './CampoComunidade';
 import './ModalEdicao.css';
 
 const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
@@ -78,6 +79,27 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       valor = valor.slice(0, 5) + '-' + valor.slice(5);
     }
     return valor;
+  };
+
+  const formatarMoeda = (valor) => {
+    // Garante que valor é string
+    valor = (valor || '').toString();
+    // Remove tudo que não é número
+    valor = valor.replace(/\D/g, '');
+    // Converte para número e formata com 2 casas decimais
+    const numero = parseInt(valor || '0', 10) / 100;
+    return numero.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  };
+
+  const extrairValorMoeda = (valor) => {
+    // Remove formatação e extrai apenas o número
+    valor = (valor || '').toString();
+    return parseFloat(valor.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
   };
 
   const handleChange = (e) => {
@@ -186,7 +208,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       ...prev,
       beneficiosGoverno: [...beneficiosAtual, { 
         nome: novoBeneficioGoverno.nome,
-        valor: parseFloat(novoBeneficioGoverno.valor)
+        valor: extrairValorMoeda(novoBeneficioGoverno.valor)
       }]
     }));
     
@@ -273,7 +295,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
         <div className="modal-edicao-header">
           <h2 className="modal-edicao-titulo">Editar Beneficiário</h2>
           <button className="modal-edicao-close" onClick={onClose} type="button">
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
@@ -327,22 +349,18 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                   {obterErrosCampo('idade') && <span className="form-erro-msg">{obterErrosCampo('idade')}</span>}
                 </div>
                 <div className="form-group">
-                  <label htmlFor="comunidade">Comunidade *</label>
-                  <select
-                    id="comunidade"
-                    name="comunidade"
+                  <CampoComunidade
                     value={formData.comunidade || ''}
-                    onChange={handleChange}
-                    className={`form-input ${obterErrosCampo('comunidade') ? 'form-input-erro' : ''}`}
-                  >
-                    <option value="">Selecionar...</option>
-                    <option value="Vila Cheba">Vila Cheba</option>
-                    <option value="Morro da Vila">Morro da Vila</option>
-                    <option value="Barragem">Barragem</option>
-                    <option value="Parque Centenario">Parque Centenario</option>
-                    <option value="Jardim Apura">Jardim Apura</option>
-                  </select>
-                  {obterErrosCampo('comunidade') && <span className="form-erro-msg">{obterErrosCampo('comunidade')}</span>}
+                    onChange={(valor) => {
+                      setCamposTocados(prev => ({ ...prev, comunidade: true }));
+                      setFormData(prev => ({ ...prev, comunidade: valor }));
+                    }}
+                    error={obterErrosCampo('comunidade')}
+                    disabled={carregando}
+                    required={true}
+                    label="Comunidade"
+                    placeholder="Selecione uma comunidade"
+                  />
                 </div>
                 <div className="form-group">
                   <label htmlFor="status">Status <span className="campo-opcional">(Opcional)</span></label>
@@ -616,24 +634,17 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
             {/* Seção Benefícios do Governo */}
             <div className="form-secao">
               <h3 className="form-secao-titulo">Benefícios do Governo</h3>
+              <p className="form-secao-descricao">Adicione os benefícios do governo que a pessoa recebe com seus respectivos valores (opcional)</p>
               
               {/* Lista de Benefícios Existentes */}
               {Array.isArray(formData.beneficiosGoverno) && formData.beneficiosGoverno.length > 0 && (
-                <div style={{ marginBottom: '20px' }}>
+                <div className="lista-beneficios-governo">
+                  <h4 className="lista-beneficios-titulo">Benefícios Adicionados:</h4>
                   {formData.beneficiosGoverno.map((beneficio, index) => (
-                    <div key={index} style={{
-                      padding: '12px',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '4px',
-                      marginBottom: '10px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      backgroundColor: '#f9f9f9'
-                    }}>
-                      <div>
-                        <strong style={{ color: '#333' }}>{beneficio.nome}</strong>
-                        <span style={{ display: 'block', fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                    <div key={index} className="item-beneficio-governo">
+                      <div className="info-beneficio-governo">
+                        <strong className="nome-beneficio-governo">{beneficio.nome}</strong>
+                        <span className="valor-beneficio-governo">
                           {typeof beneficio.valor === 'number' 
                             ? beneficio.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
                             : 'R$ 0,00'
@@ -642,16 +653,9 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                       </div>
                       <button
                         type="button"
+                        className="botao-remover"
                         onClick={() => removerBeneficioGoverno(index)}
-                        style={{
-                          background: '#ff6b6b',
-                          color: 'white',
-                          border: 'none',
-                          padding: '4px 8px',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          fontSize: '16px'
-                        }}
+                        title="Remover benefício"
                       >
                         ✕
                       </button>
@@ -661,7 +665,8 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
               )}
 
               {/* Formulário para adicionar novo benefício do governo */}
-              <div style={{ backgroundColor: '#f0f0f0', padding: '15px', borderRadius: '6px' }}>
+              <div className="secao-adicionar">
+                <h4 className="secao-adicionar-titulo">Adicionar Benefício</h4>
                 <div className="form-group">
                   <label htmlFor="nomeBeneficioGoverno">Nome do Benefício</label>
                   <input
@@ -671,6 +676,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     onChange={(e) => setNovoBeneficioGoverno(prev => ({ ...prev, nome: e.target.value }))}
                     className="form-input"
                     placeholder="Ex: LOAS, Bolsa Família, BPC, etc."
+                    disabled={carregando}
                   />
                 </div>
 
@@ -680,30 +686,37 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     id="valorBeneficioGoverno"
                     type="text"
                     value={novoBeneficioGoverno.valor}
-                    onChange={(e) => setNovoBeneficioGoverno(prev => ({ ...prev, valor: e.target.value }))}
+                    onChange={(e) => setNovoBeneficioGoverno(prev => ({ 
+                      ...prev, 
+                      valor: formatarMoeda(e.target.value)
+                    }))}
                     className="form-input"
                     placeholder="R$ 0,00"
+                    disabled={carregando}
                   />
                 </div>
 
                 <button
                   type="button"
+                  className="botao-adicionar-beneficio"
                   onClick={adicionarBeneficioGoverno}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    backgroundColor: '#2e7d32',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: '500'
-                  }}
+                  disabled={carregando}
                 >
-                  + Adicionar Benefício do Governo
+                  + Adicionar
                 </button>
               </div>
+
+              {/* Total de benefícios */}
+              {Array.isArray(formData.beneficiosGoverno) && formData.beneficiosGoverno.length > 0 && (
+                <div className="total-beneficios">
+                  <strong className="total-beneficios-label">Total de Benefícios do Governo:</strong>
+                  <span className="valor-total">
+                    {formData.beneficiosGoverno.reduce((total, beneficio) => {
+                      return total + (typeof beneficio.valor === 'number' ? beneficio.valor : 0);
+                    }, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Seção Observações */}

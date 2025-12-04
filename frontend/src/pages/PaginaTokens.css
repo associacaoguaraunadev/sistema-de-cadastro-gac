@@ -1,0 +1,72 @@
+/* Página de Tokens */
+.pagina-tokens {
+  min-height: 100vh;
+  background: linear-gradient(to bottom, #f1f8f6 0%, #e8f5e9 100%);
+}
+
+.pagina-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.pagina-header {
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.pagina-header h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1b5e20;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.5px;
+}
+
+.pagina-header p {
+  font-size: 16px;
+  color: #4caf50;
+  margin: 0;
+  font-weight: 500;
+}
+
+.pagina-conteudo {
+  padding: 0 24px 40px;
+}
+
+/* Ajustar o gerenciador para página completa */
+.pagina-tokens .gerenciador-tokens-overlay {
+  position: static;
+  background: transparent;
+  display: block;
+}
+
+.pagina-tokens .gerenciador-tokens-modal {
+  position: static;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  transform: none;
+  max-height: none;
+}
+
+.pagina-tokens .tokens-cabecalho {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .pagina-header {
+    padding: 24px 16px;
+  }
+  
+  .pagina-header h1 {
+    font-size: 24px;
+  }
+  
+  .pagina-conteudo {
+    padding: 0 16px 32px;
+  }
+}

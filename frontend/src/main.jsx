@@ -12,6 +12,10 @@ import { ListaPessoas } from './componentes/ListaPessoas';
 import { ListaComunidades } from './componentes/ListaComunidades';
 import { FormularioPessoa } from './componentes/FormularioPessoa';
 import { TransferenciaPessoas } from './componentes/TransferenciaPessoas';
+import Navbar from './componentes/Navbar';
+import PaginaTokens from './pages/PaginaTokens';
+import PaginaComunidades from './pages/PaginaComunidades';
+import PaginaTransferencia from './pages/PaginaTransferencia';
 import './index.css';
 
 // Limpar cache ao iniciar
@@ -28,6 +32,16 @@ if ('caches' in window) {
 
 // Limpar sessionStorage
 // sessionStorage.clear();
+
+// Layout com Navbar
+function LayoutComNavbar({ children }) {
+  return (
+    <>
+      <Navbar />
+      {children}
+    </>
+  );
+}
 
 function App() {
   const { autenticado } = useAuth();
@@ -50,7 +64,9 @@ function App() {
         path="/" 
         element={
           <RotaPrivada>
-            <ListaPessoas />
+            <LayoutComNavbar>
+              <ListaPessoas />
+            </LayoutComNavbar>
           </RotaPrivada>
         } 
       />
@@ -58,7 +74,9 @@ function App() {
         path="/comunidades" 
         element={
           <RotaPrivada>
-            <ListaComunidades />
+            <LayoutComNavbar>
+              <PaginaComunidades />
+            </LayoutComNavbar>
           </RotaPrivada>
         } 
       />
@@ -66,7 +84,29 @@ function App() {
         path="/pessoas" 
         element={
           <RotaPrivada>
-            <ListaPessoas />
+            <LayoutComNavbar>
+              <ListaPessoas />
+            </LayoutComNavbar>
+          </RotaPrivada>
+        } 
+      />
+      <Route 
+        path="/transferencia" 
+        element={
+          <RotaPrivada>
+            <LayoutComNavbar>
+              <PaginaTransferencia />
+            </LayoutComNavbar>
+          </RotaPrivada>
+        } 
+      />
+      <Route 
+        path="/tokens" 
+        element={
+          <RotaPrivada>
+            <LayoutComNavbar>
+              <PaginaTokens />
+            </LayoutComNavbar>
           </RotaPrivada>
         } 
       />
@@ -74,7 +114,9 @@ function App() {
         path="/pessoas/novo" 
         element={
           <RotaPrivada>
-            <FormularioPessoa />
+            <LayoutComNavbar>
+              <FormularioPessoa />
+            </LayoutComNavbar>
           </RotaPrivada>
         } 
       />
@@ -82,7 +124,9 @@ function App() {
         path="/pessoas/:id" 
         element={
           <RotaPrivada>
-            <FormularioPessoa />
+            <LayoutComNavbar>
+              <FormularioPessoa />
+            </LayoutComNavbar>
           </RotaPrivada>
         } 
       />
@@ -90,7 +134,9 @@ function App() {
         path="/transferir" 
         element={
           <RotaPrivada>
-            <TransferenciaPessoas />
+            <LayoutComNavbar>
+              <TransferenciaPessoas />
+            </LayoutComNavbar>
           </RotaPrivada>
         } 
       />
