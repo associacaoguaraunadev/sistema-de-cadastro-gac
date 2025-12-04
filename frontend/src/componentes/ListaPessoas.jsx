@@ -271,7 +271,7 @@ export const ListaPessoas = () => {
                   // Auto-dismiss após 15 segundos para ser menos invasivo
                   setTimeout(() => {
                     setMostrarMensagemAtualizacao(false);
-                  }, 15000);
+                  }, 40000);
                 } else {
                   console.log(`ℹ️ Sem alerta - mesma hierarquia ou condição não atendida:`, {
                     autorFuncao: ultimoAutor.funcao,
