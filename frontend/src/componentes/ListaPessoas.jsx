@@ -137,6 +137,10 @@ export const ListaPessoas = () => {
 
     const handleSSEEvent = (eventType, data) => {
       console.log(`📡 Evento SSE recebido: ${eventType}`, data);
+      console.log(`🔍 DEBUG: Meu usuário ID: ${usuario?.id}, função: ${usuario?.funcao}`);
+      console.log(`🔍 DEBUG: Autor do evento ID: ${data.autorId}, função: ${data.autorFuncao}`);
+      console.log(`🔍 DEBUG: Comparação autorId === usuario.id:`, data.autorId === usuario?.id);
+      
       const { autorId, autorFuncao } = data;
       
       // Se sou o autor da ação, refresh silencioso
