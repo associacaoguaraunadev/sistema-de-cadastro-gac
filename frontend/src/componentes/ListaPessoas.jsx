@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { obterPessoas, deletarPessoa, obterTotaisPorComunidade } from '../servicos/api';
+import { useSSE } from '../hooks/useSSE';
 import { Plus, Edit2, Trash2, Search, Users, Baby, User, Heart } from 'lucide-react';
 import { FiltroAvancado } from './FiltroAvancado';
 
@@ -107,90 +108,41 @@ export const ListaPessoas = () => {
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
-  // Sistema inteligente de auto-refresh
-  useEffect(() => {
-    const handlePessoaCadastrada = (event) => {
-      const { autorId, autorFuncao } = event.detail;
-      
-      // Se sou o autor da ação, refresh silencioso
-      if (autorId === usuario?.id) {
-        carregarPessoas();
-        carregarTotaisPorComunidade();
-        return;
-      }
-      
-      // Determinar mensagem baseada na hierarquia
-      let mensagem = '';
-      if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
-        mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
-      } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
-        mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
-      }
-      
-      if (mensagem) {
-        setTipoMensagemAtualizacao(mensagem);
-        setMostrarMensagemAtualizacao(true);
-      }
-    };
+  // Sistema inteligente de auto-refresh com SSE (Server-Sent Events)
+  const handleSSEEvent = (eventType, data) => {
+    const { autorId, autorFuncao } = data;
+    
+    // Se sou o autor da ação, refresh silencioso
+    if (autorId === usuario?.id) {
+      console.log(`🔄 Refresh silencioso (própria ação): ${eventType}`);
+      carregarPessoas();
+      carregarTotaisPorComunidade();
+      return;
+    }
+    
+    // Determinar mensagem baseada na hierarquia
+    let mensagem = '';
+    if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
+      mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
+    } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
+      mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
+    }
+    
+    if (mensagem) {
+      console.log(`📢 Mostrando alerta: ${mensagem}`);
+      setTipoMensagemAtualizacao(mensagem);
+      setMostrarMensagemAtualizacao(true);
+    } else {
+      console.log(`ℹ️ Evento ignorado (mesma hierarquia): ${eventType}`);
+    }
+  };
 
-    const handlePessoaAtualizada = (event) => {
-      const { autorId, autorFuncao, pessoaUsuarioId } = event.detail;
-      
-      // Se sou o autor da ação, refresh silencioso
-      if (autorId === usuario?.id) {
-        carregarPessoas();
-        carregarTotaisPorComunidade();
-        return;
-      }
-      
-      // Determinar mensagem baseada na hierarquia
-      let mensagem = '';
-      if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
-        mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
-      } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
-        mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
-      }
-      
-      if (mensagem) {
-        setTipoMensagemAtualizacao(mensagem);
-        setMostrarMensagemAtualizacao(true);
-      }
-    };
-
-    const handlePessoaDeletada = (event) => {
-      const { autorId, autorFuncao } = event.detail;
-      
-      // Se sou o autor da ação, refresh silencioso
-      if (autorId === usuario?.id) {
-        carregarPessoas();
-        carregarTotaisPorComunidade();
-        return;
-      }
-      
-      // Determinar mensagem baseada na hierarquia
-      let mensagem = '';
-      if (autorFuncao === 'admin' && usuario?.funcao === 'funcionario') {
-        mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
-      } else if (autorFuncao === 'funcionario' && usuario?.funcao === 'admin') {
-        mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
-      }
-      
-      if (mensagem) {
-        setTipoMensagemAtualizacao(mensagem);
-        setMostrarMensagemAtualizacao(true);
-      }
-    };
-
-    window.addEventListener('pessoaCadastrada', handlePessoaCadastrada);
-    window.addEventListener('pessoaAtualizada', handlePessoaAtualizada);
-    window.addEventListener('pessoaDeletada', handlePessoaDeletada);
-
-    return () => {
-      window.removeEventListener('pessoaCadastrada', handlePessoaCadastrada);
-      window.removeEventListener('pessoaAtualizada', handlePessoaAtualizada);
-      window.removeEventListener('pessoaDeletada', handlePessoaDeletada);
-    };
-  }, [usuario?.id, usuario?.funcao]);
+  // Conectar ao SSE para receber eventos em tempo real
+  useSSE((eventType, data) => {
+    if (['pessoaCadastrada', 'pessoaAtualizada', 'pessoaDeletada'].includes(eventType)) {
+      handleSSEEvent(eventType, data);
+    }
+  });
 
 
 
@@ -310,16 +262,7 @@ export const ListaPessoas = () => {
       setTotal(total - 1);
       sucesso('Sucesso', 'Beneficiário deletado com sucesso!');
       
-      // Auto-refresh: Disparar evento para atualizar lista
-      window.dispatchEvent(new CustomEvent('pessoaDeletada', { 
-        detail: { 
-          pessoaId: pessoaParaDeleter,
-          pessoaUsuarioId: pessoaParaDeletar?.usuarioId,
-          autorId: usuario?.id,
-          autorFuncao: usuario?.funcao,
-          tipo: 'exclusao'
-        } 
-      }));
+      // Auto-refresh: O evento SSE será disparado automaticamente pelo backend
       
     } catch (erro) {
       console.error('❌ Erro ao deletar pessoa:', erro);

@@ -15,6 +15,37 @@ function getPrisma() {
   return prisma;
 }
 
+// Sistema de Server-Sent Events
+let clientesSSE = new Set();
+
+function adicionarClienteSSE(res, usuarioId) {
+  const cliente = { res, usuarioId, conectadoEm: new Date() };
+  clientesSSE.add(cliente);
+  
+  // Limpar cliente quando conexão fechar
+  res.on('close', () => {
+    clientesSSE.delete(cliente);
+    console.log(`🔌 Cliente SSE desconectado: ${usuarioId}`);
+  });
+  
+  console.log(`🔗 Cliente SSE conectado: ${usuarioId}, Total: ${clientesSSE.size}`);
+  return cliente;
+}
+
+function enviarEventoSSE(evento, dados) {
+  const eventoData = JSON.stringify(dados);
+  clientesSSE.forEach(cliente => {
+    try {
+      cliente.res.write(`event: ${evento}\n`);
+      cliente.res.write(`data: ${eventoData}\n\n`);
+    } catch (erro) {
+      console.log(`❌ Erro ao enviar SSE para cliente ${cliente.usuarioId}: ${erro.message}`);
+      clientesSSE.delete(cliente);
+    }
+  });
+  console.log(`📡 Evento SSE enviado: ${evento} para ${clientesSSE.size} clientes`);
+}
+
 // CORS Handler
 function setCors(res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -42,6 +73,56 @@ function autenticarToken(req) {
 function log(msg, tipo = 'info') {
   const timestamp = new Date().toISOString();
   console.log(`[${timestamp}] ${tipo === 'error' ? '❌' : '✅'} ${msg}`);
+}
+
+// Função para iniciar conexão Server-Sent Events
+function iniciarSSE(req, res) {
+  // Para SSE, o token pode vir via query parameter
+  const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ erro: 'Token não fornecido para SSE' });
+  }
+
+  let usuario;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    usuario = decoded;
+  } catch (erro) {
+    return res.status(401).json({ erro: 'Token inválido para SSE' });
+  }
+
+  // Configurar headers SSE
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization'
+  });
+
+  // Enviar evento inicial
+  res.write(`event: connected\n`);
+  res.write(`data: ${JSON.stringify({ message: 'Conectado ao SSE', usuarioId: usuario.id })}\n\n`);
+
+  // Adicionar cliente à lista
+  const cliente = adicionarClienteSSE(res, usuario.id);
+
+  // Keepalive a cada 30 segundos
+  const keepalive = setInterval(() => {
+    try {
+      res.write(`event: keepalive\n`);
+      res.write(`data: ${JSON.stringify({ timestamp: new Date() })}\n\n`);
+    } catch (erro) {
+      clearInterval(keepalive);
+      clientesSSE.delete(cliente);
+    }
+  }, 30000);
+
+  // Limpar interval quando conexão fechar
+  res.on('close', () => {
+    clearInterval(keepalive);
+  });
 }
 
 // Converter strings de data para DateTime ISO-8601
@@ -182,6 +263,11 @@ async function rotear(req, res, slug) {
     const id = slug[2];
     req.params = { id };
     return revogarToken(req, res);
+  }
+
+  // EVENTOS SSE
+  if (rota === 'eventos/sse' && req.method === 'GET') {
+    return iniciarSSE(req, res);
   }
 
   // PESSOAS
@@ -1074,6 +1160,20 @@ async function pessoasCriar(req, res) {
     });
 
     log(`✅ Pessoa criada com sucesso: ${pessoa.nome} (ID: ${pessoa.id}, Idade: ${pessoa.idade})`);
+    
+    // Enviar evento SSE para todos os clientes conectados
+    enviarEventoSSE('pessoaCadastrada', {
+      pessoa: {
+        id: pessoa.id,
+        nome: pessoa.nome,
+        cpf: pessoa.cpf
+      },
+      autorId: usuario.id,
+      autorFuncao: usuario.funcao,
+      tipo: 'cadastro',
+      timestamp: new Date().toISOString()
+    });
+    
     res.status(201).json(pessoa);
   } catch (erro) {
     log(`❌ Erro ao criar pessoa: ${erro.message}`, 'error');
@@ -1157,6 +1257,20 @@ async function pessoasAtualizar(req, res, id) {
     });
 
     log(`✅ Pessoa atualizada com sucesso: ${pessoa.nome} (ID: ${pessoa.id})`);
+    
+    // Enviar evento SSE para todos os clientes conectados
+    enviarEventoSSE('pessoaAtualizada', {
+      pessoa: {
+        id: pessoa.id,
+        nome: pessoa.nome,
+        cpf: pessoa.cpf
+      },
+      autorId: usuario.id,
+      autorFuncao: usuario.funcao,
+      tipo: 'edicao',
+      timestamp: new Date().toISOString()
+    });
+    
     res.status(200).json(pessoa);
   } catch (erro) {
     log(`Erro ao atualizar pessoa: ${erro.message}`, 'error');
@@ -1172,7 +1286,24 @@ async function pessoasDeletar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
+    // Obter dados da pessoa antes de deletar para o evento
+    const pessoaParaDeletar = await prisma.pessoa.findUnique({ 
+      where: { id: parseInt(id) },
+      select: { id: true, nome: true, cpf: true }
+    });
+    
     await prisma.pessoa.delete({ where: { id: parseInt(id) } });
+    
+    // Enviar evento SSE para todos os clientes conectados
+    if (pessoaParaDeletar) {
+      enviarEventoSSE('pessoaDeletada', {
+        pessoa: pessoaParaDeletar,
+        autorId: usuario.id,
+        autorFuncao: usuario.funcao,
+        tipo: 'delecao',
+        timestamp: new Date().toISOString()
+      });
+    }
 
     res.status(204).end();
   } catch (erro) {

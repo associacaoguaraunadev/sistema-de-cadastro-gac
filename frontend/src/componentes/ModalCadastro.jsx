@@ -405,15 +405,7 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
       sucesso('Sucesso', 'Beneficiário cadastrado!');
       onCadastrar?.(dadosEnvio);
       
-      // Auto-refresh: Disparar evento para atualizar lista
-      window.dispatchEvent(new CustomEvent('pessoaCadastrada', { 
-        detail: { 
-          pessoa: resultado, 
-          autorId: usuario?.id,
-          autorFuncao: usuario?.funcao,
-          tipo: 'cadastro'
-        } 
-      }));
+      // Auto-refresh: O evento SSE será disparado automaticamente pelo backend
       
       // Limpar formulário
       setFormData({

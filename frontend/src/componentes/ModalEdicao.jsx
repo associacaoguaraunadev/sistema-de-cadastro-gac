@@ -433,16 +433,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       sucesso('Sucesso', 'Beneficiário atualizado!');
       onAtualizar?.(dadosEnvio);
       
-      // Auto-refresh: Disparar evento para atualizar lista
-      window.dispatchEvent(new CustomEvent('pessoaAtualizada', { 
-        detail: { 
-          pessoa: resultado, 
-          pessoaUsuarioId: pessoa.usuarioId,
-          autorId: usuario?.id,
-          autorFuncao: usuario?.funcao,
-          tipo: 'edicao'
-        } 
-      }));
+      // Auto-refresh: O evento SSE será disparado automaticamente pelo backend
       
       setTimeout(onClose, 500);
     } catch (erro) {
