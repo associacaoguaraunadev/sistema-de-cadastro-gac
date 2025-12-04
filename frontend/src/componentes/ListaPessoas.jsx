@@ -44,6 +44,7 @@ export const ListaPessoas = () => {
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
   const [mostrarMensagemAtualizacao, setMostrarMensagemAtualizacao] = useState(false);
   const [tipoMensagemAtualizacao, setTipoMensagemAtualizacao] = useState('');
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState(Date.now());
   const timeoutRef = useRef(null);
   const abasWrapperRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
@@ -145,6 +146,9 @@ export const ListaPessoas = () => {
         eventSource.addEventListener('heartbeat', (event) => {
           const data = JSON.parse(event.data);
           console.log('💓 Heartbeat recebido:', data);
+          
+          // WORKAROUND para Vercel: Verificar se há atualizações de outras instâncias
+          verificarAtualizacoesExternas();
         });
         
         eventSource.onerror = (error) => {
@@ -222,6 +226,49 @@ export const ListaPessoas = () => {
           const data = JSON.parse(event.data);
           console.log('🎯 Conexão SSE estabelecida:', data);
         });
+
+        // Função para verificar atualizações de outras instâncias Vercel
+        const verificarAtualizacoesExternas = async () => {
+          try {
+            const response = await fetch(`${baseUrl}/pessoas/ultima-atualizacao`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (response.ok) {
+              const { ultimaAtualizacao: serverUltimaAtualizacao, ultimoAutor } = await response.json();
+              const serverTime = new Date(serverUltimaAtualizacao).getTime();
+              
+              console.log('🔍 Verificando atualizações externas:', {
+                meuUltimo: new Date(ultimaAtualizacao).toISOString(),
+                servidor: new Date(serverTime).toISOString(),
+                diferenca: serverTime - ultimaAtualizacao,
+                ultimoAutor
+              });
+              
+              // Se há atualizações mais recentes de outros usuários
+              if (serverTime > ultimaAtualizacao && ultimoAutor?.id !== usuario?.id) {
+                console.log('🚨 Detectada atualização externa! Autor:', ultimoAutor);
+                
+                // Determinar mensagem baseada na hierarquia
+                let mensagem = '';
+                if (ultimoAutor.funcao === 'admin' && usuario?.funcao === 'funcionario') {
+                  mensagem = 'O administrador atualizou os dados, favor recarregar a página.';
+                } else if (ultimoAutor.funcao === 'funcionario' && usuario?.funcao === 'admin') {
+                  mensagem = 'Um funcionário atualizou os dados, favor recarregar a página.';
+                }
+                
+                if (mensagem) {
+                  console.log(`📢 Mostrando alerta (via polling): ${mensagem}`);
+                  setTipoMensagemAtualizacao(mensagem);
+                  setMostrarMensagemAtualizacao(true);
+                  setUltimaAtualizacao(serverTime);
+                }
+              }
+            }
+          } catch (erro) {
+            console.error('❌ Erro ao verificar atualizações externas:', erro);
+          }
+        };
         
       } catch (error) {
         console.error('❌ Erro ao criar conexão SSE:', error);
@@ -340,6 +387,7 @@ export const ListaPessoas = () => {
       
       setPessoas(dados.pessoas);
       setTotal(dados.total);
+      setUltimaAtualizacao(Date.now()); // Registrar timestamp do carregamento
     } catch (erro) {
       console.error('❌ [ListaPessoas] Erro ao carregar:', erro);
       

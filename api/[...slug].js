@@ -378,6 +378,10 @@ async function rotear(req, res, slug) {
     return pessoasValidarCPF(req, res);
   }
 
+  if (rota === 'pessoas/ultima-atualizacao' && req.method === 'GET') {
+    return pessoasUltimaAtualizacao(req, res);
+  }
+
   if (rota === 'pessoas/totais/por-comunidade' && req.method === 'GET') {
     return pessoasTotaisPorComunidade(req, res);
   }
@@ -1200,6 +1204,50 @@ async function pessoasListar(req, res) {
       erro: 'Erro ao listar pessoas. Tente recarregar a página ou tente novamente em alguns momentos.',
       codigo: 'LIST_PERSONS_ERROR'
     });
+  }
+}
+
+// Função para verificar a última atualização (workaround para Vercel serverless)
+async function pessoasUltimaAtualizacao(req, res) {
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const prisma = getPrisma();
+    
+    // Buscar a pessoa mais recentemente modificada
+    const ultimaPessoa = await prisma.pessoa.findFirst({
+      orderBy: { dataAtualizacao: 'desc' },
+      include: {
+        usuario: {
+          select: { id: true, nome: true, funcao: true }
+        }
+      }
+    });
+    
+    if (!ultimaPessoa) {
+      return res.status(200).json({
+        ultimaAtualizacao: new Date().toISOString(),
+        ultimoAutor: null
+      });
+    }
+    
+    log(`🔍 Última atualização: ${ultimaPessoa.dataAtualizacao} por ${ultimaPessoa.usuario.nome}`);
+    
+    res.status(200).json({
+      ultimaAtualizacao: ultimaPessoa.dataAtualizacao,
+      ultimoAutor: {
+        id: ultimaPessoa.usuario.id,
+        nome: ultimaPessoa.usuario.nome,
+        funcao: ultimaPessoa.usuario.funcao
+      }
+    });
+    
+  } catch (erro) {
+    log(`Erro ao buscar última atualização: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao buscar última atualização' });
   }
 }
 
