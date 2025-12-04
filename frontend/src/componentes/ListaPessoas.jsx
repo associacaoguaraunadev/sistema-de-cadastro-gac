@@ -196,30 +196,8 @@ export const ListaPessoas = () => {
           const pessoaEditandoId = modalEdicaoAberto?.getAttribute('data-pessoa-id');
           const pessoaPreviewId = modalPreviewAberto?.getAttribute('data-pessoa-id');
           
-          // 📝 MODAL EDICAO: Detectar exclusão (incluindo mesmo usuário)
+          // 📝 MODAL EDICAO: Detectar conflitos durante edição
           if (pessoaEditandoId && pessoa?.id && 
-              String(pessoaEditandoId) === String(pessoa.id) &&
-              eventType === 'pessoaDeletada') {
-            
-            // 🗑️ EXCLUSÃO DURANTE EDIÇÃO: Bloquear modal
-            setPessoaExcluidaDuranteEdicao({
-              pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
-              autorFuncao,
-              isProprioUsuario: autorId === usuario?.id,
-              timestamp: Date.now()
-            });
-            
-            // 🕒 Fechar modal após 10 segundos
-            setTimeout(() => {
-              setModalEdicaoAberto(false);
-              setPessoaExcluidaDuranteEdicao(null);
-            }, 10000);
-            
-            console.log(`🚨 EXCLUSÃO: Pessoa ${pessoa.nome} foi excluída durante edição`);
-          }
-          
-          // ✏️ MODAL EDICAO: Conflitos de modificação
-          else if (pessoaEditandoId && pessoa?.id &&
               String(pessoaEditandoId) === String(pessoa.id)) {
             
             if (eventType === 'pessoaDeletada') {
@@ -238,11 +216,12 @@ export const ListaPessoas = () => {
               }, 10000);
               
               console.log(`🚨 EXCLUSÃO: Pessoa ${pessoa.nome} foi excluída durante edição`);
-            } else if (autorId !== usuario?.id) {
+            }
+            else if (autorId !== usuario?.id) {
               // ✏️ MODIFICAÇÃO POR OUTRO USUÁRIO: Alerta visual
               setAlertaEdicaoAtiva({
                 pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
-                tipo: 'atualizado',
+                tipo: 'atualizado', 
                 autorFuncao,
                 timestamp: Date.now()
               });
