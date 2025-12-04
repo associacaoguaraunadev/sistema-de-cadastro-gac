@@ -196,14 +196,13 @@ function iniciarSSE(req, res) {
   log(`🔧 Configurando headers SSE para usuário ${usuario.id}`);
   
   // Configurar headers SSE
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization',
-    'Access-Control-Allow-Credentials': 'true'
-  });
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Cache-Control, Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.status(200);
 
   // Enviar evento inicial
   res.write(`event: connected\n`);

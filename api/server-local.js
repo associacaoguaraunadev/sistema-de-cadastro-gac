@@ -96,7 +96,12 @@ app.all('*', async (req, res) => {
         return this;
       },
       json(data) {
+        if (this.headersSent || this.finished) {
+          console.log(`[${new Date().toISOString()}] ⚠️ Tentativa de json() em resposta já enviada`);
+          return this;
+        }
         console.log(`[${new Date().toISOString()}] 📤 Chamando json() - Status: ${statusCode.code}`);
+        this.headersSent = true;
         res.json(data);
         console.log(`[${new Date().toISOString()}] 📤 json() completado`);
         return this;
@@ -107,15 +112,33 @@ app.all('*', async (req, res) => {
         return this;
       },
       send(data) {
+        if (this.headersSent || this.finished) {
+          console.log(`[${new Date().toISOString()}] ⚠️ Tentativa de send() em resposta já enviada`);
+          return this;
+        }
         console.log(`[${new Date().toISOString()}] 📤 send() chamado`);
+        this.headersSent = true;
         res.send(data);
+        return this;
+      },
+      write(chunk) {
+        console.log(`[${new Date().toISOString()}] 📤 write() chamado`);
+        res.write(chunk);
+        return this;
+      },
+      on(event, callback) {
+        console.log(`[${new Date().toISOString()}] 📤 on() chamado para evento: ${event}`);
+        res.on(event, callback);
         return this;
       },
       end() {
         console.log(`[${new Date().toISOString()}] 📤 end() chamado`);
         res.end();
         return this;
-      }
+      },
+      // Flag para controlar se a resposta foi enviada
+      headersSent: false,
+      finished: false
     };
 
     try {
