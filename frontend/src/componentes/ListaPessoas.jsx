@@ -164,8 +164,8 @@ export const ListaPessoas = () => {
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
       console.log(`🗑️ ListaPessoas: Pessoa deletada por ${evento.autorFuncao}`);
       
-      // Mostrar aviso APENAS se NÃO for o próprio usuário que deletou E não estiver na tela de edição
-      if ((evento.autorId !== usuario?.id) && !pessoaExcluidaDuranteEdicao) {
+      // Mostrar aviso APENAS se NÃO for o próprio usuário que deletou
+      if (evento.autorId !== usuario?.id) {
         erroToast(`Pessoa "${evento.pessoa.nome}" removida por ${evento.autorFuncao}`);
       }
       
