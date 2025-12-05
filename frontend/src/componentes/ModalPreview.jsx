@@ -4,7 +4,7 @@ import { useSSEGlobal } from '../contexto/SSEContext';
 import { obterPessoa } from '../servicos/api';
 import './ModalPreview.css';
 
-const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
+const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [pessoaAtualizada, setPessoaAtualizada] = useState(pessoa);
   const [idadeAtualizada, setIdadeAtualizada] = useState(idade);
   const { ultimosEventos } = useSSEGlobal();
@@ -44,12 +44,15 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
         });
     }
 
-    // Verificar se a pessoa foi excluída - fechar modal
+    // Verificar se a pessoa foi excluída - fechar modal e atualizar lista
     if (eventoDelecao?.pessoa?.id &&
         String(eventoDelecao.pessoa.id) === String(pessoaAtualizada.id)) {
 
-      console.log('🗑️ ModalPreview: Pessoa excluída, fechando modal');
+      console.log('🗑️ ModalPreview: Pessoa excluída, fechando modal e atualizando lista');
       onClose();
+      if (onPessoaDeletada) {
+        onPessoaDeletada();
+      }
     }
 
   }, [isOpen, pessoaAtualizada?.id, ultimosEventos, onClose]);

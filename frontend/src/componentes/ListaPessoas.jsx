@@ -752,6 +752,9 @@ export const ListaPessoas = () => {
             setModalPreviewAberto(false);
             setPessoaSelecionada(null);
           }}
+          onPessoaDeletada={() => {
+            carregarPessoas();
+          }}
         />
       )}
       {pessoaParaEditar && (

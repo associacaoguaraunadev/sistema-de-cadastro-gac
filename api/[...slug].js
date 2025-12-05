@@ -118,13 +118,17 @@ function enviarParaClientesLocais(evento, dados, eventoId) {
       if (cliente.ativo && !cliente.res.destroyed && cliente.res.writable) {
         log(`📨 Enviando ${evento} para cliente ${cliente.usuarioId} (instância ${cliente.instanciaId})...`);
         
-        // Envio otimizado com confirmação de entrega
+        // Envio otimizado com confirmação de entrega e prioridade alta
         cliente.res.write(`event: ${evento}\n`);
         cliente.res.write(`data: ${eventoData}\n\n`);
         
-        // Forçar flush imediato para garantir envio em tempo real
+        // Forçar flush múltiplas vezes para garantir envio imediato em tempo real
         if (cliente.res.flush) {
           cliente.res.flush();
+        }
+        // Tentar flush adicional se disponível
+        if (cliente.res.socket && cliente.res.socket.flush) {
+          cliente.res.socket.flush();
         }
         
         sucessos++;
@@ -219,13 +223,14 @@ function iniciarSSE(req, res) {
 
   log(`🔧 Configurando headers SSE para usuário ${usuario.id}`);
   
-  // Configurar headers SSE
+  // Configurar headers SSE com buffering desabilitado para tempo real
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Cache-Control, Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('X-Accel-Buffering', 'no'); // Desabilitar buffering do proxy
   res.status(200);
 
   // Enviar evento inicial
@@ -235,7 +240,7 @@ function iniciarSSE(req, res) {
   // Adicionar cliente à lista
   const cliente = adicionarClienteSSE(res, usuario.id);
 
-  // Keepalive otimizado a cada 15 segundos para tempo real
+  // Keepalive otimizado a cada 5 segundos para tempo real máximo
   const keepalive = setInterval(() => {
     try {
       if (!res.destroyed && res.writable) {
@@ -259,7 +264,7 @@ function iniciarSSE(req, res) {
       clearInterval(keepalive);
       clientesSSE.delete(cliente);
     }
-  }, 15000); // Reduzido para 15 segundos
+  }, 5000); // Reduzido para 5 segundos para máxima responsividade
 
   // Limpar interval quando conexão fechar
   res.on('close', () => {

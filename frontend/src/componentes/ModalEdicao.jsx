@@ -505,11 +505,11 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
             <div className="bloqueio-icone">🗑️</div>
             <div className="bloqueio-titulo">Cadastro Removido</div>
             <div className="bloqueio-mensagem">
-              Este cadastro foi removido do sistema por outro usuário.
+              Este cadastro foi excluído do sistema por outro usuário e não pode mais ser editado.
             </div>
             {contadorFechamento && (
               <div className="bloqueio-contador">
-                Fechando em <span className="contador-numero">{contadorFechamento}</span>s
+                Fechando automaticamente em <span className="contador-numero">{contadorFechamento}</span> segundos
               </div>
             )}
           </div>
@@ -519,9 +519,11 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       {/* Alerta de conflito de edição */}
       {alertaConflito && (
         <div className="modal-alerta-conflito">
-          <div className="conflito-icone">✏️</div>
+          <div className="conflito-icone">⚠️</div>
           <div className="conflito-texto">
-            <strong>Cadastro atualizado</strong> por outro usuário
+            <strong>Alteração detectada:</strong> Este cadastro foi atualizado por {alertaConflito.autorFuncao || 'outro usuário'}.
+            <br />
+            <small>Verifique as mudanças antes de continuar editando.</small>
           </div>
           <button 
             className="conflito-fechar"
