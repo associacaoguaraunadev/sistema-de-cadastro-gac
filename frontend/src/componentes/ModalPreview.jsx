@@ -1,8 +1,17 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Calendar, Phone, Mail, MapPin, Home, Building2 } from 'lucide-react';
 import './ModalPreview.css';
 
 const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
+  const [pessoaAtualizada, setPessoaAtualizada] = useState(pessoa);
+  const [idadeAtualizada, setIdadeAtualizada] = useState(idade);
+
+  // Atualizar dados quando props mudam
+  useEffect(() => {
+    setPessoaAtualizada(pessoa);
+    setIdadeAtualizada(idade);
+  }, [pessoa, idade]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -29,8 +38,8 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
   };
 
   const calcularDataNascimento = () => {
-    if (!pessoa.dataNascimento) return '';
-    const data = new Date(pessoa.dataNascimento);
+    if (!pessoaAtualizada.dataNascimento) return '';
+    const data = new Date(pessoaAtualizada.dataNascimento);
     return data.toLocaleDateString('pt-BR', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
@@ -55,7 +64,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
         className="modal-preview-container" 
         onClick={(e) => e.stopPropagation()}
         data-modal="preview"
-        data-pessoa-id={pessoa?.id}
+        data-pessoa-id={pessoaAtualizada?.id}
       >
         {/* Botão fechar */}
         <button className="modal-close-btn" onClick={onClose}>
@@ -66,15 +75,15 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
         <div className="modal-header">
           <div className="modal-header-content">
             <div className="modal-avatar">
-              {pessoa.nome.charAt(0).toUpperCase()}
+              {pessoaAtualizada.nome ? pessoaAtualizada.nome.charAt(0).toUpperCase() : 'P'}
             </div>
             <div className="modal-header-info">
-              <h2 className="modal-nome">{pessoa.nome}</h2>
-              <p className="modal-idade">{idade} anos</p>
+              <h2 className="modal-nome">{pessoaAtualizada.nome}</h2>
+              <p className="modal-idade">{idadeAtualizada} anos</p>
             </div>
           </div>
-          {pessoa.tipoBeneficio && (
-            <div className="modal-badge-beneficio">{pessoa.tipoBeneficio}</div>
+          {pessoaAtualizada.tipoBeneficio && (
+            <div className="modal-badge-beneficio">{pessoaAtualizada.tipoBeneficio}</div>
           )}
         </div>
 
@@ -97,63 +106,63 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
 
                 <div className="campo-preview">
                   <div className="campo-label">CPF</div>
-                  <div className="campo-valor">{formatarCPF(pessoa.cpf)}</div>
+                  <div className="campo-valor">{formatarCPF(pessoaAtualizada.cpf)}</div>
                 </div>
 
-                {pessoa.sexo && (
+                {pessoaAtualizada.sexo && (
                   <div className="campo-preview">
                     <div className="campo-label">Sexo</div>
-                    <div className="campo-valor">{pessoa.sexo}</div>
+                    <div className="campo-valor">{pessoaAtualizada.sexo}</div>
                   </div>
                 )}
 
-                {pessoa.estadoCivil && (
+                {pessoaAtualizada.estadoCivil && (
                   <div className="campo-preview">
                     <div className="campo-label">Estado Civil</div>
-                    <div className="campo-valor">{pessoa.estadoCivil}</div>
+                    <div className="campo-valor">{pessoaAtualizada.estadoCivil}</div>
                   </div>
                 )}
 
-                {pessoa.nomeMae && (
+                {pessoaAtualizada.nomeMae && (
                   <div className="campo-preview">
                     <div className="campo-label">Nome da Mãe</div>
-                    <div className="campo-valor">{pessoa.nomeMae}</div>
+                    <div className="campo-valor">{pessoaAtualizada.nomeMae}</div>
                   </div>
                 )}
 
-                {pessoa.naturalidade && (
+                {pessoaAtualizada.naturalidade && (
                   <div className="campo-preview">
                     <div className="campo-label">Naturalidade</div>
-                    <div className="campo-valor">{pessoa.naturalidade}</div>
+                    <div className="campo-valor">{pessoaAtualizada.naturalidade}</div>
                   </div>
                 )}
 
-                {pessoa.uf && (
+                {pessoaAtualizada.uf && (
                   <div className="campo-preview">
                     <div className="campo-label">UF Naturalidade</div>
-                    <div className="campo-valor">{pessoa.uf}</div>
+                    <div className="campo-valor">{pessoaAtualizada.uf}</div>
                   </div>
                 )}
 
-                {pessoa.rg && (
+                {pessoaAtualizada.rg && (
                   <div className="campo-preview">
                     <div className="campo-label">RG</div>
-                    <div className="campo-valor">{pessoa.rg}</div>
+                    <div className="campo-valor">{pessoaAtualizada.rg}</div>
                   </div>
                 )}
 
-                {pessoa.orgaoExpedidor && (
+                {pessoaAtualizada.orgaoExpedidor && (
                   <div className="campo-preview">
                     <div className="campo-label">Órgão Expedidor RG</div>
-                    <div className="campo-valor">{pessoa.orgaoExpedidor}</div>
+                    <div className="campo-valor">{pessoaAtualizada.orgaoExpedidor}</div>
                   </div>
                 )}
 
-                {pessoa.dataExpedicao && (
+                {pessoaAtualizada.dataExpedicao && (
                   <div className="campo-preview">
                     <div className="campo-label">Data de Expedição RG</div>
                     <div className="campo-valor">
-                      {new Date(pessoa.dataExpedicao).toLocaleDateString('pt-BR')}
+                      {new Date(pessoaAtualizada.dataExpedicao).toLocaleDateString('pt-BR')}
                     </div>
                   </div>
                 )}
@@ -164,37 +173,37 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
             <div className="modal-secao">
               <h3 className="secao-titulo">Contato</h3>
               <div className="secao-conteudo">
-                {pessoa.telefone && (
+                {pessoaAtualizada.telefone && (
                   <div className="campo-preview">
                     <div className="campo-label">
                       <Phone size={16} />
                       Telefone
                     </div>
-                    <div className="campo-valor">{pessoa.telefone}</div>
+                    <div className="campo-valor">{pessoaAtualizada.telefone}</div>
                   </div>
                 )}
 
-                {pessoa.celular && (
+                {pessoaAtualizada.celular && (
                   <div className="campo-preview">
                     <div className="campo-label">
                       <Phone size={16} />
                       Celular
                     </div>
-                    <div className="campo-valor">{pessoa.celular}</div>
+                    <div className="campo-valor">{pessoaAtualizada.celular}</div>
                   </div>
                 )}
 
-                {pessoa.email && (
+                {pessoaAtualizada.email && (
                   <div className="campo-preview">
                     <div className="campo-label">
                       <Mail size={16} />
                       Email
                     </div>
-                    <div className="campo-valor">{pessoa.email}</div>
+                    <div className="campo-valor">{pessoaAtualizada.email}</div>
                   </div>
                 )}
 
-                {!pessoa.telefone && !pessoa.celular && !pessoa.email && (
+                {!pessoaAtualizada.telefone && !pessoaAtualizada.celular && !pessoaAtualizada.email && (
                   <p className="sem-informacao">Nenhuma informação de contato</p>
                 )}
               </div>
@@ -204,68 +213,68 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
             <div className="modal-secao">
               <h3 className="secao-titulo">Endereço</h3>
               <div className="secao-conteudo">
-                {pessoa.endereco && (
+                {pessoaAtualizada.endereco && (
                   <div className="campo-preview">
                     <div className="campo-label">
                       <Home size={16} />
                       Endereço
                     </div>
-                    <div className="campo-valor">{pessoa.endereco}</div>
+                    <div className="campo-valor">{pessoaAtualizada.endereco}</div>
                   </div>
                 )}
 
-                {pessoa.numero && (
+                {pessoaAtualizada.numero && (
                   <div className="campo-preview">
                     <div className="campo-label">Número</div>
-                    <div className="campo-valor">{pessoa.numero}</div>
+                    <div className="campo-valor">{pessoaAtualizada.numero}</div>
                   </div>
                 )}
 
-                {pessoa.complemento && (
+                {pessoaAtualizada.complemento && (
                   <div className="campo-preview">
                     <div className="campo-label">Complemento</div>
-                    <div className="campo-valor">{pessoa.complemento}</div>
+                    <div className="campo-valor">{pessoaAtualizada.complemento}</div>
                   </div>
                 )}
 
-                {pessoa.bairro && (
+                {pessoaAtualizada.bairro && (
                   <div className="campo-preview">
                     <div className="campo-label">
                       <Building2 size={16} />
                       Bairro
                     </div>
-                    <div className="campo-valor">{pessoa.bairro}</div>
+                    <div className="campo-valor">{pessoaAtualizada.bairro}</div>
                   </div>
                 )}
 
-                {pessoa.cidade && (
+                {pessoaAtualizada.cidade && (
                   <div className="campo-preview">
                     <div className="campo-label">
                       <MapPin size={16} />
                       Localização
                     </div>
                     <div className="campo-valor">
-                      {pessoa.cidade}
-                      {pessoa.estado ? ` - ${pessoa.estado}` : ''}
+                      {pessoaAtualizada.cidade}
+                      {pessoaAtualizada.estado ? ` - ${pessoaAtualizada.estado}` : ''}
                     </div>
                   </div>
                 )}
 
-                {pessoa.cep && (
+                {pessoaAtualizada.cep && (
                   <div className="campo-preview">
                     <div className="campo-label">CEP</div>
-                    <div className="campo-valor">{pessoa.cep}</div>
+                    <div className="campo-valor">{pessoaAtualizada.cep}</div>
                   </div>
                 )}
 
-                {pessoa.ponto_referencia && (
+                {pessoaAtualizada.ponto_referencia && (
                   <div className="campo-preview">
                     <div className="campo-label">Ponto de Referência</div>
-                    <div className="campo-valor">{pessoa.ponto_referencia}</div>
+                    <div className="campo-valor">{pessoaAtualizada.ponto_referencia}</div>
                   </div>
                 )}
 
-                {!pessoa.endereco && !pessoa.bairro && !pessoa.cidade && (
+                {!pessoaAtualizada.endereco && !pessoaAtualizada.bairro && !pessoaAtualizada.cidade && (
                   <p className="sem-informacao">Nenhuma informação de endereço</p>
                 )}
               </div>
@@ -276,7 +285,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
               <h3 className="secao-titulo">Benefícios GAC</h3>
               <div className="secao-conteudo">
                 {(() => {
-                  const benefGac = garantirArray(pessoa.beneficiosGAC);
+                  const benefGac = garantirArray(pessoaAtualizada.beneficiosGAC);
                   return benefGac.length > 0 ? (
                     benefGac.map((b, i) => (
                       <div key={i} className="campo-preview">
@@ -306,7 +315,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
               <h3 className="secao-titulo">Benefícios do Governo</h3>
               <div className="secao-conteudo">
                 {(() => {
-                  const benefGov = garantirArray(pessoa.beneficiosGoverno);
+                  const benefGov = garantirArray(pessoaAtualizada.beneficiosGoverno);
                   return benefGov.length > 0 ? (
                     benefGov.map((b, i) => (
                       <div key={i} className="campo-preview">
@@ -339,14 +348,14 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
             <div className="modal-secao">
               <h3 className="secao-titulo">Renda Familiar</h3>
               <div className="secao-conteudo">
-                {pessoa.rendaFamiliar ? (
+                {pessoaAtualizada.rendaFamiliar ? (
                   <div className="campo-preview">
                     <div className="campo-label">Renda Total</div>
                     <div className="campo-valor">
                       {new Intl.NumberFormat('pt-BR', {
                         style: 'currency',
                         currency: 'BRL',
-                      }).format(pessoa.rendaFamiliar)}
+                      }).format(pessoaAtualizada.rendaFamiliar)}
                     </div>
                   </div>
                 ) : (
@@ -360,17 +369,17 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
                   </div>
                 )}
 
-                {pessoa.numeroMembros && (
+                {pessoaAtualizada.numeroMembros && (
                   <div className="campo-preview">
                     <div className="campo-label">Número de Membros</div>
-                    <div className="campo-valor">{pessoa.numeroMembros}</div>
+                    <div className="campo-valor">{pessoaAtualizada.numeroMembros}</div>
                   </div>
                 )}
 
-                {pessoa.dependentes && (
+                {pessoaAtualizada.dependentes && (
                   <div className="campo-preview">
                     <div className="campo-label">Dependentes</div>
-                    <div className="campo-valor">{pessoa.dependentes}</div>
+                    <div className="campo-valor">{pessoaAtualizada.dependentes}</div>
                   </div>
                 )}
               </div>
@@ -380,37 +389,37 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
             <div className="modal-secao">
               <h3 className="secao-titulo">Situação</h3>
               <div className="secao-conteudo">
-                {pessoa.situacao && (
+                {pessoaAtualizada.situacao && (
                   <div className="campo-preview">
                     <div className="campo-label">Situação</div>
-                    <div className="campo-valor">{pessoa.situacao}</div>
+                    <div className="campo-valor">{pessoaAtualizada.situacao}</div>
                   </div>
                 )}
 
-                {pessoa.comunidade && (
+                {pessoaAtualizada.comunidade && (
                   <div className="campo-preview">
                     <div className="campo-label">Comunidade</div>
-                    <div className="campo-valor">{pessoa.comunidade}</div>
+                    <div className="campo-valor">{pessoaAtualizada.comunidade}</div>
                   </div>
                 )}
 
-                {pessoa.responsavel && (
+                {pessoaAtualizada.responsavel && (
                   <div className="campo-preview">
                     <div className="campo-label">Responsável</div>
-                    <div className="campo-valor">{pessoa.responsavel}</div>
+                    <div className="campo-valor">{pessoaAtualizada.responsavel}</div>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Observações */}
-            {pessoa.observacoes && (
+            {pessoaAtualizada.observacoes && (
               <div className="modal-secao">
                 <h3 className="secao-titulo">Observações</h3>
                 <div className="secao-conteudo">
                   <div className="campo-preview campo-preview-full">
                     <div className="campo-valor observacoes-texto">
-                      {pessoa.observacoes}
+                      {pessoaAtualizada.observacoes}
                     </div>
                   </div>
                 </div>
@@ -421,11 +430,11 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
             <div className="modal-secao">
               <h3 className="secao-titulo">Registro</h3>
               <div className="secao-conteudo">
-                {pessoa.dataCriacao && (
+                {pessoaAtualizada.dataCriacao && (
                   <div className="campo-preview">
                     <div className="campo-label">Data de Criação</div>
                     <div className="campo-valor">
-                      {new Date(pessoa.dataCriacao).toLocaleDateString('pt-BR', {
+                      {new Date(pessoaAtualizada.dataCriacao).toLocaleDateString('pt-BR', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -436,11 +445,11 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
                   </div>
                 )}
 
-                {pessoa.dataAtualizacao && (
+                {pessoaAtualizada.dataAtualizacao && (
                   <div className="campo-preview">
                     <div className="campo-label">Última Atualização</div>
                     <div className="campo-valor">
-                      {new Date(pessoa.dataAtualizacao).toLocaleDateString('pt-BR', {
+                      {new Date(pessoaAtualizada.dataAtualizacao).toLocaleDateString('pt-BR', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',

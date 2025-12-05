@@ -1031,6 +1031,168 @@
   }
 }
 
+/* ALERTAS TEMPO REAL NO MODAL DE EDIÇÃO */
+
+/* Overlay de bloqueio para pessoa excluída */
+.modal-bloqueio-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-bloqueio-card {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border: 3px solid #ef4444;
+  border-radius: 20px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: 0 25px 50px rgba(239, 68, 68, 0.4);
+  max-width: 350px;
+  animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bloqueio-icone {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: bounce 2s infinite;
+}
+
+.bloqueio-titulo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #dc2626;
+  margin-bottom: 12px;
+}
+
+.bloqueio-mensagem {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.bloqueio-contador {
+  font-size: 13px;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.contador-numero {
+  display: inline-block;
+  background: #dc2626;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-weight: 700;
+  margin: 0 4px;
+  animation: pulse 1s infinite;
+}
+
+/* Alerta de conflito de edição */
+.modal-alerta-conflito {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 2px solid #f39c12;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1000;
+  box-shadow: 0 8px 32px rgba(243, 156, 18, 0.3);
+  animation: slideInFromTop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-width: 300px;
+}
+
+.conflito-icone {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.conflito-texto {
+  flex: 1;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.3;
+}
+
+.conflito-fechar {
+  background: none;
+  border: none;
+  font-size: 18px;
+  font-weight: bold;
+  color: #b7791f;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.conflito-fechar:hover {
+  color: #8a6914;
+}
+
+/* Container bloqueado */
+.modal-edicao-container.bloqueado {
+  pointer-events: none;
+  opacity: 0.5;
+  filter: blur(2px);
+}
+
+.modal-edicao-container.bloqueado .form-input,
+.modal-edicao-container.bloqueado .form-select,
+.modal-edicao-container.bloqueado .form-textarea,
+.modal-edicao-container.bloqueado button {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Animações */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
 /* Footer do Modal - FIXO NA BASE */
 .modal-edicao-footer {
   background: white;

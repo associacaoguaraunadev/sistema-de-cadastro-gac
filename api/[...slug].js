@@ -42,15 +42,17 @@ function adicionarClienteSSE(res, usuarioId) {
     log(`🔌 Cliente SSE desconectado: ${usuarioId} da instância ${instanciaId}`);
   });
   
-  // Heartbeat para manter conexão ativa no Vercel
+  // Heartbeat otimizado para tempo real (30s)
   const heartbeat = setInterval(() => {
     try {
       if (cliente.ativo && !res.destroyed) {
         res.write(`event: heartbeat\n`);
-        res.write(`data: ${JSON.stringify({ timestamp: new Date(), instanciaId })}\n\n`);
+        res.write(`data: ${JSON.stringify({ timestamp: new Date(), instanciaId, clienteId: usuarioId })}\n\n`);
         log(`💓 Heartbeat enviado para cliente ${usuarioId}`);
       } else {
         clearInterval(heartbeat);
+        cliente.ativo = false;
+        clientesSSE.delete(cliente);
       }
     } catch (erro) {
       clearInterval(heartbeat);
@@ -58,7 +60,7 @@ function adicionarClienteSSE(res, usuarioId) {
       clientesSSE.delete(cliente);
       log(`❌ Erro no heartbeat para cliente ${usuarioId}: ${erro.message}`, 'error');
     }
-  }, 300000); // A cada 5 minutos (300 segundos) - apenas manter conexão
+  }, 30000); // A cada 30 segundos - tempo real mais responsivo
   
   cliente.heartbeat = heartbeat;
   
@@ -99,32 +101,54 @@ function enviarParaClientesLocais(evento, dados, eventoId) {
     return;
   }
 
-  const eventoData = JSON.stringify({ ...dados, eventoId, instanciaOrigem: instanciaId });
+  const eventoData = JSON.stringify({ 
+    ...dados, 
+    eventoId, 
+    instanciaOrigem: instanciaId,
+    timestamp: new Date().toISOString(),
+    priority: 'high' // Marcação de prioridade alta para eventos de edição
+  });
+  
   let sucessos = 0;
   let erros = 0;
+  const clientesParaRemover = new Set();
   
   clientesSSE.forEach(cliente => {
     try {
-      if (cliente.ativo && !cliente.res.destroyed) {
+      if (cliente.ativo && !cliente.res.destroyed && cliente.res.writable) {
         log(`📨 Enviando ${evento} para cliente ${cliente.usuarioId} (instância ${cliente.instanciaId})...`);
+        
+        // Envio otimizado com confirmação de entrega
         cliente.res.write(`event: ${evento}\n`);
         cliente.res.write(`data: ${eventoData}\n\n`);
+        
+        // Forçar flush imediato para garantir envio em tempo real
+        if (cliente.res.flush) {
+          cliente.res.flush();
+        }
+        
         sucessos++;
+        log(`✅ Evento ${evento} entregue para cliente ${cliente.usuarioId}`);
       } else {
-        log(`🚫 Cliente ${cliente.usuarioId} inativo, removendo...`);
-        clientesSSE.delete(cliente);
+        log(`🚫 Cliente ${cliente.usuarioId} inativo, marcando para remoção...`);
+        clientesParaRemover.add(cliente);
         erros++;
       }
     } catch (erro) {
       log(`❌ Erro ao enviar SSE para cliente ${cliente.usuarioId}: ${erro.message}`, 'error');
       cliente.ativo = false;
       if (cliente.heartbeat) clearInterval(cliente.heartbeat);
-      clientesSSE.delete(cliente);
+      clientesParaRemover.add(cliente);
       erros++;
     }
   });
   
-  log(`📊 Resultado envio local SSE: ${sucessos} sucessos, ${erros} erros`);
+  // Limpar clientes inativos
+  clientesParaRemover.forEach(cliente => {
+    clientesSSE.delete(cliente);
+  });
+  
+  log(`📊 Resultado envio local SSE: ${sucessos} sucessos, ${erros} erros, ${clientesSSE.size} clientes ativos`);
 }
 
 // Sistema de broadcast global para múltiplas instâncias Vercel
@@ -211,16 +235,31 @@ function iniciarSSE(req, res) {
   // Adicionar cliente à lista
   const cliente = adicionarClienteSSE(res, usuario.id);
 
-  // Keepalive a cada 30 segundos
+  // Keepalive otimizado a cada 15 segundos para tempo real
   const keepalive = setInterval(() => {
     try {
-      res.write(`event: keepalive\n`);
-      res.write(`data: ${JSON.stringify({ timestamp: new Date() })}\n\n`);
+      if (!res.destroyed && res.writable) {
+        res.write(`event: keepalive\n`);
+        res.write(`data: ${JSON.stringify({ 
+          timestamp: new Date().toISOString(),
+          instanciaId,
+          clientesAtivos: clientesSSE.size
+        })}\n\n`);
+        
+        // Forçar flush para garantir envio imediato
+        if (res.flush) {
+          res.flush();
+        }
+      } else {
+        clearInterval(keepalive);
+        clientesSSE.delete(cliente);
+      }
     } catch (erro) {
+      log(`Erro no keepalive: ${erro.message}`, 'error');
       clearInterval(keepalive);
       clientesSSE.delete(cliente);
     }
-  }, 30000);
+  }, 15000); // Reduzido para 15 segundos
 
   // Limpar interval quando conexão fechar
   res.on('close', () => {

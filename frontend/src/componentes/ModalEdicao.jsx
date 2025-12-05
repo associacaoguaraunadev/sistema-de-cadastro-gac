@@ -36,6 +36,9 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
   const [tiposBeneficios, setTiposBeneficios] = useState([]);
   const [adicionandoNovoTipo, setAdicionandoNovoTipo] = useState(false);
   const [novoTipoBeneficio, setNovoTipoBeneficio] = useState('');
+  const [alertaConflito, setAlertaConflito] = useState(null);
+  const [pessoaExcluida, setPessoaExcluida] = useState(false);
+  const [contadorFechamento, setContadorFechamento] = useState(null);
   const { sucesso, erro: erroToast } = useGlobalToast();
   const { token, usuario } = useAuth();
 
@@ -69,6 +72,55 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       setFormData(dadosFormatados);
     }
   }, [pessoa, isOpen]);
+
+  // Sistema de SSE para detectar mudanças em tempo real
+  useEffect(() => {
+    if (!isOpen || !pessoa?.id) return;
+
+    // Escutar eventos SSE globais para detectar conflitos
+    const handleSSEEvent = (event) => {
+      const data = event.detail;
+      
+      if (data.pessoa?.id && String(data.pessoa.id) === String(pessoa.id)) {
+        if (data.tipo === 'delecao') {
+          // Pessoa foi excluída - bloquear edição e iniciar contador
+          setPessoaExcluida(true);
+          let contador = 5;
+          setContadorFechamento(contador);
+          
+          const interval = setInterval(() => {
+            contador--;
+            setContadorFechamento(contador);
+            
+            if (contador <= 0) {
+              clearInterval(interval);
+              onClose();
+            }
+          }, 1000);
+          
+          return () => clearInterval(interval);
+        } else if (data.tipo === 'edicao' && data.autorId !== usuario?.id) {
+          // Pessoa foi editada por outro usuário - mostrar alerta
+          setAlertaConflito({
+            tipo: 'editado',
+            autorFuncao: data.autorFuncao,
+            timestamp: Date.now()
+          });
+          
+          setTimeout(() => setAlertaConflito(null), 8000);
+        }
+      }
+    };
+
+    // Escutar eventos customizados do SSE
+    window.addEventListener('pessoaAtualizada', handleSSEEvent);
+    window.addEventListener('pessoaDeletada', handleSSEEvent);
+
+    return () => {
+      window.removeEventListener('pessoaAtualizada', handleSSEEvent);
+      window.removeEventListener('pessoaDeletada', handleSSEEvent);
+    };
+  }, [isOpen, pessoa?.id, usuario?.id, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -448,8 +500,42 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
 
   return (
     <div className="modal-edicao-overlay" onClick={onClose}>
+      {/* Overlay de bloqueio para pessoa excluída */}
+      {pessoaExcluida && (
+        <div className="modal-bloqueio-overlay">
+          <div className="modal-bloqueio-card">
+            <div className="bloqueio-icone">🗑️</div>
+            <div className="bloqueio-titulo">Cadastro Removido</div>
+            <div className="bloqueio-mensagem">
+              Este cadastro foi removido do sistema por outro usuário.
+            </div>
+            {contadorFechamento && (
+              <div className="bloqueio-contador">
+                Fechando em <span className="contador-numero">{contadorFechamento}</span>s
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Alerta de conflito de edição */}
+      {alertaConflito && (
+        <div className="modal-alerta-conflito">
+          <div className="conflito-icone">✏️</div>
+          <div className="conflito-texto">
+            <strong>Cadastro atualizado</strong> por outro usuário
+          </div>
+          <button 
+            className="conflito-fechar"
+            onClick={() => setAlertaConflito(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div 
-        className="modal-edicao-container" 
+        className={`modal-edicao-container ${pessoaExcluida ? 'bloqueado' : ''}`}
         onClick={(e) => e.stopPropagation()}
         data-modal="edicao"
         data-pessoa-id={pessoa.id}
@@ -1024,7 +1110,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
             type="button"
             className="btn btn-secondary"
             onClick={onClose}
-            disabled={carregando}
+            disabled={carregando || pessoaExcluida}
           >
             Cancelar
           </button>
@@ -1032,7 +1118,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
             type="submit"
             form="modal-form"
             className="btn btn-primary"
-            disabled={carregando}
+            disabled={carregando || pessoaExcluida}
           >
             {carregando ? 'Salvando...' : 'Salvar Alterações'}
           </button>

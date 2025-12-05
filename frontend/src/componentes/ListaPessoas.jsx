@@ -47,7 +47,9 @@ export const ListaPessoas = () => {
   const [alertaEdicaoAtiva, setAlertaEdicaoAtiva] = useState(null);
   const [mostrarAlertaEdicao, setMostrarAlertaEdicao] = useState(false);
   const [pessoaExcluidaDuranteEdicao, setPessoaExcluidaDuranteEdicao] = useState(null);
+  const [contadorFechamento, setContadorFechamento] = useState(null);
   const timeoutRef = useRef(null);
+  const intervalRef = useRef(null);
   const abasWrapperRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
   
@@ -201,7 +203,7 @@ export const ListaPessoas = () => {
               String(pessoaEditandoId) === String(pessoa.id)) {
             
             if (eventType === 'pessoaDeletada') {
-              // 🗑️ EXCLUSÃO DURANTE EDIÇÃO: Bloquear modal
+              // 🗑️ EXCLUSÃO DURANTE EDIÇÃO: Bloquear modal e iniciar contador
               setPessoaExcluidaDuranteEdicao({
                 pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
                 autorFuncao,
@@ -209,88 +211,64 @@ export const ListaPessoas = () => {
                 timestamp: Date.now()
               });
               
-              // 🕒 Fechar modal após 10 segundos
-              setTimeout(() => {
-                setModalEdicaoAberto(false);
-                setPessoaExcluidaDuranteEdicao(null);
-              }, 10000);
+              // Iniciar contador de 5 segundos
+              let contador = 5;
+              setContadorFechamento(contador);
+              
+              intervalRef.current = setInterval(() => {
+                contador--;
+                setContadorFechamento(contador);
+                
+                if (contador <= 0) {
+                  clearInterval(intervalRef.current);
+                  setModalEdicaoAberto(false);
+                  setPessoaExcluidaDuranteEdicao(null);
+                  setContadorFechamento(null);
+                }
+              }, 1000);
               
               console.log(`🚨 EXCLUSÃO: Pessoa ${pessoa.nome} foi excluída durante edição`);
             }
             else if (autorId !== usuario?.id) {
-              // ✏️ MODIFICAÇÃO POR OUTRO USUÁRIO: Alerta visual
+              // ✏️ MODIFICAÇÃO POR OUTRO USUÁRIO: Alerta polido
               setAlertaEdicaoAtiva({
                 pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
-                tipo: 'atualizado', 
+                tipo: 'editado', 
                 autorFuncao,
+                autorId,
                 timestamp: Date.now()
               });
               setMostrarAlertaEdicao(true);
               
-              // 🔔 Auto-esconder após 10 segundos
-              setTimeout(() => setMostrarAlertaEdicao(false), 10000);
+              // 🔔 Auto-esconder após 8 segundos
+              setTimeout(() => setMostrarAlertaEdicao(false), 8000);
               
               console.log(`⚠️ CONFLITO: Pessoa ${pessoa.nome} foi atualizada enquanto editava`);
             }
           }
           
-          // 🔍 MODAL PREVIEW: Update silencioso se for a mesma pessoa
-          if (pessoaPreviewId && pessoa?.id && 
-              String(pessoaPreviewId) === String(pessoa.id) &&
-              eventType !== 'pessoaDeletada') {
-            // Atualizar dados da pessoa selecionada silenciosamente
-            setPessoaSelecionada(prevPessoa => {
-              if (prevPessoa && prevPessoa.id === pessoa.id) {
-                console.log(`🔄 UPDATE SILENCIOSO: Preview da pessoa ${pessoa.nome} atualizado`);
-                // Buscar dados atualizados da pessoa para o preview
-                return { ...prevPessoa, ...pessoa };
-              }
-              return prevPessoa;
-            });
-          }
-          
-          // 🔍 MODAL PREVIEW: Auto-refresh silencioso
+          // 🔍 MODAL PREVIEW: Update em tempo real
           if (pessoaPreviewId && pessoa?.id && 
               String(pessoaPreviewId) === String(pessoa.id)) {
+            
             if (eventType === 'pessoaDeletada') {
-              // Fechar preview se pessoa foi excluída
+              // Fechar preview automaticamente se pessoa foi excluída
               setModalPreviewAberto(false);
               setPessoaSelecionada(null);
               console.log(`🗑️ PREVIEW FECHADO: Pessoa ${pessoa.nome} foi excluída`);
-            } else {
-              // Update silencioso dos dados
-              atualizarPessoaPreview(pessoa.id);
+              
+              // Fazer refresh automático da lista
+              setTimeout(() => {
+                carregarPessoas();
+                carregarTotaisPorComunidade();
+              }, 100);
+            } else if (eventType === 'pessoaAtualizada') {
+              // Atualizar preview em tempo real com dados mais recentes
+              console.log(`🔄 UPDATE TEMPO REAL: Preview da pessoa ${pessoa.nome} atualizado`);
+              await atualizarPessoaPreview(pessoa.id);
             }
           }
-          
-          // ✏️ MODAL EDICAO: Conflitos de modificação (só outros usuários)
-          else if (pessoaEditandoId && pessoa?.id &&
-                   String(pessoaEditandoId) === String(pessoa.id) &&
-                   autorId !== usuario?.id) {
-            
-            setAlertaEdicaoAtiva({
-              pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
-              tipo: 'atualizado',
-              autorFuncao,
-              timestamp: Date.now()
-            });
-            setMostrarAlertaEdicao(true);
-            
-            setTimeout(() => setMostrarAlertaEdicao(false), 10000);
-            console.log(`⚠️ CONFLITO: Pessoa ${pessoa.nome} foi atualizada enquanto editava`);
-          }
-          
-          // 🔍 MODAL PREVIEW: Auto-refresh silencioso
-          if (pessoaPreviewId && pessoa?.id && 
-              String(pessoaPreviewId) === String(pessoa.id)) {
-            if (eventType === 'pessoaDeletada') {
-              setModalPreviewAberto(false);
-              setPessoaSelecionada(null);
-              console.log(`🗑️ PREVIEW FECHADO: Pessoa ${pessoa.nome} foi excluída`);
-            } else {
-              atualizarPessoaPreview(pessoa.id);
-            }
-          }
+
           
           // 🔄 REFRESH INTELIGENTE: Preservar estado do usuário
           const estadoAtual = {
@@ -389,6 +367,10 @@ export const ListaPessoas = () => {
       
       if (reconnectTimeout) {
         clearTimeout(reconnectTimeout);
+      }
+      
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
       }
       
       if (eventSource) {
@@ -682,49 +664,44 @@ export const ListaPessoas = () => {
   return (
     <div className="container-lista">
       
-      {/* 🚨 ALERTA FLUTUANTE PARA CONFLITOS DE EDIÇÃO */}
+      {/* 🚨 ALERTA POLIDO PARA CONFLITOS DE EDIÇÃO */}
       {mostrarAlertaEdicao && alertaEdicaoAtiva && (
-        <div className="alerta-edicao-overlay">
+        <div className="alerta-tempo-real-overlay">
           <div 
-            className={`alerta-edicao-card ${alertaEdicaoAtiva.tipo}`}
+            className="alerta-tempo-real-card"
             onClick={() => setMostrarAlertaEdicao(false)}
           >
-            <div className="alerta-edicao-header">
-              <div className="alerta-edicao-icone-wrapper">
-                <div className="alerta-edicao-icone">
-                  {alertaEdicaoAtiva.tipo === 'excluido' ? '🗑️' : '✏️'}
+            <div className="alerta-icone">
+              ✏️
+            </div>
+            <div className="alerta-conteudo">
+              <div className="alerta-titulo">Cadastro Atualizado</div>
+              <div className="alerta-mensagem">
+                <strong>{alertaEdicaoAtiva.pessoaNome}</strong> foi editado por outro usuário.
+              </div>
+              <div className="alerta-acao">Clique para dispensar</div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 🗑️ ALERTA DE EXCLUSÃO COM CONTADOR */}
+      {pessoaExcluidaDuranteEdicao && (
+        <div className="alerta-exclusao-overlay">
+          <div className="alerta-exclusao-card">
+            <div className="alerta-exclusao-icone">
+              🗑️
+            </div>
+            <div className="alerta-exclusao-conteudo">
+              <div className="alerta-exclusao-titulo">Cadastro Removido</div>
+              <div className="alerta-exclusao-mensagem">
+                <strong>{pessoaExcluidaDuranteEdicao.pessoaNome}</strong> foi removido do sistema.
+              </div>
+              {contadorFechamento && (
+                <div className="alerta-contador">
+                  Fechando em <span className="contador-numero">{contadorFechamento}</span>s
                 </div>
-              </div>
-              <div className="alerta-edicao-badge">
-                {alertaEdicaoAtiva.tipo === 'excluido' ? 'EXCLUÍDO' : 'MODIFICADO'}
-              </div>
-            </div>
-            
-            <div className="alerta-edicao-corpo">
-              <div className="alerta-edicao-titulo">
-                Conflito de Edição Detectado
-              </div>
-              
-              <div className="alerta-edicao-mensagem">
-                O beneficiário <span className="nome-beneficiario">{alertaEdicaoAtiva.pessoaNome}</span> que você está editando foi <span className={`acao-realizada ${alertaEdicaoAtiva.tipo}`}>
-                  {alertaEdicaoAtiva.tipo === 'excluido' ? 'excluído' : 'modificado'}
-                </span> por <span className="autor">
-                  {alertaEdicaoAtiva.autorFuncao === 'admin' ? 'um administrador' : 'outro funcionário'}
-                </span>.
-              </div>
-              
-              <div className="alerta-edicao-subtexto">
-                {alertaEdicaoAtiva.tipo === 'excluido' 
-                  ? '💔 Este beneficiário foi removido do sistema.' 
-                  : '📝 Os dados foram alterados por outra pessoa.'}
-              </div>
-            </div>
-            
-            <div className="alerta-edicao-footer">
-              <div className="alerta-edicao-dica">
-                <span>💡</span>
-                Clique para fechar este alerta
-              </div>
+              )}
             </div>
           </div>
         </div>
