@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { X, Calendar, Phone, Mail, MapPin, Home, Building2 } from 'lucide-react';
 import { usePusher } from '../contexto/PusherContext';
+import { useAuth } from '../contexto/AuthContext';
 import { obterPessoa } from '../servicos/api';
 import './ModalPreview.css';
 
@@ -12,6 +13,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [alertaExclusao, setAlertaExclusao] = useState(null);
   const [pessoaIdFixo, setPessoaIdFixo] = useState(pessoa?.id);
   const { registrarCallback } = usePusher();
+  const { usuario } = useAuth();
  
   // Atualizar dados quando props mudam E o modal abre
   useEffect(() => {
@@ -35,13 +37,20 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
     const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
       if (String(evento.pessoa.id) === String(pessoaIdFixo)) {
         console.log(`✏️ ModalPreview: Pessoa ${pessoaIdFixo} foi atualizada por ${evento.autorFuncao}`);
-        console.log(`⚠️ NÃO FECHAR O MODAL - Apenas mostrar alerta`);
+        console.log(`🔍 Verificando se é o próprio usuário: autorId=${evento.autorId}, usuario.id=${usuario?.id}`);
         
-        // Mostrar alerta amarelo
-        setAlertaEdicao({
-          autorFuncao: evento.autorFuncao,
-          timestamp: evento.timestamp
-        });
+        // Apenas mostrar alerta se NÃO for o próprio usuário que editou
+        if (evento.autorId !== usuario?.id) {
+          console.log(`⚠️ NÃO FECHAR O MODAL - Apenas mostrar alerta`);
+          
+          // Mostrar alerta amarelo
+          setAlertaEdicao({
+            autorFuncao: evento.autorFuncao,
+            timestamp: evento.timestamp
+          });
+        } else {
+          console.log(`⏭️ Não mostrando alerta (é o próprio usuário que fez a edição)`);
+        }
 
         // Buscar dados atualizados imediatamente
         obterPessoa(pessoaIdFixo)
@@ -69,13 +78,20 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
       if (String(evento.pessoa.id) === String(pessoaIdFixo)) {
         console.log(`🗑️ ModalPreview: Pessoa ${pessoaIdFixo} foi deletada`);
-        console.log(`⚠️ NÃO FECHAR O MODAL - Apenas mostrar alerta vermelho`);
+        console.log(`🔍 Verificando se é o próprio usuário: autorId=${evento.autorId}, usuario.id=${usuario?.id}`);
         
-        // Mostrar alerta vermelho (NÃO fecha o modal)
-        setAlertaExclusao({
-          autorFuncao: evento.autorFuncao,
-          timestamp: evento.timestamp
-        });
+        // Apenas mostrar alerta se NÃO for o próprio usuário que deletou
+        if (evento.autorId !== usuario?.id) {
+          console.log(`⚠️ NÃO FECHAR O MODAL - Apenas mostrar alerta vermelho`);
+          
+          // Mostrar alerta vermelho (NÃO fecha o modal)
+          setAlertaExclusao({
+            autorFuncao: evento.autorFuncao,
+            timestamp: evento.timestamp
+          });
+        } else {
+          console.log(`⏭️ Não mostrando alerta (é o próprio usuário que fez a exclusão)`);
+        }
 
         setPessoaDeletada(true);
 
@@ -92,7 +108,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
       unsubDelecao();
     };
 
-  }, [isOpen, pessoaIdFixo, registrarCallback, onPessoaDeletada]);
+  }, [isOpen, pessoaIdFixo, registrarCallback, onPessoaDeletada, usuario]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -168,24 +184,6 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
             <div className="modal-badge-beneficio">{pessoaAtualizada.tipoBeneficio}</div>
           )}
         </div>
-
-        {/* Alerta amarelo - Cadastro editado */}
-        {alertaEdicao && !alertaExclusao && (
-          <div className="modal-alerta-preview modal-alerta-edicao">
-            <div className="alerta-icone">⚠️</div>
-            <div className="alerta-texto">
-              <strong>Cadastro atualizado por {alertaEdicao.autorFuncao}</strong>
-              <br />
-              <small>Os dados foram atualizados automaticamente.</small>
-            </div>
-            <button 
-              className="alerta-fechar"
-              onClick={() => setAlertaEdicao(null)}
-            >
-              ×
-            </button>
-          </div>
-        )}
 
         {/* Alerta vermelho - Cadastro excluído */}
         {alertaExclusao && (

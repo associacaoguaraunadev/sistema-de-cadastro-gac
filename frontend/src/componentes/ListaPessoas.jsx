@@ -162,11 +162,15 @@ export const ListaPessoas = () => {
       console.log(`✏️ ListaPessoas: Pessoa atualizada por ${evento.autorFuncao}`);
       console.log(`🔍 Modal de edição aberto? ${modalEdicaoAbertoRef.current}`);
       console.log(`🔍 Modal de preview aberto? ${modalPreviewAbertoRef.current}`);
+      console.log(`🔍 Verificando se é o próprio usuário: autorId=${evento.autorId}, usuario.id=${usuario?.id}`);
       
-      // NÃO mostrar alerta amarelo se modal de edição estiver aberto
-      // (para não atrapalhar a edição do usuário)
-      if (!modalEdicaoAbertoRef.current) {
-        console.log(`✅ Mostrando alerta de edição (modal não está aberto)`);
+      // NÃO mostrar alerta se:
+      // 1. Modal de edição estiver aberto (para não atrapalhar a edição do usuário)
+      // 2. Foi o próprio usuário que fez a edição
+      if (evento.autorId === usuario?.id) {
+        console.log(`⏭️ Não mostrando alerta (é o próprio usuário que fez a edição)`);
+      } else if (!modalEdicaoAbertoRef.current) {
+        console.log(`✅ Mostrando alerta de edição (modal não está aberto e não é o próprio usuário)`);
         
         // Mostrar alerta amarelo que desaparece em 10 segundos
         setAlertaEdicao({
