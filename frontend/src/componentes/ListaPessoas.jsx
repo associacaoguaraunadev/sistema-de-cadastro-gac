@@ -128,34 +128,48 @@ export const ListaPessoas = () => {
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
-  // ⚡ Sistema SSE em TEMPO REAL com callbacks imediatos
+  // ⚡ Sistema SSE em TEMPO REAL - Comunicação bilateral TOTAL
   useEffect(() => {
     console.log('⚙️ ListaPessoas: Registrando callbacks SSE globais');
 
     // Callback para quando pessoa for cadastrada
     const unsubCadastro = registrarCallback('pessoaCadastrada', (evento) => {
+      console.log(`👤 ListaPessoas: Nova pessoa cadastrada por ${evento.autorFuncao}`);
+      
+      // Mostrar aviso apenas se NÃO for o próprio usuário
       if (evento.autorId !== usuario?.id) {
-        console.log(`👤 ListaPessoas: Nova pessoa cadastrada por ${evento.autorFuncao}`);
         sucesso(`Nova pessoa "${evento.pessoa.nome}" cadastrada por ${evento.autorFuncao}`);
-        carregarPessoas();
-        carregarTotaisPorComunidade();
       }
+      
+      // SEMPRE recarregar lista (comunicação bilateral)
+      carregarPessoas();
+      carregarTotaisPorComunidade();
     });
 
     // Callback para quando pessoa for atualizada
     const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
+      console.log(`✏️ ListaPessoas: Pessoa atualizada por ${evento.autorFuncao}`);
+      
+      // Mostrar aviso apenas se NÃO for o próprio usuário
       if (evento.autorId !== usuario?.id) {
-        console.log(`✏️ ListaPessoas: Pessoa atualizada por ${evento.autorFuncao}`);
         aviso(`Pessoa "${evento.pessoa.nome}" atualizada por ${evento.autorFuncao}`);
-        carregarPessoas();
-        carregarTotaisPorComunidade();
       }
+      
+      // SEMPRE recarregar lista (comunicação bilateral)
+      carregarPessoas();
+      carregarTotaisPorComunidade();
     });
 
     // Callback para quando pessoa for deletada
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
       console.log(`🗑️ ListaPessoas: Pessoa deletada por ${evento.autorFuncao}`);
-      erroToast(`Pessoa "${evento.pessoa.nome}" removida por ${evento.autorFuncao}`);
+      
+      // Mostrar aviso APENAS se NÃO for o próprio usuário que deletou
+      if (evento.autorId !== usuario?.id) {
+        erroToast(`Pessoa "${evento.pessoa.nome}" removida por ${evento.autorFuncao}`);
+      }
+      
+      // SEMPRE recarregar lista (comunicação bilateral)
       carregarPessoas();
       carregarTotaisPorComunidade();
     });

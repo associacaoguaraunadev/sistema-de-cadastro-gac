@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
+import Pusher from 'pusher';
 import { gerarTokenGeracao, listarTokens, revogarToken } from './autenticacao/tokens.js';
 
 // Pool de conexão Prisma - CRUCIAL para serverless
@@ -15,112 +16,48 @@ function getPrisma() {
   return prisma;
 }
 
-// Sistema otimizado para alta concorrência (60+ funcionários)
-let clientesSSE = new Set();
-let ultimosEventos = new Map(); // Cache de eventos para sincronização
-let instanciaId = Math.random().toString(36).substring(7);
+// 🚀 PUSHER - Sistema Real-Time para Serverless (suporta 100 conexões simultâneas)
+let pusher;
+
+function getPusher() {
+  if (!pusher) {
+    pusher = new Pusher({
+      appId: process.env.PUSHER_APP_ID,
+      key: process.env.PUSHER_KEY,
+      secret: process.env.PUSHER_SECRET,
+      cluster: process.env.PUSHER_CLUSTER || 'us2',
+      useTLS: true
+    });
+    log('🚀 Pusher inicializado');
+  }
+  return pusher;
+}
 
 // 🛡️ RATE LIMITING POR USUÁRIO (mantido para outras funções se necessário)
 let rateLimitMap = new Map(); // userId -> { requests: number, resetTime: number }
 
-function adicionarClienteSSE(res, usuarioId) {
-  const cliente = { 
-    res, 
-    usuarioId, 
-    conectadoEm: new Date(),
-    instanciaId,
-    ativo: true
-  };
-  clientesSSE.add(cliente);
-  
-  log(`🔗 Cliente SSE conectado: ${usuarioId} na instância ${instanciaId}, Total: ${clientesSSE.size}`);
-  
-  // Limpar cliente quando conexão fechar
-  res.on('close', () => {
-    cliente.ativo = false;
-    clientesSSE.delete(cliente);
-    log(`🔌 Cliente SSE desconectado: ${usuarioId} da instância ${instanciaId}`);
-  });
-  
-  // Heartbeat otimizado para tempo real (30s)
-  const heartbeat = setInterval(() => {
-    try {
-      if (cliente.ativo && !res.destroyed) {
-        res.write(`event: heartbeat\n`);
-        res.write(`data: ${JSON.stringify({ timestamp: new Date(), instanciaId, clienteId: usuarioId })}\n\n`);
-        log(`💓 Heartbeat enviado para cliente ${usuarioId}`);
-      } else {
-        clearInterval(heartbeat);
-        cliente.ativo = false;
-        clientesSSE.delete(cliente);
-      }
-    } catch (erro) {
-      clearInterval(heartbeat);
-      cliente.ativo = false;
-      clientesSSE.delete(cliente);
-      log(`❌ Erro no heartbeat para cliente ${usuarioId}: ${erro.message}`, 'error');
-    }
-  }, 30000); // A cada 30 segundos - tempo real mais responsivo
-  
-  cliente.heartbeat = heartbeat;
-  
-  return cliente;
-}
-
-// ⚡ Sistema SIMPLES e FUNCIONAL de envio SSE
-function enviarEventoSSE(evento, dados) {
-  const eventoId = Math.random().toString(36).substring(7);
-  const timestamp = new Date().toISOString();
-  
-  log(`📤 Enviando SSE: ${evento} (ID: ${eventoId}) para ${clientesSSE.size} clientes`);
-  
-  if (clientesSSE.size === 0) {
-    log(`⚠️ Nenhum cliente SSE conectado`);
-    return;
+// ⚡ PUSHER - Enviar eventos em tempo real para TODOS os clientes (funciona em serverless)
+async function enviarEventoPusher(evento, dados) {
+  try {
+    const pusherInstance = getPusher();
+    const eventoId = Math.random().toString(36).substring(7);
+    const timestamp = new Date().toISOString();
+    
+    const payload = {
+      ...dados,
+      eventoId,
+      timestamp
+    };
+    
+    // Canal 'gac-realtime' - todos os clientes conectados recebem
+    await pusherInstance.trigger('gac-realtime', evento, payload);
+    
+    log(`🚀 Pusher: Evento ${evento} (ID: ${eventoId}) enviado com sucesso`);
+    return true;
+  } catch (erro) {
+    log(`❌ Erro ao enviar evento Pusher: ${erro.message}`, 'error');
+    return false;
   }
-
-  const eventoData = JSON.stringify({ 
-    ...dados, 
-    eventoId, 
-    timestamp
-  });
-  
-  let sucessos = 0;
-  let falhas = 0;
-  const clientesInativos = [];
-  
-  // Enviar para TODOS os clientes conectados
-  clientesSSE.forEach(cliente => {
-    try {
-      if (cliente.ativo && !cliente.res.destroyed && cliente.res.writable) {
-        cliente.res.write(`event: ${evento}\n`);
-        cliente.res.write(`data: ${eventoData}\n\n`);
-        
-        // Forçar envio imediato
-        if (cliente.res.flush) {
-          cliente.res.flush();
-        }
-        
-        sucessos++;
-        log(`✅ Evento ${evento} enviado para cliente ${cliente.usuarioId}`);
-      } else {
-        clientesInativos.push(cliente);
-        falhas++;
-      }
-    } catch (erro) {
-      log(`❌ Erro ao enviar SSE para cliente ${cliente.usuarioId}: ${erro.message}`, 'error');
-      clientesInativos.push(cliente);
-      falhas++;
-    }
-  });
-  
-  // Limpar clientes inativos
-  clientesInativos.forEach(cliente => {
-    if (cliente.heartbeat) clearInterval(cliente.heartbeat);
-    clientesSSE.delete(cliente);
-  });
-  
-  log(`📊 Resultado SSE: ${sucessos} enviados, ${falhas} falhas, ${clientesSSE.size} ativos`);
 }
 
 
@@ -1374,9 +1311,8 @@ async function pessoasCriar(req, res) {
 
     log(`✅ Pessoa criada com sucesso: ${pessoa.nome} (ID: ${pessoa.id}, Idade: ${pessoa.idade})`);
     
-    // Enviar evento SSE para todos os clientes conectados
-    log(`📡 Enviando evento SSE: pessoaCadastrada para ${clientesSSE.size} clientes`);
-    enviarEventoSSE('pessoaCadastrada', {
+    // 🚀 Enviar evento Pusher em tempo real para TODOS os clientes
+    await enviarEventoPusher('pessoaCadastrada', {
       pessoa: {
         id: pessoa.id,
         nome: pessoa.nome,
@@ -1384,8 +1320,7 @@ async function pessoasCriar(req, res) {
       },
       autorId: usuario.id,
       autorFuncao: usuario.funcao,
-      tipo: 'cadastro',
-      timestamp: new Date().toISOString()
+      tipo: 'cadastro'
     });
     
     res.status(201).json(pessoa);
@@ -1473,9 +1408,8 @@ async function pessoasAtualizar(req, res, id) {
 
     log(`✅ Pessoa atualizada com sucesso: ${pessoa.nome} (ID: ${pessoa.id})`);
     
-    // Enviar evento SSE para todos os clientes conectados
-    log(`📡 Enviando evento SSE: pessoaAtualizada para ${clientesSSE.size} clientes`);
-    enviarEventoSSE('pessoaAtualizada', {
+    // 🚀 Enviar evento Pusher em tempo real
+    await enviarEventoPusher('pessoaAtualizada', {
       pessoa: {
         id: pessoa.id,
         nome: pessoa.nome,
@@ -1483,8 +1417,7 @@ async function pessoasAtualizar(req, res, id) {
       },
       autorId: usuario.id,
       autorFuncao: usuario.funcao,
-      tipo: 'edicao',
-      timestamp: new Date().toISOString()
+      tipo: 'edicao'
     });
     
     res.status(200).json(pessoa);
@@ -1511,15 +1444,13 @@ async function pessoasDeletar(req, res, id) {
     
     await prisma.pessoa.delete({ where: { id: parseInt(id) } });
     
-    // Enviar evento SSE para todos os clientes conectados
+    // 🚀 Enviar evento Pusher em tempo real
     if (pessoaParaDeletar) {
-      log(`📡 Enviando evento SSE: pessoaDeletada para ${clientesSSE.size} clientes`);
-      enviarEventoSSE('pessoaDeletada', {
+      await enviarEventoPusher('pessoaDeletada', {
         pessoa: pessoaParaDeletar,
         autorId: usuario.id,
         autorFuncao: usuario.funcao,
-        tipo: 'delecao',
-        timestamp: new Date().toISOString()
+        tipo: 'delecao'
       });
     }
 

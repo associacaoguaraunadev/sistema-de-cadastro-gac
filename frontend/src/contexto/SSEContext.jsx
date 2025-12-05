@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import Pusher from 'pusher-js';
 import { useAuth } from './AuthContext';
 
 /**
- * Contexto SSE Global para compartilhamento de eventos em tempo real
- * Implementa callbacks imediatos para cada tipo de evento
+ * Contexto Pusher Real-Time para compartilhamento de eventos
+ * Suporta 100 conexões simultâneas (perfeito para 90 funcionários)
  */
 const SSEContext = createContext();
 
@@ -33,60 +34,55 @@ export const SSEProvider = ({ children }) => {
 
   const conectar = () => {
     if (!token || !usuario?.id) {
-      console.log('🔒 SSE: Token ou usuário não disponível');
+      console.log('🔒 Pusher: Token ou usuário não disponível');
       return;
     }
 
     try {
-      console.log('🔗 SSE Global: Tentando conectar...');
+      console.log('🚀 Pusher: Tentando conectar...');
 
-      // Fechar conexão anterior se existir
+      // Desconectar instância anterior se existir
       if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+        eventSourceRef.current.disconnect();
       }
 
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-      const sseUrl = `${baseUrl}/eventos/sse?token=${encodeURIComponent(token)}`;
+      // Criar instância Pusher
+      const pusher = new Pusher(import.meta.env.VITE_PUSHER_KEY, {
+        cluster: import.meta.env.VITE_PUSHER_CLUSTER || 'us2',
+        encrypted: true
+      });
 
-      console.log('📍 SSE Global: URL:', sseUrl);
+      eventSourceRef.current = pusher;
 
-      const eventSource = new EventSource(sseUrl);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        console.log('✅ SSE Global: Conectado com sucesso');
+      // Monitorar conexão
+      pusher.connection.bind('connected', () => {
+        console.log('✅ Pusher: Conectado com sucesso');
         setIsConnected(true);
         setConnectionStatus('connected');
         reconnectAttempts.current = 0;
-      };
-
-      eventSource.onerror = (error) => {
-        console.error('❌ SSE Global: Erro na conexão:', error);
-        setIsConnected(false);
-        setConnectionStatus('error');
-
-        if (eventSource.readyState === EventSource.CLOSED) {
-          console.log('🔌 SSE Global: Conexão fechada, tentando reconectar...');
-          reconectar();
-        }
-      };
-
-      // Eventos específicos
-      eventSource.addEventListener('connected', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('🎯 SSE Global: Conexão estabelecida:', data);
-        setConnectionStatus('connected');
       });
 
-      eventSource.addEventListener('heartbeat', (event) => {
-        console.log('💓 SSE Global: Heartbeat recebido');
-        setConnectionStatus('connected');
+      pusher.connection.bind('disconnected', () => {
+        console.log('🔌 Pusher: Desconectado');
+        setIsConnected(false);
+        setConnectionStatus('disconnected');
+      });
+
+      pusher.connection.bind('error', (error) => {
+        console.error('❌ Pusher: Erro na conexão:', error);
+        setConnectionStatus('error');
+      });
+
+      // Assinar canal 'gac-realtime'
+      const channel = pusher.subscribe('gac-realtime');
+
+      channel.bind('pusher:subscription_succeeded', () => {
+        console.log('📡 Pusher: Inscrito no canal gac-realtime');
       });
 
       // ⚡ EVENTO: Pessoa Cadastrada
-      eventSource.addEventListener('pessoaCadastrada', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('👤 SSE Global: Pessoa cadastrada em tempo real:', data.pessoa.nome);
+      channel.bind('pessoaCadastrada', (data) => {
+        console.log('👤 Pusher: Pessoa cadastrada em tempo real:', data.pessoa.nome);
 
         // Executar TODOS os callbacks registrados imediatamente
         callbacksRef.current.pessoaCadastrada.forEach(callback => {
@@ -99,9 +95,8 @@ export const SSEProvider = ({ children }) => {
       });
 
       // ⚡ EVENTO: Pessoa Atualizada
-      eventSource.addEventListener('pessoaAtualizada', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('✏️ SSE Global: Pessoa atualizada em tempo real:', data.pessoa.nome);
+      channel.bind('pessoaAtualizada', (data) => {
+        console.log('✏️ Pusher: Pessoa atualizada em tempo real:', data.pessoa.nome);
 
         // Executar TODOS os callbacks registrados imediatamente
         callbacksRef.current.pessoaAtualizada.forEach(callback => {
@@ -114,9 +109,8 @@ export const SSEProvider = ({ children }) => {
       });
 
       // ⚡ EVENTO: Pessoa Deletada
-      eventSource.addEventListener('pessoaDeletada', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('🗑️ SSE Global: Pessoa deletada em tempo real:', data.pessoa.nome);
+      channel.bind('pessoaDeletada', (data) => {
+        console.log('🗑️ Pusher: Pessoa deletada em tempo real:', data.pessoa.nome);
 
         // Executar TODOS os callbacks registrados imediatamente
         callbacksRef.current.pessoaDeletada.forEach(callback => {
@@ -128,26 +122,22 @@ export const SSEProvider = ({ children }) => {
         });
       });
 
-      eventSource.addEventListener('keepalive', () => {
-        setConnectionStatus('connected');
-      });
-
     } catch (error) {
-      console.error('❌ SSE Global: Erro ao criar conexão:', error);
+      console.error('❌ Pusher: Erro ao criar conexão:', error);
       reconectar();
     }
   };
 
   const reconectar = () => {
     if (reconnectAttempts.current >= maxReconnectAttempts) {
-      console.log('❌ SSE Global: Máximo de tentativas de reconexão atingido');
+      console.log('❌ Pusher: Máximo de tentativas de reconexão atingido');
       setConnectionStatus('failed');
       return;
     }
 
     reconnectAttempts.current++;
     const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-    console.log(`⏳ SSE Global: Tentativa ${reconnectAttempts.current}/${maxReconnectAttempts} em ${delay}ms`);
+    console.log(`⏳ Pusher: Tentativa ${reconnectAttempts.current}/${maxReconnectAttempts} em ${delay}ms`);
 
     setConnectionStatus('reconnecting');
 
@@ -157,7 +147,7 @@ export const SSEProvider = ({ children }) => {
   };
 
   const desconectar = () => {
-    console.log('🔌 SSE Global: Desconectando...');
+    console.log('🔌 Pusher: Desconectando...');
 
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
@@ -165,7 +155,7 @@ export const SSEProvider = ({ children }) => {
     }
 
     if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+      eventSourceRef.current.disconnect();
       eventSourceRef.current = null;
     }
 
