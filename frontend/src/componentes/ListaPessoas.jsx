@@ -51,6 +51,8 @@ export const ListaPessoas = () => {
   const abasWrapperRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
   const alertaTimeoutRef = useRef(null);
+  const modalEdicaoAbertoRef = useRef(false);
+  const modalPreviewAbertoRef = useRef(false);
   
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
@@ -158,22 +160,32 @@ export const ListaPessoas = () => {
     // Callback para quando pessoa for atualizada
     const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
       console.log(`✏️ ListaPessoas: Pessoa atualizada por ${evento.autorFuncao}`);
+      console.log(`🔍 Modal de edição aberto? ${modalEdicaoAbertoRef.current}`);
+      console.log(`🔍 Modal de preview aberto? ${modalPreviewAbertoRef.current}`);
       
-      // Mostrar alerta amarelo que desaparece em 10 segundos
-      setAlertaEdicao({
-        pessoaNome: evento.pessoa.nome,
-        autorFuncao: evento.autorFuncao
-      });
-      
-      // Limpar timeout anterior se existir
-      if (alertaTimeoutRef.current) {
-        clearTimeout(alertaTimeoutRef.current);
+      // NÃO mostrar alerta amarelo se modal de edição estiver aberto
+      // (para não atrapalhar a edição do usuário)
+      if (!modalEdicaoAbertoRef.current) {
+        console.log(`✅ Mostrando alerta de edição (modal não está aberto)`);
+        
+        // Mostrar alerta amarelo que desaparece em 10 segundos
+        setAlertaEdicao({
+          pessoaNome: evento.pessoa.nome,
+          autorFuncao: evento.autorFuncao
+        });
+        
+        // Limpar timeout anterior se existir
+        if (alertaTimeoutRef.current) {
+          clearTimeout(alertaTimeoutRef.current);
+        }
+        
+        // Auto-esconder após 10 segundos
+        alertaTimeoutRef.current = setTimeout(() => {
+          setAlertaEdicao(null);
+        }, 10000);
+      } else {
+        console.log(`⏭️ Modal de edição aberto, não mostrando alerta global`);
       }
-      
-      // Auto-esconder após 10 segundos
-      alertaTimeoutRef.current = setTimeout(() => {
-        setAlertaEdicao(null);
-      }, 10000);
       
       // SEMPRE recarregar lista (comunicação bilateral)
       carregarPessoas();
@@ -203,7 +215,16 @@ export const ListaPessoas = () => {
 
   }, [registrarCallback]);
 
+  // Sincronizar refs com estados dos modais
+  useEffect(() => {
+    modalEdicaoAbertoRef.current = modalEdicaoAberto;
+    console.log(`🔄 Ref modalEdicaoAberto atualizado: ${modalEdicaoAberto}`);
+  }, [modalEdicaoAberto]);
 
+  useEffect(() => {
+    modalPreviewAbertoRef.current = modalPreviewAberto;
+    console.log(`🔄 Ref modalPreviewAberto atualizado: ${modalPreviewAberto}`);
+  }, [modalPreviewAberto]);
 
   // Resetar página quando comunidade for selecionada
   useEffect(() => {

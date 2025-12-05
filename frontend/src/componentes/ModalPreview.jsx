@@ -47,6 +47,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
         obterPessoa(pessoaIdFixo)
           .then(dadosAtualizados => {
             console.log(`✅ Dados atualizados recebidos, atualizando preview`);
+            console.log(`🔒 Modal deve PERMANECER ABERTO`);
             setPessoaAtualizada(dadosAtualizados);
             // Recalcular idade
             if (dadosAtualizados.dataNascimento) {
@@ -55,8 +56,12 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
               const novaIdade = hoje.getFullYear() - nascimento.getFullYear();
               setIdadeAtualizada(novaIdade);
             }
+            console.log(`✅ Preview atualizado e modal ainda aberto`);
           })
-          .catch(erro => console.error('Erro ao atualizar preview:', erro));
+          .catch(erro => {
+            console.error('❌ Erro ao atualizar preview:', erro);
+            console.log(`🔒 Mesmo com erro, modal deve PERMANECER ABERTO`);
+          });
       }
     });
 

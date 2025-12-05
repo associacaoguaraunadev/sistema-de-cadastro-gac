@@ -521,24 +521,6 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
           </div>
         </div>
       )}
-      
-      {/* Alerta de conflito de edição */}
-      {alertaConflito && (
-        <div className="modal-alerta-conflito">
-          <div className="conflito-icone">⚠️</div>
-          <div className="conflito-texto">
-            <strong>Cadastro atualizado por {alertaConflito.autorFuncao || 'outro usuário'}</strong>
-            <br />
-            <small>Recarregue a página para ver os dados mais recentes.</small>
-          </div>
-          <button 
-            className="conflito-fechar"
-            onClick={() => setAlertaConflito(null)}
-          >
-            ×
-          </button>
-        </div>
-      )}
 
       <div 
         className={`modal-edicao-container ${pessoaExcluida ? 'bloqueado' : ''}`}
