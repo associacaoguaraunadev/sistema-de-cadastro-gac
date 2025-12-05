@@ -38,11 +38,18 @@ export const PusherProvider = ({ children }) => {
       return;
     }
 
+    // Se já está conectado, não reconectar
+    if (pusherRef.current && isConnected) {
+      console.log('✅ Pusher: Já conectado, não reconectando');
+      return;
+    }
+
     try {
       console.log('🚀 Pusher: Tentando conectar...');
 
       // Desconectar instância anterior se existir
       if (pusherRef.current) {
+        console.log('🔄 Pusher: Desconectando instância anterior');
         pusherRef.current.disconnect();
       }
 
@@ -194,22 +201,25 @@ export const PusherProvider = ({ children }) => {
     };
   }, []);
 
-  // Conectar quando token estiver disponível
+  // Conectar quando token e usuario estiverem disponíveis
   useEffect(() => {
     if (token && usuario?.id) {
+      console.log('🔌 useEffect: Token e usuario disponíveis, conectando...');
       conectar();
-    } else {
-      desconectar();
     }
 
+    // Cleanup: só desconectar se o componente for REALMENTE desmontado
+    // Não desconectar apenas porque as dependências mudaram
     return () => {
-      desconectar();
+      // Apenas log, não desconecta aqui
+      console.log('🔄 useEffect cleanup executado (dependências mudaram)');
     };
   }, [token, usuario?.id]);
 
-  // Cleanup ao desmontar
+  // Cleanup final ao desmontar o componente completamente
   useEffect(() => {
     return () => {
+      console.log('🧹 PusherContext DESMONTANDO completamente');
       desconectar();
     };
   }, []);
