@@ -131,8 +131,6 @@ export const SSEProvider = ({ children }) => {
             console.error('Erro ao executar callback pessoaDeletada:', erro);
           }
         });
-      }); }
-        });
       });
 
     } catch (error) {
