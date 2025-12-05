@@ -139,17 +139,10 @@ export const ListaPessoas = () => {
       console.log(`\n🎉🎉🎉 EVENTO PUSHER RECEBIDO: pessoaCadastrada`);
       console.log(`👤 Nova pessoa: ${evento.pessoa?.nome || 'N/A'}`);
       console.log(`👮 Cadastrada por: ${evento.autorFuncao} (ID: ${evento.autorId})`);
-      console.log(`📊 Evento completo:`, evento);
-      console.log(`🆔 Usuario atual: ${usuario?.nome} (ID: ${usuario?.id})`);
-      console.log(`🔄 Comparação IDs: ${String(evento.autorId)} !== ${String(usuario?.id)}`);
+      console.log(`📢 BIDIRECIONAL: Mostrando alerta para TODOS os usuários`);
       
-      // Mostrar toast apenas se NÃO for o próprio usuário
-      if (usuario?.id && String(evento.autorId) !== String(usuario.id)) {
-        console.log(`✅ Mostrando toast (não é o próprio usuário)`);
-        sucesso(`Nova pessoa "${evento.pessoa.nome}" cadastrada por ${evento.autorFuncao}`);
-      } else {
-        console.log(`⏭️ Não mostrando toast (é o próprio usuário)`);
-      }
+      // Mostrar toast para TODOS (bidirecional)
+      sucesso(`✨ ${evento.pessoa.nome} foi cadastrado(a)`, `Cadastrado por ${evento.autorFuncao}`);
       
       // SEMPRE recarregar lista (comunicação bilateral)
       console.log(`🔄 Recarregando lista de pessoas...`);
@@ -162,15 +155,12 @@ export const ListaPessoas = () => {
       console.log(`✏️ ListaPessoas: Pessoa atualizada por ${evento.autorFuncao}`);
       console.log(`🔍 Modal de edição aberto? ${modalEdicaoAbertoRef.current}`);
       console.log(`🔍 Modal de preview aberto? ${modalPreviewAbertoRef.current}`);
-      console.log(`🔍 Verificando se é o próprio usuário: autorId=${evento.autorId}, usuario.id=${usuario?.id}`);
+      console.log(`📢 BIDIRECIONAL: Mostrando alerta para TODOS os usuários`);
       
-      // NÃO mostrar alerta se:
-      // 1. Modal de edição estiver aberto (para não atrapalhar a edição do usuário)
-      // 2. Foi o próprio usuário que fez a edição
-      if (evento.autorId === usuario?.id) {
-        console.log(`⏭️ Não mostrando alerta (é o próprio usuário que fez a edição)`);
-      } else if (!modalEdicaoAbertoRef.current) {
-        console.log(`✅ Mostrando alerta de edição (modal não está aberto e não é o próprio usuário)`);
+      // NÃO mostrar alerta amarelo APENAS se modal de edição estiver aberto
+      // (para não atrapalhar a edição do usuário)
+      if (!modalEdicaoAbertoRef.current) {
+        console.log(`✅ Mostrando alerta de edição para TODOS (modal não está aberto)`);
         
         // Mostrar alerta amarelo que desaparece em 10 segundos
         setAlertaEdicao({
@@ -199,18 +189,13 @@ export const ListaPessoas = () => {
     // Callback para quando pessoa for deletada
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
       console.log(`🗑️ ListaPessoas: Pessoa deletada por ${evento.autorFuncao}`);
-      console.log(`🔍 Verificando se é o próprio usuário: autorId=${evento.autorId}, usuario.id=${usuario?.id}`);
+      console.log(`📢 BIDIRECIONAL: Mostrando alerta para TODOS os usuários`);
       
-      // Mostrar toast APENAS se NÃO for o próprio usuário que deletou
-      if (evento.autorId !== usuario?.id) {
-        console.log(`✅ Mostrando toast de deleção`);
-        aviso(
-          `🗑️ ${evento.pessoa.nome} foi excluído(a)`,
-          `Excluído por ${evento.autorFuncao}`
-        );
-      } else {
-        console.log(`⏭️ Não mostrando toast (é o próprio usuário)`);
-      }
+      // Mostrar toast para TODOS (bidirecional)
+      aviso(
+        `🗑️ ${evento.pessoa.nome} foi excluído(a)`,
+        `Excluído por ${evento.autorFuncao}`
+      );
       
       // SEMPRE recarregar lista (comunicação bilateral)
       carregarPessoas();

@@ -90,6 +90,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       if (String(evento.pessoa.id) === String(pessoa.id)) {
         console.log(`✅ É a mesma pessoa que está sendo editada`);
         
+        // Alerta de conflito FAZ SENTIDO apenas quando OUTRO usuário edita
         if (evento.autorId !== usuario?.id) {
           console.log(`⚠️ MOSTRANDO ALERTA DE CONFLITO - outro usuário editou`);
           
@@ -99,7 +100,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
             timestamp: evento.timestamp
           });
         } else {
-          console.log(`⏭️ Não mostrando alerta (é o próprio usuário que fez a edição)`);
+          console.log(`⏭️ Não mostrando alerta de conflito (é o próprio usuário que fez a edição)`);
         }
       } else {
         console.log(`⏭️ Pessoa diferente, ignorando evento`);

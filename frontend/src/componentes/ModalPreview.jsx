@@ -16,12 +16,13 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   // Atualizar dados quando props mudam E o modal abre
   useEffect(() => {
     if (isOpen && pessoa) {
+      console.log(`🔄 ModalPreview: Atualizando dados iniciais`, pessoa);
       setPessoaAtualizada(pessoa);
       setIdadeAtualizada(idade);
       setPessoaDeletada(false);
       setPessoaIdFixo(pessoa.id);
     }
-  }, [isOpen]);
+  }, [isOpen, pessoa, idade]);
 
   // ⚡ Sistema PUSHER em TEMPO REAL com callbacks imediatos
   useEffect(() => {
@@ -78,7 +79,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
       unsubDelecao();
     };
 
-  }, [isOpen, pessoaIdFixo, registrarCallback, onPessoaDeletada, usuario]);
+  }, [isOpen, pessoaIdFixo, registrarCallback, onPessoaDeletada]);
 
   useEffect(() => {
     if (!isOpen) return;
