@@ -35,12 +35,10 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
   const [novoBeneficioGoverno, setNovoBeneficioGoverno] = useState({ nome: '', valor: '' });
   const [mostrarGerenciadorBeneficios, setMostrarGerenciadorBeneficios] = useState(false);
   const [tiposBeneficios, setTiposBeneficios] = useState([]);
-  const [adicionandoNovoTipo, setAdicionandoNovoTipo] = useState(false);
   const [novoTipoBeneficio, setNovoTipoBeneficio] = useState('');
   const [alertaConflito, setAlertaConflito] = useState(null);
   const [pessoaExcluida, setPessoaExcluida] = useState(false);
   const [contadorFechamento, setContadorFechamento] = useState(null);
-  const { sucesso, erro: erroToast, aviso } = useGlobalToast();
   const { token, usuario } = useAuth();
   const { registrarCallback } = useSSEGlobal();
 
@@ -92,8 +90,6 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
           timestamp: evento.timestamp
         });
 
-        aviso(`Cadastro atualizado por ${evento.autorFuncao}`);
-
         // Auto-esconder após 5 segundos
         setTimeout(() => setAlertaConflito(null), 5000);
       }
@@ -105,7 +101,6 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
         console.log(`🗑️ ModalEdicao: Pessoa ${pessoa.id} foi deletada`);
         
         setPessoaExcluida(true);
-        erroToast(`Cadastro foi removido por ${evento.autorFuncao}`);
 
         let contador = 5;
         setContadorFechamento(contador);
@@ -130,7 +125,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       unsubDelecao();
     };
 
-  }, [isOpen, pessoa?.id, usuario?.id, registrarCallback, onClose, aviso, erroToast]);
+  }, [isOpen, pessoa?.id, usuario?.id, registrarCallback, onClose, erroToast]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -528,24 +523,6 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
         </div>
       )}
       
-      {/* Alerta de conflito de edição */}
-      {alertaConflito && (
-        <div className="modal-alerta-conflito">
-          <div className="conflito-icone">⚠️</div>
-          <div className="conflito-texto">
-            <strong>Alteração detectada:</strong> Este cadastro foi atualizado por {alertaConflito.autorFuncao || 'outro usuário'}.
-            <br />
-            <small>Verifique as mudanças antes de continuar editando.</small>
-          </div>
-          <button 
-            className="conflito-fechar"
-            onClick={() => setAlertaConflito(null)}
-          >
-            ×
-          </button>
-        </div>
-      )}
-
       <div 
         className={`modal-edicao-container ${pessoaExcluida ? 'bloqueado' : ''}`}
         onClick={(e) => e.stopPropagation()}
