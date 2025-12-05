@@ -10,27 +10,32 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [pessoaDeletada, setPessoaDeletada] = useState(false);
   const [alertaEdicao, setAlertaEdicao] = useState(null);
   const [alertaExclusao, setAlertaExclusao] = useState(null);
+  const [pessoaIdFixo, setPessoaIdFixo] = useState(pessoa?.id);
   const { registrarCallback } = usePusher();
  
-  // Atualizar dados quando props mudam
+  // Atualizar dados quando props mudam E o modal abre
   useEffect(() => {
-    setPessoaAtualizada(pessoa);
-    setIdadeAtualizada(idade);
-    setPessoaDeletada(false);
-    setAlertaEdicao(null);
-    setAlertaExclusao(null);
-  }, [pessoa, idade]);
+    if (isOpen && pessoa) {
+      setPessoaAtualizada(pessoa);
+      setIdadeAtualizada(idade);
+      setPessoaDeletada(false);
+      setAlertaEdicao(null);
+      setAlertaExclusao(null);
+      setPessoaIdFixo(pessoa.id);
+    }
+  }, [isOpen]);
 
   // ⚡ Sistema PUSHER em TEMPO REAL com callbacks imediatos
   useEffect(() => {
-    if (!isOpen || !pessoaAtualizada?.id) return;
+    if (!isOpen || !pessoaIdFixo) return;
 
-    console.log(`⚙️ ModalPreview: Registrando callbacks para pessoa ${pessoaAtualizada.id}`);
+    console.log(`⚙️ ModalPreview: Registrando callbacks para pessoa ${pessoaIdFixo}`);
 
     // Callback para quando pessoa for atualizada
     const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
-      if (String(evento.pessoa.id) === String(pessoaAtualizada.id)) {
-        console.log(`✏️ ModalPreview: Pessoa ${pessoaAtualizada.id} foi atualizada por ${evento.autorFuncao}`);
+      if (String(evento.pessoa.id) === String(pessoaIdFixo)) {
+        console.log(`✏️ ModalPreview: Pessoa ${pessoaIdFixo} foi atualizada por ${evento.autorFuncao}`);
+        console.log(`⚠️ NÃO FECHAR O MODAL - Apenas mostrar alerta`);
         
         // Mostrar alerta amarelo
         setAlertaEdicao({
@@ -39,8 +44,9 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
         });
 
         // Buscar dados atualizados imediatamente
-        obterPessoa(pessoaAtualizada.id)
+        obterPessoa(pessoaIdFixo)
           .then(dadosAtualizados => {
+            console.log(`✅ Dados atualizados recebidos, atualizando preview`);
             setPessoaAtualizada(dadosAtualizados);
             // Recalcular idade
             if (dadosAtualizados.dataNascimento) {
@@ -56,8 +62,9 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
 
     // Callback para quando pessoa for deletada
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
-      if (String(evento.pessoa.id) === String(pessoaAtualizada.id)) {
-        console.log(`🗑️ ModalPreview: Pessoa ${pessoaAtualizada.id} foi deletada`);
+      if (String(evento.pessoa.id) === String(pessoaIdFixo)) {
+        console.log(`🗑️ ModalPreview: Pessoa ${pessoaIdFixo} foi deletada`);
+        console.log(`⚠️ NÃO FECHAR O MODAL - Apenas mostrar alerta vermelho`);
         
         // Mostrar alerta vermelho (NÃO fecha o modal)
         setAlertaExclusao({
@@ -80,7 +87,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
       unsubDelecao();
     };
 
-  }, [isOpen, pessoaAtualizada?.id, registrarCallback, onPessoaDeletada]);
+  }, [isOpen, pessoaIdFixo, registrarCallback, onPessoaDeletada]);
 
   useEffect(() => {
     if (!isOpen) return;
