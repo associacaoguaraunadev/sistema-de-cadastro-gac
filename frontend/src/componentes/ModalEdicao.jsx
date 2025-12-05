@@ -91,9 +91,6 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
           autorFuncao: evento.autorFuncao,
           timestamp: evento.timestamp
         });
-
-        // Auto-esconder após 5 segundos
-        setTimeout(() => setAlertaConflito(null), 5000);
       }
     });
 
@@ -103,14 +100,6 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
         console.log(`🗑️ ModalEdicao: Pessoa ${pessoa.id} foi deletada`);
         
         setPessoaExcluida(true);
-        
-        // Notificar componente pai (ListaPessoas) para mostrar alerta
-        window.dispatchEvent(new CustomEvent('pessoaExcluidaDuranteEdicao', {
-          detail: {
-            pessoaNome: evento.pessoa.nome,
-            autorFuncao: evento.autorFuncao
-          }
-        }));
 
         let contador = 5;
         setContadorFechamento(contador);
@@ -538,9 +527,9 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
         <div className="modal-alerta-conflito">
           <div className="conflito-icone">⚠️</div>
           <div className="conflito-texto">
-            <strong>Alteração detectada:</strong> Este cadastro foi atualizado por {alertaConflito.autorFuncao || 'outro usuário'}.
+            <strong>Cadastro atualizado por {alertaConflito.autorFuncao || 'outro usuário'}</strong>
             <br />
-            <small>Verifique as mudanças antes de continuar editando.</small>
+            <small>Recarregue a página para ver os dados mais recentes.</small>
           </div>
           <button 
             className="conflito-fechar"

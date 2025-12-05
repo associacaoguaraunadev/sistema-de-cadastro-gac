@@ -43,12 +43,8 @@ export const ListaPessoas = () => {
   const [pessoaParaDeleter, setPessoaParaDeleter] = useState(null);
   const [deletandoPessoa, setDeletandoPessoa] = useState(false);
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
-  // ✨ ESTADOS PARA AUTO-REFRESH E ALERTAS ESPECÍFICOS
+  // ✨ ESTADOS PARA AUTO-REFRESH
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(Date.now());
-  const [alertaEdicaoAtiva, setAlertaEdicaoAtiva] = useState(null);
-  const [mostrarAlertaEdicao, setMostrarAlertaEdicao] = useState(false);
-  const [pessoaExcluidaDuranteEdicao, setPessoaExcluidaDuranteEdicao] = useState(null);
-  const [contadorFechamento, setContadorFechamento] = useState(null);
   const timeoutRef = useRef(null);
   const intervalRef = useRef(null);
   const abasWrapperRef = useRef(null);
@@ -359,32 +355,7 @@ export const ListaPessoas = () => {
     return () => window.removeEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
   }, []);
 
-  // Escutar exclusões durante edição
-  useEffect(() => {
-    const handleExclusaoDuranteEdicao = (e) => {
-      setPessoaExcluidaDuranteEdicao(e.detail);
-      
-      // Auto-limpar após 5 segundos
-      let contador = 5;
-      setContadorFechamento(contador);
-      
-      const interval = setInterval(() => {
-        contador--;
-        setContadorFechamento(contador);
-        
-        if (contador <= 0) {
-          clearInterval(interval);
-          setPessoaExcluidaDuranteEdicao(null);
-          setContadorFechamento(null);
-        }
-      }, 1000);
-      
-      return () => clearInterval(interval);
-    };
-    
-    window.addEventListener('pessoaExcluidaDuranteEdicao', handleExclusaoDuranteEdicao);
-    return () => window.removeEventListener('pessoaExcluidaDuranteEdicao', handleExclusaoDuranteEdicao);
-  }, []);
+
 
   // Efeito para adicionar apenas NOVAS comunidades das pessoas (sem sobrescrever)
   useEffect(() => {
@@ -484,50 +455,6 @@ export const ListaPessoas = () => {
 
   return (
     <div className="container-lista">
-      
-      {/* 🚨 ALERTA POLIDO PARA CONFLITOS DE EDIÇÃO */}
-      {mostrarAlertaEdicao && alertaEdicaoAtiva && (
-        <div className="alerta-tempo-real-overlay">
-          <div 
-            className="alerta-tempo-real-card"
-            onClick={() => setMostrarAlertaEdicao(false)}
-          >
-            <div className="alerta-icone">
-              ✏️
-            </div>
-            <div className="alerta-conteudo">
-              <div className="alerta-titulo">Cadastro Atualizado</div>
-              <div className="alerta-mensagem">
-                <strong>{alertaEdicaoAtiva.pessoaNome}</strong> foi editado por outro usuário.
-              </div>
-              <div className="alerta-acao">Clique para dispensar</div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* 🗑️ ALERTA DE EXCLUSÃO COM CONTADOR */}
-      {pessoaExcluidaDuranteEdicao && (
-        <div className="alerta-exclusao-overlay">
-          <div className="alerta-exclusao-card">
-            <div className="alerta-exclusao-icone">
-              🗑️
-            </div>
-            <div className="alerta-exclusao-conteudo">
-              <div className="alerta-exclusao-titulo">Cadastro Removido</div>
-              <div className="alerta-exclusao-mensagem">
-                <strong>{pessoaExcluidaDuranteEdicao.pessoaNome}</strong> foi removido do sistema.
-              </div>
-              {contadorFechamento && (
-                <div className="alerta-contador">
-                  Fechando em <span className="contador-numero">{contadorFechamento}</span>s
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       <main className="conteudo-lista">
         <div className="barra-acoes">
           <div className="campo-busca">
