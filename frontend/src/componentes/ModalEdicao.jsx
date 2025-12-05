@@ -40,9 +40,9 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
   const [alertaConflito, setAlertaConflito] = useState(null);
   const [pessoaExcluida, setPessoaExcluida] = useState(false);
   const [contadorFechamento, setContadorFechamento] = useState(null);
-  const { sucesso, erro: erroToast } = useGlobalToast();
+  const { sucesso, erro: erroToast, aviso } = useGlobalToast();
   const { token, usuario } = useAuth();
-  const { ultimosEventos } = useSSEGlobal();
+  const { registrarCallback } = useSSEGlobal();
 
   // Carregar tipos de benefícios do localStorage
   useEffect(() => {
@@ -75,50 +75,62 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
     }
   }, [pessoa, isOpen]);
 
-  // Sistema de SSE para detectar mudanças em tempo real
+  // ⚡ Sistema SSE em TEMPO REAL com callbacks imediatos
   useEffect(() => {
-    if (!isOpen || !pessoa?.id || !ultimosEventos) return;
+    if (!isOpen || !pessoa?.id) return;
 
-    const eventoAtualizacao = ultimosEventos.pessoaAtualizada;
-    const eventoDelecao = ultimosEventos.pessoaDeletada;
+    console.log(`⚙️ ModalEdicao: Registrando callbacks para pessoa ${pessoa.id}`);
 
-    // Verificar se houve atualização desta pessoa por outro usuário
-    if (eventoAtualizacao?.pessoa?.id &&
-        String(eventoAtualizacao.pessoa.id) === String(pessoa.id) &&
-        eventoAtualizacao.autorId !== usuario?.id) {
+    // Callback para quando pessoa for atualizada
+    const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
+      if (String(evento.pessoa.id) === String(pessoa.id) && evento.autorId !== usuario?.id) {
+        console.log(`✏️ ModalEdicao: Pessoa ${pessoa.id} foi atualizada por ${evento.autorFuncao}`);
+        
+        setAlertaConflito({
+          tipo: 'editado',
+          autorFuncao: evento.autorFuncao,
+          timestamp: evento.timestamp
+        });
 
-      setAlertaConflito({
-        tipo: 'editado',
-        autorFuncao: eventoAtualizacao.autorFuncao,
-        timestamp: eventoAtualizacao.timestamp
-      });
+        aviso(`Cadastro atualizado por ${evento.autorFuncao}`);
 
-      // Auto-esconder após 8 segundos
-      setTimeout(() => setAlertaConflito(null), 8000);
-    }
+        // Auto-esconder após 5 segundos
+        setTimeout(() => setAlertaConflito(null), 5000);
+      }
+    });
 
-    // Verificar se a pessoa foi excluída
-    if (eventoDelecao?.pessoa?.id &&
-        String(eventoDelecao.pessoa.id) === String(pessoa.id)) {
+    // Callback para quando pessoa for deletada
+    const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
+      if (String(evento.pessoa.id) === String(pessoa.id)) {
+        console.log(`🗑️ ModalEdicao: Pessoa ${pessoa.id} foi deletada`);
+        
+        setPessoaExcluida(true);
+        erroToast(`Cadastro foi removido por ${evento.autorFuncao}`);
 
-      setPessoaExcluida(true);
-      let contador = 5;
-      setContadorFechamento(contador);
-
-      const interval = setInterval(() => {
-        contador--;
+        let contador = 5;
         setContadorFechamento(contador);
 
-        if (contador <= 0) {
-          clearInterval(interval);
-          onClose();
-        }
-      }, 1000);
+        const interval = setInterval(() => {
+          contador--;
+          setContadorFechamento(contador);
 
-      return () => clearInterval(interval);
-    }
+          if (contador <= 0) {
+            clearInterval(interval);
+            onClose();
+          }
+        }, 1000);
 
-  }, [isOpen, pessoa?.id, ultimosEventos, usuario?.id, onClose]);
+        return () => clearInterval(interval);
+      }
+    });
+
+    // Limpar callbacks ao fechar modal
+    return () => {
+      unsubAtualizacao();
+      unsubDelecao();
+    };
+
+  }, [isOpen, pessoa?.id, usuario?.id, registrarCallback, onClose, aviso, erroToast]);
 
   useEffect(() => {
     if (!isOpen) return;

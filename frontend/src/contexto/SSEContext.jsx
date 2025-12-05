@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 
 /**
  * Contexto SSE Global para compartilhamento de eventos em tempo real
- * Permite que todos os componentes recebam eventos SSE de forma centralizada
+ * Implementa callbacks imediatos para cada tipo de evento
  */
 const SSEContext = createContext();
 
@@ -24,11 +24,11 @@ export const SSEProvider = ({ children }) => {
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 10;
 
-  // Estado para armazenar os últimos eventos por tipo
-  const [ultimosEventos, setUltimosEventos] = useState({
-    pessoaCadastrada: null,
-    pessoaAtualizada: null,
-    pessoaDeletada: null
+  // Callbacks para cada tipo de evento (em vez de apenas armazenar eventos)
+  const callbacksRef = useRef({
+    pessoaCadastrada: [],
+    pessoaAtualizada: [],
+    pessoaDeletada: []
   });
 
   const conectar = () => {
@@ -60,10 +60,6 @@ export const SSEProvider = ({ children }) => {
         reconnectAttempts.current = 0;
       };
 
-      eventSource.onmessage = (event) => {
-        console.log('📨 SSE Global: Mensagem recebida:', event);
-      };
-
       eventSource.onerror = (error) => {
         console.error('❌ SSE Global: Erro na conexão:', error);
         setIsConnected(false);
@@ -83,53 +79,56 @@ export const SSEProvider = ({ children }) => {
       });
 
       eventSource.addEventListener('heartbeat', (event) => {
-        const data = JSON.parse(event.data);
-        console.log('💓 SSE Global: Heartbeat:', data.instanciaId);
+        console.log('💓 SSE Global: Heartbeat recebido');
         setConnectionStatus('connected');
       });
 
-      // Eventos de pessoas
+      // ⚡ EVENTO: Pessoa Cadastrada
       eventSource.addEventListener('pessoaCadastrada', (event) => {
         const data = JSON.parse(event.data);
-        console.log('👤 SSE Global: Pessoa cadastrada:', data);
+        console.log('👤 SSE Global: Pessoa cadastrada em tempo real:', data.pessoa.nome);
 
-        setUltimosEventos(prev => ({
-          ...prev,
-          pessoaCadastrada: { ...data, timestamp: Date.now() }
-        }));
-
-        // Disparar evento global para outros componentes
-        window.dispatchEvent(new CustomEvent('sse:pessoaCadastrada', { detail: data }));
+        // Executar TODOS os callbacks registrados imediatamente
+        callbacksRef.current.pessoaCadastrada.forEach(callback => {
+          try {
+            callback(data);
+          } catch (erro) {
+            console.error('Erro ao executar callback pessoaCadastrada:', erro);
+          }
+        });
       });
 
+      // ⚡ EVENTO: Pessoa Atualizada
       eventSource.addEventListener('pessoaAtualizada', (event) => {
         const data = JSON.parse(event.data);
-        console.log('✏️ SSE Global: Pessoa atualizada:', data);
+        console.log('✏️ SSE Global: Pessoa atualizada em tempo real:', data.pessoa.nome);
 
-        setUltimosEventos(prev => ({
-          ...prev,
-          pessoaAtualizada: { ...data, timestamp: Date.now() }
-        }));
-
-        // Disparar evento global para outros componentes
-        window.dispatchEvent(new CustomEvent('sse:pessoaAtualizada', { detail: data }));
+        // Executar TODOS os callbacks registrados imediatamente
+        callbacksRef.current.pessoaAtualizada.forEach(callback => {
+          try {
+            callback(data);
+          } catch (erro) {
+            console.error('Erro ao executar callback pessoaAtualizada:', erro);
+          }
+        });
       });
 
+      // ⚡ EVENTO: Pessoa Deletada
       eventSource.addEventListener('pessoaDeletada', (event) => {
         const data = JSON.parse(event.data);
-        console.log('🗑️ SSE Global: Pessoa deletada:', data);
+        console.log('🗑️ SSE Global: Pessoa deletada em tempo real:', data.pessoa.nome);
 
-        setUltimosEventos(prev => ({
-          ...prev,
-          pessoaDeletada: { ...data, timestamp: Date.now() }
-        }));
-
-        // Disparar evento global para outros componentes
-        window.dispatchEvent(new CustomEvent('sse:pessoaDeletada', { detail: data }));
+        // Executar TODOS os callbacks registrados imediatamente
+        callbacksRef.current.pessoaDeletada.forEach(callback => {
+          try {
+            callback(data);
+          } catch (erro) {
+            console.error('Erro ao executar callback pessoaDeletada:', erro);
+          }
+        });
       });
 
       eventSource.addEventListener('keepalive', () => {
-        // Keepalive - apenas manter conexão
         setConnectionStatus('connected');
       });
 
@@ -174,6 +173,26 @@ export const SSEProvider = ({ children }) => {
     setConnectionStatus('disconnected');
   };
 
+  // Função para registrar callbacks
+  const registrarCallback = useCallback((tipo, callback) => {
+    if (!callbacksRef.current[tipo]) {
+      console.error(`Tipo de evento inválido: ${tipo}`);
+      return () => {};
+    }
+
+    callbacksRef.current[tipo].push(callback);
+    console.log(`✅ Callback registrado para: ${tipo} (Total: ${callbacksRef.current[tipo].length})`);
+
+    // Retornar função para remover callback
+    return () => {
+      const index = callbacksRef.current[tipo].indexOf(callback);
+      if (index > -1) {
+        callbacksRef.current[tipo].splice(index, 1);
+        console.log(`❌ Callback removido para: ${tipo} (Total: ${callbacksRef.current[tipo].length})`);
+      }
+    };
+  }, []);
+
   // Conectar quando token estiver disponível
   useEffect(() => {
     if (token && usuario?.id) {
@@ -197,7 +216,7 @@ export const SSEProvider = ({ children }) => {
   const value = {
     isConnected,
     connectionStatus,
-    ultimosEventos,
+    registrarCallback,
     conectar,
     desconectar
   };

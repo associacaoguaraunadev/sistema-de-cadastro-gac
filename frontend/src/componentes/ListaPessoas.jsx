@@ -57,7 +57,7 @@ export const ListaPessoas = () => {
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
   const { sucesso, erro: erroToast, aviso } = useGlobalToast();
-  const { ultimosEventos, isConnected } = useSSEGlobal();
+  const { registrarCallback, isConnected } = useSSEGlobal();
   const LIMITE = 200;
 
   // Restaurar estado do localStorage ao carregar a página
@@ -128,45 +128,46 @@ export const ListaPessoas = () => {
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
-  // Sistema SSE global para auto-refresh em tempo real
+  // ⚡ Sistema SSE em TEMPO REAL com callbacks imediatos
   useEffect(() => {
-    if (!ultimosEventos) return;
+    console.log('⚙️ ListaPessoas: Registrando callbacks SSE globais');
 
-    const eventoCadastro = ultimosEventos.pessoaCadastrada;
-    const eventoAtualizacao = ultimosEventos.pessoaAtualizada;
-    const eventoDelecao = ultimosEventos.pessoaDeletada;
+    // Callback para quando pessoa for cadastrada
+    const unsubCadastro = registrarCallback('pessoaCadastrada', (evento) => {
+      if (evento.autorId !== usuario?.id) {
+        console.log(`👤 ListaPessoas: Nova pessoa cadastrada por ${evento.autorFuncao}`);
+        sucesso(`Nova pessoa "${evento.pessoa.nome}" cadastrada por ${evento.autorFuncao}`);
+        carregarPessoas();
+        carregarTotaisPorComunidade();
+      }
+    });
 
-    // Verificar se houve algum evento recente (últimos 5 segundos)
-    const agora = Date.now();
-    const eventosRecentes = [eventoCadastro, eventoAtualizacao, eventoDelecao]
-      .filter(evento => evento && (agora - evento.timestamp) < 5000);
+    // Callback para quando pessoa for atualizada
+    const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
+      if (evento.autorId !== usuario?.id) {
+        console.log(`✏️ ListaPessoas: Pessoa atualizada por ${evento.autorFuncao}`);
+        aviso(`Pessoa "${evento.pessoa.nome}" atualizada por ${evento.autorFuncao}`);
+        carregarPessoas();
+        carregarTotaisPorComunidade();
+      }
+    });
 
-    if (eventosRecentes.length > 0) {
-      console.log('🔄 SSE Global: Detectados eventos recentes, atualizando lista');
+    // Callback para quando pessoa for deletada
+    const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
+      console.log(`🗑️ ListaPessoas: Pessoa deletada por ${evento.autorFuncao}`);
+      erroToast(`Pessoa "${evento.pessoa.nome}" removida por ${evento.autorFuncao}`);
+      carregarPessoas();
+      carregarTotaisPorComunidade();
+    });
 
-      // Mostrar avisos específicos para cada tipo de evento
-      eventosRecentes.forEach(evento => {
-        if (evento.autorId !== usuario?.id) { // Só mostrar avisos de outros usuários
-          if (evento.tipo === 'cadastro') {
-            sucesso(`Nova pessoa "${evento.pessoa.nome}" cadastrada por ${evento.autorFuncao}`);
-          } else if (evento.tipo === 'edicao') {
-            aviso(`Pessoa "${evento.pessoa.nome}" atualizada por ${evento.autorFuncao}`);
-          } else if (evento.tipo === 'delecao') {
-            erroToast(`Pessoa "${evento.pessoa.nome}" removida por ${evento.autorFuncao}`);
-          }
-        }
-      });
+    // Limpar callbacks ao desmontar
+    return () => {
+      unsubCadastro();
+      unsubAtualizacao();
+      unsubDelecao();
+    };
 
-      // Auto-refresh silencioso da lista
-      Promise.all([
-        carregarPessoas(),
-        carregarTotaisPorComunidade()
-      ]).catch(erro => {
-        console.error('Erro no auto-refresh SSE:', erro);
-      });
-    }
-
-  }, [ultimosEventos, usuario?.id, sucesso, aviso, erroToast]);
+  }, [registrarCallback, usuario?.id, sucesso, aviso, erroToast]);
 
 
 

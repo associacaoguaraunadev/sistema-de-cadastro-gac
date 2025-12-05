@@ -8,71 +8,69 @@ import './ModalPreview.css';
 const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [pessoaAtualizada, setPessoaAtualizada] = useState(pessoa);
   const [idadeAtualizada, setIdadeAtualizada] = useState(idade);
-  const { ultimosEventos } = useSSEGlobal();
-  const { erro, aviso } = useGlobalToast();
+  const [pessoaDeletada, setPessoaDeletada] = useState(false);
+  const { registrarCallback } = useSSEGlobal();
+  const { aviso, erro } = useGlobalToast();
 
   // Atualizar dados quando props mudam
   useEffect(() => {
     setPessoaAtualizada(pessoa);
     setIdadeAtualizada(idade);
+    setPessoaDeletada(false);
   }, [pessoa, idade]);
 
-  // Sistema SSE para atualização em tempo real
+  // ⚡ Sistema SSE em TEMPO REAL com callbacks imediatos
   useEffect(() => {
-    if (!isOpen || !pessoaAtualizada?.id || !ultimosEventos) return;
+    if (!isOpen || !pessoaAtualizada?.id) return;
 
-    const eventoAtualizacao = ultimosEventos.pessoaAtualizada;
-    const eventoDelecao = ultimosEventos.pessoaDeletada;
+    console.log(`⚙️ ModalPreview: Registrando callbacks para pessoa ${pessoaAtualizada.id}`);
 
-    // Verificar se houve atualização desta pessoa
-    if (eventoAtualizacao?.pessoa?.id &&
-        String(eventoAtualizacao.pessoa.id) === String(pessoaAtualizada.id)) {
+    // Callback para quando pessoa for atualizada
+    const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
+      if (String(evento.pessoa.id) === String(pessoaAtualizada.id)) {
+        console.log(`✏️ ModalPreview: Pessoa ${pessoaAtualizada.id} foi atualizada por ${evento.autorFuncao}`);
+        
+        // Mostrar aviso sutil
+        aviso(`Atualizado por ${evento.autorFuncao}`);
 
-      console.log('🔄 ModalPreview: Atualizando dados em tempo real');
-      
-      // Mostrar aviso sutil de atualização
-      aviso(`Pessoa "${eventoAtualizacao.pessoa.nome}" foi atualizada por outro usuário`);
-      
-      // Buscar dados atualizados da pessoa
-      obterPessoa(pessoaAtualizada.id)
-        .then(dadosAtualizados => {
-          setPessoaAtualizada(dadosAtualizados);
-          // Recalcular idade se necessário
-          if (dadosAtualizados.dataNascimento) {
-            const hoje = new Date();
-            const nascimento = new Date(dadosAtualizados.dataNascimento);
-            const novaIdade = hoje.getFullYear() - nascimento.getFullYear();
-            setIdadeAtualizada(novaIdade);
-          }
-        })
-        .catch(erro => {
-          console.error('Erro ao atualizar preview:', erro);
-        });
-    }
-
-    // Verificar se a pessoa foi excluída - manter modal aberto mas atualizar lista
-    if (eventoDelecao?.pessoa?.id &&
-        String(eventoDelecao.pessoa.id) === String(pessoaAtualizada.id)) {
-
-      console.log('🗑️ ModalPreview: Pessoa excluída, mantendo modal aberto e atualizando lista');
-      
-      // Mostrar aviso global
-      erro(`Pessoa "${eventoDelecao.pessoa.nome}" foi removida do sistema por outro usuário`);
-      
-      // Atualizar lista
-      if (onPessoaDeletada) {
-        onPessoaDeletada();
+        // Buscar dados atualizados imediatamente
+        obterPessoa(pessoaAtualizada.id)
+          .then(dadosAtualizados => {
+            setPessoaAtualizada(dadosAtualizados);
+            // Recalcular idade
+            if (dadosAtualizados.dataNascimento) {
+              const hoje = new Date();
+              const nascimento = new Date(dadosAtualizados.dataNascimento);
+              const novaIdade = hoje.getFullYear() - nascimento.getFullYear();
+              setIdadeAtualizada(novaIdade);
+            }
+          })
+          .catch(erro => console.error('Erro ao atualizar preview:', erro));
       }
-      
-      // Marcar como deletada no preview
-      setPessoaAtualizada(prev => ({
-        ...prev,
-        _deletada: true,
-        _mensagemDelecao: 'Esta pessoa foi removida do sistema por outro usuário'
-      }));
-    }
+    });
 
-  }, [isOpen, pessoaAtualizada?.id, ultimosEventos, onClose]);
+    // Callback para quando pessoa for deletada
+    const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
+      if (String(evento.pessoa.id) === String(pessoaAtualizada.id)) {
+        console.log(`🗑️ ModalPreview: Pessoa ${pessoaAtualizada.id} foi deletada`);
+        
+        setPessoaDeletada(true);
+        erro(`Removido por ${evento.autorFuncao}`);
+
+        // Atualizar lista no fundo
+        if (onPessoaDeletada) {
+          onPessoaDeletada();
+        }
+      }
+    });
+
+    // Limpar callbacks ao fechar modal
+    return () => {
+      unsubAtualizacao();
+      unsubDelecao();
+    };
+
+  }, [isOpen, pessoaAtualizada?.id, registrarCallback, onPessoaDeletada, aviso, erro]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -150,11 +148,11 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
         </div>
 
         {/* Aviso de pessoa deletada */}
-        {pessoaAtualizada._deletada && (
+        {pessoaDeletada && (
           <div className="modal-aviso-delecao">
             <div className="aviso-icone">⚠️</div>
             <div className="aviso-texto">
-              {pessoaAtualizada._mensagemDelecao}
+              Esta pessoa foi removida do sistema. A lista foi atualizada.
             </div>
           </div>
         )}
