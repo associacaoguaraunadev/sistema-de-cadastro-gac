@@ -155,21 +155,15 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
           )}
         </div>
 
-        {/* Alerta vermelho - Cadastro excluído */}
-        {alertaExclusao && (
+        {/* Alerta de cadastro excluído (se deletado) */}
+        {pessoaDeletada && (
           <div className="modal-alerta-preview modal-alerta-exclusao">
             <div className="alerta-icone">🗑️</div>
             <div className="alerta-texto">
-              <strong>Cadastro removido por {alertaExclusao.autorFuncao}</strong>
+              <strong>Este cadastro foi removido do sistema</strong>
               <br />
-              <small>Este cadastro foi excluído do sistema.</small>
+              <small>Os dados abaixo são apenas para referência.</small>
             </div>
-            <button 
-              className="alerta-fechar"
-              onClick={() => setAlertaExclusao(null)}
-            >
-              ×
-            </button>
           </div>
         )}
 
