@@ -199,6 +199,18 @@ export const ListaPessoas = () => {
     // Callback para quando pessoa for deletada
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
       console.log(`🗑️ ListaPessoas: Pessoa deletada por ${evento.autorFuncao}`);
+      console.log(`🔍 Verificando se é o próprio usuário: autorId=${evento.autorId}, usuario.id=${usuario?.id}`);
+      
+      // Mostrar toast APENAS se NÃO for o próprio usuário que deletou
+      if (evento.autorId !== usuario?.id) {
+        console.log(`✅ Mostrando toast de deleção`);
+        aviso(
+          `🗑️ ${evento.pessoa.nome} foi excluído(a)`,
+          `Excluído por ${evento.autorFuncao}`
+        );
+      } else {
+        console.log(`⏭️ Não mostrando toast (é o próprio usuário)`);
+      }
       
       // SEMPRE recarregar lista (comunicação bilateral)
       carregarPessoas();

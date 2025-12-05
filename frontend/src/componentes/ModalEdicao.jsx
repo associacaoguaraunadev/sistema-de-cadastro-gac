@@ -83,14 +83,26 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
 
     // Callback para quando pessoa for atualizada
     const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
-      if (String(evento.pessoa.id) === String(pessoa.id) && evento.autorId !== usuario?.id) {
-        console.log(`✏️ ModalEdicao: Pessoa ${pessoa.id} foi atualizada por ${evento.autorFuncao}`);
+      console.log(`🔔 ModalEdicao: Evento pessoaAtualizada recebido`);
+      console.log(`🔍 evento.pessoa.id: ${evento.pessoa.id}, pessoa.id: ${pessoa.id}`);
+      console.log(`🔍 evento.autorId: ${evento.autorId}, usuario.id: ${usuario?.id}`);
+      
+      if (String(evento.pessoa.id) === String(pessoa.id)) {
+        console.log(`✅ É a mesma pessoa que está sendo editada`);
         
-        setAlertaConflito({
-          tipo: 'editado',
-          autorFuncao: evento.autorFuncao,
-          timestamp: evento.timestamp
-        });
+        if (evento.autorId !== usuario?.id) {
+          console.log(`⚠️ MOSTRANDO ALERTA DE CONFLITO - outro usuário editou`);
+          
+          setAlertaConflito({
+            tipo: 'editado',
+            autorFuncao: evento.autorFuncao,
+            timestamp: evento.timestamp
+          });
+        } else {
+          console.log(`⏭️ Não mostrando alerta (é o próprio usuário que fez a edição)`);
+        }
+      } else {
+        console.log(`⏭️ Pessoa diferente, ignorando evento`);
       }
     });
 
@@ -532,8 +544,12 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
             <small>Recarregue a página para ver os dados mais recentes.</small>
           </div>
           <button 
+            type="button"
             className="conflito-fechar"
-            onClick={() => setAlertaConflito(null)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setAlertaConflito(null);
+            }}
           >
             ×
           </button>

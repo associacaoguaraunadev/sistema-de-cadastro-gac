@@ -9,8 +9,6 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [pessoaAtualizada, setPessoaAtualizada] = useState(pessoa);
   const [idadeAtualizada, setIdadeAtualizada] = useState(idade);
   const [pessoaDeletada, setPessoaDeletada] = useState(false);
-  const [alertaEdicao, setAlertaEdicao] = useState(null);
-  const [alertaExclusao, setAlertaExclusao] = useState(null);
   const [pessoaIdFixo, setPessoaIdFixo] = useState(pessoa?.id);
   const { registrarCallback } = usePusher();
   const { usuario } = useAuth();
@@ -21,8 +19,6 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
       setPessoaAtualizada(pessoa);
       setIdadeAtualizada(idade);
       setPessoaDeletada(false);
-      setAlertaEdicao(null);
-      setAlertaExclusao(null);
       setPessoaIdFixo(pessoa.id);
     }
   }, [isOpen]);
@@ -37,26 +33,13 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
     const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
       if (String(evento.pessoa.id) === String(pessoaIdFixo)) {
         console.log(`✏️ ModalPreview: Pessoa ${pessoaIdFixo} foi atualizada por ${evento.autorFuncao}`);
-        console.log(`🔍 Verificando se é o próprio usuário: autorId=${evento.autorId}, usuario.id=${usuario?.id}`);
+        console.log(`🔄 Atualizando dados em tempo real SILENCIOSAMENTE (sem alertas)`);
         
-        // Apenas mostrar alerta se NÃO for o próprio usuário que editou
-        if (evento.autorId !== usuario?.id) {
-          console.log(`⚠️ NÃO FECHAR O MODAL - Apenas mostrar alerta`);
-          
-          // Mostrar alerta amarelo
-          setAlertaEdicao({
-            autorFuncao: evento.autorFuncao,
-            timestamp: evento.timestamp
-          });
-        } else {
-          console.log(`⏭️ Não mostrando alerta (é o próprio usuário que fez a edição)`);
-        }
-
-        // Buscar dados atualizados imediatamente
+        // Buscar dados atualizados imediatamente e silenciosamente
         obterPessoa(pessoaIdFixo)
           .then(dadosAtualizados => {
-            console.log(`✅ Dados atualizados recebidos, atualizando preview`);
-            console.log(`🔒 Modal deve PERMANECER ABERTO`);
+            console.log(`✅ Dados atualizados recebidos, atualizando preview silenciosamente`);
+            console.log(`🔒 Modal PERMANECE ABERTO`);
             setPessoaAtualizada(dadosAtualizados);
             // Recalcular idade
             if (dadosAtualizados.dataNascimento) {
@@ -65,11 +48,11 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
               const novaIdade = hoje.getFullYear() - nascimento.getFullYear();
               setIdadeAtualizada(novaIdade);
             }
-            console.log(`✅ Preview atualizado e modal ainda aberto`);
+            console.log(`✅ Preview atualizado silenciosamente - modal ainda aberto`);
           })
           .catch(erro => {
             console.error('❌ Erro ao atualizar preview:', erro);
-            console.log(`🔒 Mesmo com erro, modal deve PERMANECER ABERTO`);
+            console.log(`🔒 Mesmo com erro, modal PERMANECE ABERTO`);
           });
       }
     });
@@ -78,21 +61,8 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
       if (String(evento.pessoa.id) === String(pessoaIdFixo)) {
         console.log(`🗑️ ModalPreview: Pessoa ${pessoaIdFixo} foi deletada`);
-        console.log(`🔍 Verificando se é o próprio usuário: autorId=${evento.autorId}, usuario.id=${usuario?.id}`);
+        console.log(`🔒 Marcando como deletada - modal PERMANECE ABERTO`);
         
-        // Apenas mostrar alerta se NÃO for o próprio usuário que deletou
-        if (evento.autorId !== usuario?.id) {
-          console.log(`⚠️ NÃO FECHAR O MODAL - Apenas mostrar alerta vermelho`);
-          
-          // Mostrar alerta vermelho (NÃO fecha o modal)
-          setAlertaExclusao({
-            autorFuncao: evento.autorFuncao,
-            timestamp: evento.timestamp
-          });
-        } else {
-          console.log(`⏭️ Não mostrando alerta (é o próprio usuário que fez a exclusão)`);
-        }
-
         setPessoaDeletada(true);
 
         // Atualizar lista no fundo
