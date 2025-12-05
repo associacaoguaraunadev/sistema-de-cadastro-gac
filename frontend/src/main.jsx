@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexto/AuthContext';
 import { ToastProvider } from './contexto/ToastContext';
-import { SSEProvider } from './contexto/SSEContext';
+import { PusherProvider } from './contexto/PusherContext';
 import { ToastContainer } from './componentes/Toast';
 import { useGlobalToast } from './contexto/ToastContext';
 import { RotaPrivada } from './componentes/RotaPrivada';
@@ -131,9 +131,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-          <SSEProvider>
+          <PusherProvider>
             <AppWrapper />
-          </SSEProvider>
+          </PusherProvider>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>

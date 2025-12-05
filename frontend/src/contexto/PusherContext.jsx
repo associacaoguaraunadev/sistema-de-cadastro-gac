@@ -6,21 +6,21 @@ import { useAuth } from './AuthContext';
  * Contexto Pusher Real-Time para compartilhamento de eventos
  * Suporta 100 conexões simultâneas (perfeito para 90 funcionários)
  */
-const SSEContext = createContext();
+const PusherContext = createContext();
 
-export const useSSEGlobal = () => {
-  const context = useContext(SSEContext);
+export const usePusher = () => {
+  const context = useContext(PusherContext);
   if (!context) {
-    throw new Error('useSSEGlobal deve ser usado dentro de um SSEProvider');
+    throw new Error('usePusher deve ser usado dentro de um PusherProvider');
   }
   return context;
 };
 
-export const SSEProvider = ({ children }) => {
+export const PusherProvider = ({ children }) => {
   const { token, usuario } = useAuth();
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
-  const eventSourceRef = useRef(null);
+  const pusherRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 10;
@@ -42,8 +42,8 @@ export const SSEProvider = ({ children }) => {
       console.log('🚀 Pusher: Tentando conectar...');
 
       // Desconectar instância anterior se existir
-      if (eventSourceRef.current) {
-        eventSourceRef.current.disconnect();
+      if (pusherRef.current) {
+        pusherRef.current.disconnect();
       }
 
       // Criar instância Pusher
@@ -56,7 +56,7 @@ export const SSEProvider = ({ children }) => {
         encrypted: true
       });
 
-      eventSourceRef.current = pusher;
+      pusherRef.current = pusher;
 
       // Monitorar conexão
       pusher.connection.bind('connected', () => {
@@ -165,9 +165,9 @@ export const SSEProvider = ({ children }) => {
       reconnectTimeoutRef.current = null;
     }
 
-    if (eventSourceRef.current) {
-      eventSourceRef.current.disconnect();
-      eventSourceRef.current = null;
+    if (pusherRef.current) {
+      pusherRef.current.disconnect();
+      pusherRef.current = null;
     }
 
     setIsConnected(false);
@@ -223,8 +223,8 @@ export const SSEProvider = ({ children }) => {
   };
 
   return (
-    <SSEContext.Provider value={value}>
+    <PusherContext.Provider value={value}>
       {children}
-    </SSEContext.Provider>
+    </PusherContext.Provider>
   );
 };
