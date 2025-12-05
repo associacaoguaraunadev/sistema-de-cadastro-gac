@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { atualizarPessoa, validarCPF } from '../servicos/api';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { useAuth } from '../contexto/AuthContext';
+import { useSSEGlobal } from '../contexto/SSEContext';
 import GerenciadorBeneficiosGAC from './GerenciadorBeneficiosGAC';
 import CampoComunidade from './CampoComunidade';
 import './ModalEdicao.css';
@@ -41,6 +42,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
   const [contadorFechamento, setContadorFechamento] = useState(null);
   const { sucesso, erro: erroToast } = useGlobalToast();
   const { token, usuario } = useAuth();
+  const { ultimosEventos } = useSSEGlobal();
 
   // Carregar tipos de benefícios do localStorage
   useEffect(() => {
@@ -75,52 +77,48 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
 
   // Sistema de SSE para detectar mudanças em tempo real
   useEffect(() => {
-    if (!isOpen || !pessoa?.id) return;
+    if (!isOpen || !pessoa?.id || !ultimosEventos) return;
 
-    // Escutar eventos SSE globais para detectar conflitos
-    const handleSSEEvent = (event) => {
-      const data = event.detail;
-      
-      if (data.pessoa?.id && String(data.pessoa.id) === String(pessoa.id)) {
-        if (data.tipo === 'delecao') {
-          // Pessoa foi excluída - bloquear edição e iniciar contador
-          setPessoaExcluida(true);
-          let contador = 5;
-          setContadorFechamento(contador);
-          
-          const interval = setInterval(() => {
-            contador--;
-            setContadorFechamento(contador);
-            
-            if (contador <= 0) {
-              clearInterval(interval);
-              onClose();
-            }
-          }, 1000);
-          
-          return () => clearInterval(interval);
-        } else if (data.tipo === 'edicao' && data.autorId !== usuario?.id) {
-          // Pessoa foi editada por outro usuário - mostrar alerta
-          setAlertaConflito({
-            tipo: 'editado',
-            autorFuncao: data.autorFuncao,
-            timestamp: Date.now()
-          });
-          
-          setTimeout(() => setAlertaConflito(null), 8000);
+    const eventoAtualizacao = ultimosEventos.pessoaAtualizada;
+    const eventoDelecao = ultimosEventos.pessoaDeletada;
+
+    // Verificar se houve atualização desta pessoa por outro usuário
+    if (eventoAtualizacao?.pessoa?.id &&
+        String(eventoAtualizacao.pessoa.id) === String(pessoa.id) &&
+        eventoAtualizacao.autorId !== usuario?.id) {
+
+      setAlertaConflito({
+        tipo: 'editado',
+        autorFuncao: eventoAtualizacao.autorFuncao,
+        timestamp: eventoAtualizacao.timestamp
+      });
+
+      // Auto-esconder após 8 segundos
+      setTimeout(() => setAlertaConflito(null), 8000);
+    }
+
+    // Verificar se a pessoa foi excluída
+    if (eventoDelecao?.pessoa?.id &&
+        String(eventoDelecao.pessoa.id) === String(pessoa.id)) {
+
+      setPessoaExcluida(true);
+      let contador = 5;
+      setContadorFechamento(contador);
+
+      const interval = setInterval(() => {
+        contador--;
+        setContadorFechamento(contador);
+
+        if (contador <= 0) {
+          clearInterval(interval);
+          onClose();
         }
-      }
-    };
+      }, 1000);
 
-    // Escutar eventos customizados do SSE
-    window.addEventListener('pessoaAtualizada', handleSSEEvent);
-    window.addEventListener('pessoaDeletada', handleSSEEvent);
+      return () => clearInterval(interval);
+    }
 
-    return () => {
-      window.removeEventListener('pessoaAtualizada', handleSSEEvent);
-      window.removeEventListener('pessoaDeletada', handleSSEEvent);
-    };
-  }, [isOpen, pessoa?.id, usuario?.id, onClose]);
+  }, [isOpen, pessoa?.id, ultimosEventos, usuario?.id, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;

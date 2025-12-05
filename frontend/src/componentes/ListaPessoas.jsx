@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { useGlobalToast } from '../contexto/ToastContext';
+import { useSSEGlobal } from '../contexto/SSEContext';
 import { obterPessoas, deletarPessoa, obterTotaisPorComunidade } from '../servicos/api';
 import { Plus, Edit2, Trash2, Search, Users, Baby, User, Heart } from 'lucide-react';
 import { FiltroAvancado } from './FiltroAvancado';
@@ -56,6 +57,7 @@ export const ListaPessoas = () => {
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
   const { sucesso, erro: erroToast, aviso } = useGlobalToast();
+  const { ultimosEventos, isConnected } = useSSEGlobal();
   const LIMITE = 200;
 
   // Restaurar estado do localStorage ao carregar a página
@@ -126,258 +128,32 @@ export const ListaPessoas = () => {
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
-  // Sistema inteligente de auto-refresh com SSE (Server-Sent Events) + suporte para Vercel
+  // Sistema SSE global para auto-refresh em tempo real
   useEffect(() => {
-    if (!token || !usuario?.id) return;
+    if (!ultimosEventos) return;
 
-    let eventSource;
-    let reconnectTimeout;
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 5;
-    let isIntentionalClose = false;
+    const eventoCadastro = ultimosEventos.pessoaCadastrada;
+    const eventoAtualizacao = ultimosEventos.pessoaAtualizada;
+    const eventoDelecao = ultimosEventos.pessoaDeletada;
 
-    const connectSSE = () => {
-      try {
-        console.log('🔗 Tentando conectar ao SSE...');
-        
-        const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-        const sseUrl = `${baseUrl}/eventos/sse?token=${encodeURIComponent(token)}`;
-        console.log('📍 URL SSE:', sseUrl);
-        
-        eventSource = new EventSource(sseUrl);
-        
-        eventSource.onopen = () => {
-          console.log('✅ SSE conectado com sucesso');
-          console.log('🔍 DEBUG: Usuário conectado ao SSE:', {
-            id: usuario?.id,
-            funcao: usuario?.funcao,
-            email: usuario?.email
-          });
-          reconnectAttempts = 0; // Reset contador de tentativas
-        };
-        
-        eventSource.onmessage = (event) => {
-          console.log('📨 Mensagem SSE recebida:', event);
-        };
-        
-        // 💓 HEARTBEAT SIMPLES: Apenas manter conexão ativa  
-        eventSource.addEventListener('heartbeat', (event) => {
-          const data = JSON.parse(event.data);
-          console.log('💓 Conexão ativa:', data.instanciaId);
-        });
-        
-        eventSource.onerror = (error) => {
-          console.error('❌ Erro SSE:', error);
-          console.error('📊 Estado da conexão:', eventSource.readyState);
-          
-          if (eventSource.readyState === EventSource.CLOSED) {
-            console.log('🔌 Conexão SSE foi fechada');
-            
-            // Reconectar automaticamente se não foi fechamento intencional
-            if (!isIntentionalClose && reconnectAttempts < maxReconnectAttempts) {
-              reconnectAttempts++;
-              const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Backoff exponencial
-              console.log(`🔄 Tentativa de reconexão ${reconnectAttempts}/${maxReconnectAttempts} em ${delay}ms`);
-              
-              reconnectTimeout = setTimeout(() => {
-                connectSSE();
-              }, delay);
-            }
-          }
-        };
+    // Verificar se houve algum evento recente (últimos 5 segundos)
+    const agora = Date.now();
+    const eventosRecentes = [eventoCadastro, eventoAtualizacao, eventoDelecao]
+      .filter(evento => evento && (agora - evento.timestamp) < 5000);
 
-        // 🎯 AUTO-REFRESH FLUIDO COM DETECÇÃO DE CONFLITOS DE EDIÇÃO
-        const handleSSEEvent = async (eventType, data) => {
-          console.log(`📡 Auto-refresh acionado: ${eventType}`, data);
-          
-          const { autorId, autorFuncao, pessoa } = data;
-          
-          // 🔍 VERIFICAR CONFLITOS EM MODAIS ABERTOS
-          const modalEdicaoAberto = document.querySelector('[data-modal="edicao"]');
-          const modalPreviewAberto = document.querySelector('[data-modal="preview"]');
-          const pessoaEditandoId = modalEdicaoAberto?.getAttribute('data-pessoa-id');
-          const pessoaPreviewId = modalPreviewAberto?.getAttribute('data-pessoa-id');
-          
-          // 📝 MODAL EDICAO: Detectar conflitos durante edição
-          if (pessoaEditandoId && pessoa?.id && 
-              String(pessoaEditandoId) === String(pessoa.id)) {
-            
-            if (eventType === 'pessoaDeletada') {
-              // 🗑️ EXCLUSÃO DURANTE EDIÇÃO: Bloquear modal e iniciar contador
-              setPessoaExcluidaDuranteEdicao({
-                pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
-                autorFuncao,
-                isProprioUsuario: autorId === usuario?.id,
-                timestamp: Date.now()
-              });
-              
-              // Iniciar contador de 5 segundos
-              let contador = 5;
-              setContadorFechamento(contador);
-              
-              intervalRef.current = setInterval(() => {
-                contador--;
-                setContadorFechamento(contador);
-                
-                if (contador <= 0) {
-                  clearInterval(intervalRef.current);
-                  setModalEdicaoAberto(false);
-                  setPessoaExcluidaDuranteEdicao(null);
-                  setContadorFechamento(null);
-                }
-              }, 1000);
-              
-              console.log(`🚨 EXCLUSÃO: Pessoa ${pessoa.nome} foi excluída durante edição`);
-            }
-            else if (autorId !== usuario?.id) {
-              // ✏️ MODIFICAÇÃO POR OUTRO USUÁRIO: Alerta polido
-              setAlertaEdicaoAtiva({
-                pessoaNome: pessoa.nome || `ID ${pessoa.id}`,
-                tipo: 'editado', 
-                autorFuncao,
-                autorId,
-                timestamp: Date.now()
-              });
-              setMostrarAlertaEdicao(true);
-              
-              // 🔔 Auto-esconder após 8 segundos
-              setTimeout(() => setMostrarAlertaEdicao(false), 8000);
-              
-              console.log(`⚠️ CONFLITO: Pessoa ${pessoa.nome} foi atualizada enquanto editava`);
-            }
-          }
-          
-          // 🔍 MODAL PREVIEW: Update em tempo real
-          if (pessoaPreviewId && pessoa?.id && 
-              String(pessoaPreviewId) === String(pessoa.id)) {
-            
-            if (eventType === 'pessoaDeletada') {
-              // Fechar preview automaticamente se pessoa foi excluída
-              setModalPreviewAberto(false);
-              setPessoaSelecionada(null);
-              console.log(`🗑️ PREVIEW FECHADO: Pessoa ${pessoa.nome} foi excluída`);
-              
-              // Fazer refresh automático da lista
-              setTimeout(() => {
-                carregarPessoas();
-                carregarTotaisPorComunidade();
-              }, 100);
-            } else if (eventType === 'pessoaAtualizada') {
-              // Atualizar preview em tempo real com dados mais recentes
-              console.log(`🔄 UPDATE TEMPO REAL: Preview da pessoa ${pessoa.nome} atualizado`);
-              await atualizarPessoaPreview(pessoa.id);
-            }
-          }
+    if (eventosRecentes.length > 0) {
+      console.log('🔄 SSE Global: Detectados eventos recentes, atualizando lista');
 
-          
-          // 🔄 REFRESH INTELIGENTE: Preservar estado do usuário
-          const estadoAtual = {
-            scrollY: window.scrollY,
-            paginaAtual: pagina,
-            buscaAtual: busca,
-            filtrosAtuais: { ...filtrosAvancados },
-            elementoFocado: document.activeElement?.id
-          };
-          
-          console.log(`🎯 Auto-refresh por ${autorFuncao} ${autorId === usuario?.id ? '(eu mesmo)' : '(outro usuário)'}`);
-          
-          // 🚀 ATUALIZAÇÃO FLUIDA: Sem interromper o usuário
-          try {
-            // Salvar referência dos IDs atuais para detectar mudanças
-            const idsAnteriores = new Set(pessoas.map(p => p.id));
-            
-            // Recarregar dados mantendo filtros e paginação
-            await Promise.all([
-              carregarPessoas(),
-              carregarTotaisPorComunidade()
-            ]);
-            
-            // 📊 FEEDBACK VISUAL SUTIL (apenas para debug)
-            if (autorId !== usuario?.id) {
-              console.log(`✨ Dados atualizados automaticamente por ${autorFuncao}`);
-            }
-            
-            // 🎯 RESTAURAR ESTADO: Manter experiência fluida
-            setTimeout(() => {
-              // Restaurar scroll se não mudou muito
-              if (Math.abs(window.scrollY - estadoAtual.scrollY) < 100) {
-                window.scrollTo({ top: estadoAtual.scrollY, behavior: 'smooth' });
-              }
-              
-              // Restaurar foco se elemento ainda existe
-              if (estadoAtual.elementoFocado) {
-                const elemento = document.getElementById(estadoAtual.elementoFocado);
-                if (elemento && elemento.isConnected) {
-                  elemento.focus();
-                }
-              }
-            }, 100);
-            
-          } catch (erro) {
-            console.error('❌ Erro no auto-refresh:', erro);
-          }
-        };
+      // Auto-refresh silencioso da lista
+      Promise.all([
+        carregarPessoas(),
+        carregarTotaisPorComunidade()
+      ]).catch(erro => {
+        console.error('Erro no auto-refresh SSE:', erro);
+      });
+    }
 
-        // Eventos específicos
-        eventSource.addEventListener('pessoaCadastrada', (event) => {
-          const data = JSON.parse(event.data);
-          handleSSEEvent('pessoaCadastrada', data);
-        });
-
-        eventSource.addEventListener('pessoaAtualizada', (event) => {
-          const data = JSON.parse(event.data);
-          handleSSEEvent('pessoaAtualizada', data);
-        });
-
-        eventSource.addEventListener('pessoaDeletada', (event) => {
-          const data = JSON.parse(event.data);
-          handleSSEEvent('pessoaDeletada', data);
-        });
-
-        // Listener para eventos de conexão
-        eventSource.addEventListener('connected', (event) => {
-          const data = JSON.parse(event.data);
-          console.log('🎯 Conexão SSE estabelecida:', data);
-        });
-
-
-        
-      } catch (error) {
-        console.error('❌ Erro ao criar conexão SSE:', error);
-        
-        // Tentar reconectar se possível
-        if (reconnectAttempts < maxReconnectAttempts) {
-          reconnectAttempts++;
-          const delay = Math.min(1000 * reconnectAttempts, 10000);
-          console.log(`🔄 Erro na conexão, tentando novamente em ${delay}ms`);
-          
-          reconnectTimeout = setTimeout(() => {
-            connectSSE();
-          }, delay);
-        }
-      }
-    };
-
-    // Iniciar primeira conexão
-    connectSSE();
-
-    return () => {
-      console.log('🔌 Desconectando SSE...');
-      isIntentionalClose = true;
-      
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-      }
-      
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      
-      if (eventSource) {
-        eventSource.close();
-      }
-    };
-  }, [token, usuario?.id, usuario?.funcao]);
+  }, [ultimosEventos]);
 
 
 

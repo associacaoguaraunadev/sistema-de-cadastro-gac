@@ -1729,3 +1729,178 @@ input[type="date"] {
   -webkit-user-select: none !important;
   pointer-events: none !important;
 }
+
+/* ALERTAS DE TEMPO REAL NO MODAL DE EDIÇÃO */
+
+/* Overlay de bloqueio para pessoa excluída */
+.modal-bloqueio-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(239, 68, 68, 0.95);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  border-radius: 12px;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-bloqueio-card {
+  background: white;
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 400px;
+  animation: scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bloqueio-icone {
+  font-size: 48px;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+
+.bloqueio-titulo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #dc2626;
+  margin-bottom: 8px;
+}
+
+.bloqueio-mensagem {
+  font-size: 16px;
+  color: #374151;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.bloqueio-contador {
+  font-size: 14px;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.contador-numero {
+  display: inline-block;
+  background: #dc2626;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  margin: 0 4px;
+  animation: pulse 1s infinite;
+}
+
+/* Alerta de conflito de edição */
+.modal-alerta-conflito {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 2px solid #f39c12;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 8px 32px rgba(243, 156, 18, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 1500;
+  animation: slideInRight 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.conflito-icone {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.conflito-texto {
+  flex: 1;
+  font-size: 14px;
+  color: #b7791f;
+  font-weight: 600;
+}
+
+.conflito-fechar {
+  background: none;
+  border: none;
+  color: #b7791f;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.conflito-fechar:hover {
+  opacity: 1;
+}
+
+/* Modal bloqueado */
+.modal-edicao-container.bloqueado {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Animações */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Responsivo */
+@media (max-width: 480px) {
+  .modal-bloqueio-card {
+    margin: 20px;
+    padding: 24px 20px;
+  }
+
+  .modal-alerta-conflito {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    padding: 12px 16px;
+  }
+
+  .bloqueio-icone {
+    font-size: 36px;
+  }
+
+  .bloqueio-titulo {
+    font-size: 18px;
+  }
+}

@@ -1,16 +1,58 @@
 import React, { useEffect, useState } from 'react';
 import { X, Calendar, Phone, Mail, MapPin, Home, Building2 } from 'lucide-react';
+import { useSSEGlobal } from '../contexto/SSEContext';
+import { obterPessoa } from '../servicos/api';
 import './ModalPreview.css';
 
 const ModalPreview = ({ pessoa, idade, isOpen, onClose }) => {
   const [pessoaAtualizada, setPessoaAtualizada] = useState(pessoa);
   const [idadeAtualizada, setIdadeAtualizada] = useState(idade);
+  const { ultimosEventos } = useSSEGlobal();
 
   // Atualizar dados quando props mudam
   useEffect(() => {
     setPessoaAtualizada(pessoa);
     setIdadeAtualizada(idade);
   }, [pessoa, idade]);
+
+  // Sistema SSE para atualização em tempo real
+  useEffect(() => {
+    if (!isOpen || !pessoaAtualizada?.id || !ultimosEventos) return;
+
+    const eventoAtualizacao = ultimosEventos.pessoaAtualizada;
+    const eventoDelecao = ultimosEventos.pessoaDeletada;
+
+    // Verificar se houve atualização desta pessoa
+    if (eventoAtualizacao?.pessoa?.id &&
+        String(eventoAtualizacao.pessoa.id) === String(pessoaAtualizada.id)) {
+
+      console.log('🔄 ModalPreview: Atualizando dados em tempo real');
+      // Buscar dados atualizados da pessoa
+      obterPessoa(pessoaAtualizada.id)
+        .then(dadosAtualizados => {
+          setPessoaAtualizada(dadosAtualizados);
+          // Recalcular idade se necessário
+          if (dadosAtualizados.dataNascimento) {
+            const hoje = new Date();
+            const nascimento = new Date(dadosAtualizados.dataNascimento);
+            const novaIdade = hoje.getFullYear() - nascimento.getFullYear();
+            setIdadeAtualizada(novaIdade);
+          }
+        })
+        .catch(erro => {
+          console.error('Erro ao atualizar preview:', erro);
+        });
+    }
+
+    // Verificar se a pessoa foi excluída - fechar modal
+    if (eventoDelecao?.pessoa?.id &&
+        String(eventoDelecao.pessoa.id) === String(pessoaAtualizada.id)) {
+
+      console.log('🗑️ ModalPreview: Pessoa excluída, fechando modal');
+      onClose();
+    }
+
+  }, [isOpen, pessoaAtualizada?.id, ultimosEventos, onClose]);
 
   useEffect(() => {
     if (!isOpen) return;
