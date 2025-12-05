@@ -99,6 +99,8 @@ export const SSEProvider = ({ children }) => {
             console.error('Erro ao executar callback pessoaCadastrada:', erro);
           }
         });
+      });
+
       // ⚡ EVENTO: Pessoa Atualizada
       channel.bind('pessoaAtualizada', (data) => {
         console.log('✏️ Pusher: Pessoa atualizada em tempo real:', data.pessoa.nome);
@@ -113,8 +115,8 @@ export const SSEProvider = ({ children }) => {
             console.error('Erro ao executar callback pessoaAtualizada:', erro);
           }
         });
-      }); }
-        });
+      });
+
       // ⚡ EVENTO: Pessoa Deletada
       channel.bind('pessoaDeletada', (data) => {
         console.log('🗑️ Pusher: Pessoa deletada em tempo real:', data.pessoa.nome);
