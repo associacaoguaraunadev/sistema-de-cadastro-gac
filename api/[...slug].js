@@ -67,110 +67,63 @@ function adicionarClienteSSE(res, usuarioId) {
   return cliente;
 }
 
-// Sistema aprimorado de envio SSE com suporte a múltiplas instâncias Vercel
+// ⚡ Sistema SIMPLES e FUNCIONAL de envio SSE
 function enviarEventoSSE(evento, dados) {
   const eventoId = Math.random().toString(36).substring(7);
   const timestamp = new Date().toISOString();
   
-  log(`📤 Preparando envio SSE: ${evento} (ID: ${eventoId}) da instância ${instanciaId} para ${clientesSSE.size} clientes`);
+  log(`📤 Enviando SSE: ${evento} (ID: ${eventoId}) para ${clientesSSE.size} clientes`);
   
-  // Armazenar evento no cache para sincronização entre instâncias
-  ultimosEventos.set(eventoId, {
-    evento,
-    dados,
-    timestamp,
-    instanciaOrigem: instanciaId
-  });
-  
-  // Limpar eventos antigos (manter apenas os últimos 10)
-  if (ultimosEventos.size > 10) {
-    const primeirachave = ultimosEventos.keys().next().value;
-    ultimosEventos.delete(primeirachave);
-  }
-  
-  // Enviar para clientes locais desta instância
-  enviarParaClientesLocais(evento, dados, eventoId);
-  
-  // Broadcast global para outras possíveis instâncias via sistema de heartbeat
-  broadcastGlobal(evento, dados, eventoId, timestamp);
-}
-
-function enviarParaClientesLocais(evento, dados, eventoId) {
   if (clientesSSE.size === 0) {
-    log(`⚠️ Nenhum cliente SSE local conectado para receber evento: ${evento}`, 'error');
+    log(`⚠️ Nenhum cliente SSE conectado`);
     return;
   }
 
   const eventoData = JSON.stringify({ 
     ...dados, 
     eventoId, 
-    instanciaOrigem: instanciaId,
-    timestamp: new Date().toISOString(),
-    priority: 'high' // Marcação de prioridade alta para eventos de edição
+    timestamp
   });
   
   let sucessos = 0;
-  let erros = 0;
-  const clientesParaRemover = new Set();
+  let falhas = 0;
+  const clientesInativos = [];
   
+  // Enviar para TODOS os clientes conectados
   clientesSSE.forEach(cliente => {
     try {
       if (cliente.ativo && !cliente.res.destroyed && cliente.res.writable) {
-        log(`📨 Enviando ${evento} para cliente ${cliente.usuarioId} (instância ${cliente.instanciaId})...`);
-        
-        // Envio otimizado com confirmação de entrega e prioridade alta
         cliente.res.write(`event: ${evento}\n`);
         cliente.res.write(`data: ${eventoData}\n\n`);
         
-        // Forçar flush múltiplas vezes para garantir envio imediato em tempo real
+        // Forçar envio imediato
         if (cliente.res.flush) {
           cliente.res.flush();
         }
-        // Tentar flush adicional se disponível
-        if (cliente.res.socket && cliente.res.socket.flush) {
-          cliente.res.socket.flush();
-        }
         
         sucessos++;
-        log(`✅ Evento ${evento} entregue para cliente ${cliente.usuarioId}`);
+        log(`✅ Evento ${evento} enviado para cliente ${cliente.usuarioId}`);
       } else {
-        log(`🚫 Cliente ${cliente.usuarioId} inativo, marcando para remoção...`);
-        clientesParaRemover.add(cliente);
-        erros++;
+        clientesInativos.push(cliente);
+        falhas++;
       }
     } catch (erro) {
       log(`❌ Erro ao enviar SSE para cliente ${cliente.usuarioId}: ${erro.message}`, 'error');
-      cliente.ativo = false;
-      if (cliente.heartbeat) clearInterval(cliente.heartbeat);
-      clientesParaRemover.add(cliente);
-      erros++;
+      clientesInativos.push(cliente);
+      falhas++;
     }
   });
   
   // Limpar clientes inativos
-  clientesParaRemover.forEach(cliente => {
+  clientesInativos.forEach(cliente => {
+    if (cliente.heartbeat) clearInterval(cliente.heartbeat);
     clientesSSE.delete(cliente);
   });
   
-  log(`📊 Resultado envio local SSE: ${sucessos} sucessos, ${erros} erros, ${clientesSSE.size} clientes ativos`);
+  log(`📊 Resultado SSE: ${sucessos} enviados, ${falhas} falhas, ${clientesSSE.size} ativos`);
 }
 
-// Sistema de broadcast global para múltiplas instâncias Vercel
-async function broadcastGlobal(evento, dados, eventoId, timestamp) {
-  try {
-    log(`🌐 Iniciando broadcast global do evento ${evento} (ID: ${eventoId})`);
-    
-    // Nota: Em um ambiente serverless, não podemos garantir comunicação direta entre instâncias
-    // O sistema de heartbeat + cache de eventos já ajuda na sincronização
-    // Para uma solução completa, seria necessário usar Redis, WebSockets externos, ou Pusher
-    
-    // Por enquanto, confiamos no sistema de polling que será implementado no frontend
-    log(`✅ Broadcast global registrado para evento ${evento}`);
-    
-  } catch (erro) {
-    log(`❌ Erro no broadcast global: ${erro.message}`, 'error');
-  }
-}
+
 
 // CORS Handler
 function setCors(res) {

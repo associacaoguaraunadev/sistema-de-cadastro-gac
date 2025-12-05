@@ -52,15 +52,19 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
     // Callback para quando pessoa for deletada
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
       if (String(evento.pessoa.id) === String(pessoaAtualizada.id)) {
-        console.log(`🗑️ ModalPreview: Pessoa ${pessoaAtualizada.id} foi deletada`);
+        console.log(`🗑️ ModalPreview: Pessoa ${pessoaAtualizada.id} foi deletada, fechando preview`);
         
-        setPessoaDeletada(true);
-        erro(`Removido por ${evento.autorFuncao}`);
+        erro(`Cadastro removido por ${evento.autorFuncao}`);
 
         // Atualizar lista no fundo
         if (onPessoaDeletada) {
           onPessoaDeletada();
         }
+
+        // Fechar preview automaticamente
+        setTimeout(() => {
+          onClose();
+        }, 1000);
       }
     });
 
