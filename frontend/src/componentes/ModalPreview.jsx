@@ -2,21 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { X, Calendar, Phone, Mail, MapPin, Home, Building2 } from 'lucide-react';
 import { usePusher } from '../contexto/PusherContext';
 import { obterPessoa } from '../servicos/api';
-import { useGlobalToast } from '../contexto/ToastContext';
 import './ModalPreview.css';
 
 const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [pessoaAtualizada, setPessoaAtualizada] = useState(pessoa);
   const [idadeAtualizada, setIdadeAtualizada] = useState(idade);
   const [pessoaDeletada, setPessoaDeletada] = useState(false);
+  const [alertaEdicao, setAlertaEdicao] = useState(null);
+  const [alertaExclusao, setAlertaExclusao] = useState(null);
   const { registrarCallback } = usePusher();
-  const { aviso, erro } = useGlobalToast();
  
   // Atualizar dados quando props mudam
   useEffect(() => {
     setPessoaAtualizada(pessoa);
     setIdadeAtualizada(idade);
     setPessoaDeletada(false);
+    setAlertaEdicao(null);
+    setAlertaExclusao(null);
   }, [pessoa, idade]);
 
   // ⚡ Sistema PUSHER em TEMPO REAL com callbacks imediatos
@@ -30,8 +32,11 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
       if (String(evento.pessoa.id) === String(pessoaAtualizada.id)) {
         console.log(`✏️ ModalPreview: Pessoa ${pessoaAtualizada.id} foi atualizada por ${evento.autorFuncao}`);
         
-        // Mostrar aviso sutil
-        aviso(`Atualizado por ${evento.autorFuncao}`);
+        // Mostrar alerta amarelo
+        setAlertaEdicao({
+          autorFuncao: evento.autorFuncao,
+          timestamp: evento.timestamp
+        });
 
         // Buscar dados atualizados imediatamente
         obterPessoa(pessoaAtualizada.id)
@@ -52,19 +57,20 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
     // Callback para quando pessoa for deletada
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
       if (String(evento.pessoa.id) === String(pessoaAtualizada.id)) {
-        console.log(`🗑️ ModalPreview: Pessoa ${pessoaAtualizada.id} foi deletada, fechando preview`);
+        console.log(`🗑️ ModalPreview: Pessoa ${pessoaAtualizada.id} foi deletada`);
         
-        erro(`Cadastro removido por ${evento.autorFuncao}`);
+        // Mostrar alerta vermelho (NÃO fecha o modal)
+        setAlertaExclusao({
+          autorFuncao: evento.autorFuncao,
+          timestamp: evento.timestamp
+        });
+
+        setPessoaDeletada(true);
 
         // Atualizar lista no fundo
         if (onPessoaDeletada) {
           onPessoaDeletada();
         }
-
-        // Fechar preview automaticamente
-        setTimeout(() => {
-          onClose();
-        }, 1000);
       }
     });
 
@@ -74,7 +80,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
       unsubDelecao();
     };
 
-  }, [isOpen, pessoaAtualizada?.id, registrarCallback, onPessoaDeletada, aviso, erro]);
+  }, [isOpen, pessoaAtualizada?.id, registrarCallback, onPessoaDeletada]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -151,13 +157,39 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
           )}
         </div>
 
-        {/* Aviso de pessoa deletada */}
-        {pessoaDeletada && (
-          <div className="modal-aviso-delecao">
-            <div className="aviso-icone">⚠️</div>
-            <div className="aviso-texto">
-              Esta pessoa foi removida do sistema. A lista foi atualizada.
+        {/* Alerta amarelo - Cadastro editado */}
+        {alertaEdicao && !alertaExclusao && (
+          <div className="modal-alerta-preview modal-alerta-edicao">
+            <div className="alerta-icone">⚠️</div>
+            <div className="alerta-texto">
+              <strong>Cadastro atualizado por {alertaEdicao.autorFuncao}</strong>
+              <br />
+              <small>Os dados foram atualizados automaticamente.</small>
             </div>
+            <button 
+              className="alerta-fechar"
+              onClick={() => setAlertaEdicao(null)}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Alerta vermelho - Cadastro excluído */}
+        {alertaExclusao && (
+          <div className="modal-alerta-preview modal-alerta-exclusao">
+            <div className="alerta-icone">🗑️</div>
+            <div className="alerta-texto">
+              <strong>Cadastro removido por {alertaExclusao.autorFuncao}</strong>
+              <br />
+              <small>Este cadastro foi excluído do sistema.</small>
+            </div>
+            <button 
+              className="alerta-fechar"
+              onClick={() => setAlertaExclusao(null)}
+            >
+              ×
+            </button>
           </div>
         )}
 

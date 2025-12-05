@@ -126,13 +126,15 @@ export const ListaPessoas = () => {
 
   // ⚡ Sistema PUSHER em TEMPO REAL - Comunicação bilateral TOTAL
   useEffect(() => {
+    if (!registrarCallback || !usuario?.id) return;
+    
     console.log('⚙️ ListaPessoas: Registrando callbacks Pusher globais');
 
     // Callback para quando pessoa for cadastrada
     const unsubCadastro = registrarCallback('pessoaCadastrada', (evento) => {
       console.log(`👤 ListaPessoas: Nova pessoa cadastrada por ${evento.autorFuncao}`);
       
-      // Mostrar aviso apenas se NÃO for o próprio usuário
+      // Mostrar toast apenas se NÃO for o próprio usuário
       if (evento.autorId !== usuario?.id) {
         sucesso(`Nova pessoa "${evento.pessoa.nome}" cadastrada por ${evento.autorFuncao}`);
       }
@@ -167,7 +169,7 @@ export const ListaPessoas = () => {
       unsubDelecao();
     };
 
-  }, [registrarCallback, usuario?.id, sucesso, aviso, erroToast]);
+  }, [registrarCallback, usuario?.id]);
 
 
 
