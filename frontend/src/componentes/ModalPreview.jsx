@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, Calendar, Phone, Mail, MapPin, Home, Building2 } from 'lucide-react';
-import { useSSEGlobal } from '../contexto/SSEContext';
+import { usePusher } from '../contexto/PusherContext';
 import { obterPessoa } from '../servicos/api';
 import { useGlobalToast } from '../contexto/ToastContext';
 import './ModalPreview.css';
@@ -9,7 +9,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [pessoaAtualizada, setPessoaAtualizada] = useState(pessoa);
   const [idadeAtualizada, setIdadeAtualizada] = useState(idade);
   const [pessoaDeletada, setPessoaDeletada] = useState(false);
-  const { registrarCallback } = useSSEGlobal();
+  const { registrarCallback } = usePusher();
   const { aviso, erro } = useGlobalToast();
  
   // Atualizar dados quando props mudam
@@ -19,7 +19,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
     setPessoaDeletada(false);
   }, [pessoa, idade]);
 
-  // ⚡ Sistema SSE em TEMPO REAL com callbacks imediatos
+  // ⚡ Sistema PUSHER em TEMPO REAL com callbacks imediatos
   useEffect(() => {
     if (!isOpen || !pessoaAtualizada?.id) return;
 

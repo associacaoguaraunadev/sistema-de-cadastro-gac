@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { useGlobalToast } from '../contexto/ToastContext';
-import { useSSEGlobal } from '../contexto/SSEContext';
+import { usePusher } from '../contexto/PusherContext';
 import { obterPessoas, deletarPessoa, obterTotaisPorComunidade } from '../servicos/api';
 import { Plus, Edit2, Trash2, Search, Users, Baby, User, Heart } from 'lucide-react';
 import { FiltroAvancado } from './FiltroAvancado';
@@ -57,7 +57,7 @@ export const ListaPessoas = () => {
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
   const { sucesso, erro: erroToast, aviso } = useGlobalToast();
-  const { registrarCallback, isConnected } = useSSEGlobal();
+  const { registrarCallback, isConnected } = usePusher();
   const LIMITE = 200;
 
   // Restaurar estado do localStorage ao carregar a página
@@ -128,9 +128,9 @@ export const ListaPessoas = () => {
     carregarTotaisPorComunidade();
   }, [pagina, busca, tipoBeneficioFiltro, filtrosAvancados, token]);
 
-  // ⚡ Sistema SSE em TEMPO REAL - Comunicação bilateral TOTAL
+  // ⚡ Sistema PUSHER em TEMPO REAL - Comunicação bilateral TOTAL
   useEffect(() => {
-    console.log('⚙️ ListaPessoas: Registrando callbacks SSE globais');
+    console.log('⚙️ ListaPessoas: Registrando callbacks Pusher globais');
 
     // Callback para quando pessoa for cadastrada
     const unsubCadastro = registrarCallback('pessoaCadastrada', (evento) => {
@@ -150,11 +150,6 @@ export const ListaPessoas = () => {
     const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
       console.log(`✏️ ListaPessoas: Pessoa atualizada por ${evento.autorFuncao}`);
       
-      // Mostrar aviso apenas se NÃO for o próprio usuário
-      if (evento.autorId !== usuario?.id) {
-        aviso(`Pessoa "${evento.pessoa.nome}" atualizada por ${evento.autorFuncao}`);
-      }
-      
       // SEMPRE recarregar lista (comunicação bilateral)
       carregarPessoas();
       carregarTotaisPorComunidade();
@@ -163,11 +158,6 @@ export const ListaPessoas = () => {
     // Callback para quando pessoa for deletada
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
       console.log(`🗑️ ListaPessoas: Pessoa deletada por ${evento.autorFuncao}`);
-      
-      // Mostrar aviso APENAS se NÃO for o próprio usuário que deletou
-      if (evento.autorId !== usuario?.id) {
-        erroToast(`Pessoa "${evento.pessoa.nome}" removida por ${evento.autorFuncao}`);
-      }
       
       // SEMPRE recarregar lista (comunicação bilateral)
       carregarPessoas();
@@ -367,6 +357,33 @@ export const ListaPessoas = () => {
     
     window.addEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
     return () => window.removeEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
+  }, []);
+
+  // Escutar exclusões durante edição
+  useEffect(() => {
+    const handleExclusaoDuranteEdicao = (e) => {
+      setPessoaExcluidaDuranteEdicao(e.detail);
+      
+      // Auto-limpar após 5 segundos
+      let contador = 5;
+      setContadorFechamento(contador);
+      
+      const interval = setInterval(() => {
+        contador--;
+        setContadorFechamento(contador);
+        
+        if (contador <= 0) {
+          clearInterval(interval);
+          setPessoaExcluidaDuranteEdicao(null);
+          setContadorFechamento(null);
+        }
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    };
+    
+    window.addEventListener('pessoaExcluidaDuranteEdicao', handleExclusaoDuranteEdicao);
+    return () => window.removeEventListener('pessoaExcluidaDuranteEdicao', handleExclusaoDuranteEdicao);
   }, []);
 
   // Efeito para adicionar apenas NOVAS comunidades das pessoas (sem sobrescrever)

@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { atualizarPessoa, validarCPF } from '../servicos/api';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { useAuth } from '../contexto/AuthContext';
-import { useSSEGlobal } from '../contexto/SSEContext';
+import { usePusher } from '../contexto/PusherContext';
 import GerenciadorBeneficiosGAC from './GerenciadorBeneficiosGAC';
 import CampoComunidade from './CampoComunidade';
 import './ModalEdicao.css';
@@ -42,7 +42,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
   const [contadorFechamento, setContadorFechamento] = useState(null);
   const { sucesso, erro: erroToast, aviso } = useGlobalToast();
   const { token, usuario } = useAuth();
-  const { registrarCallback } = useSSEGlobal();
+  const { registrarCallback } = usePusher();
 
   // Carregar tipos de benefícios do localStorage
   useEffect(() => {
@@ -75,7 +75,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
     }
   }, [pessoa, isOpen]);
 
-  // ⚡ Sistema SSE em TEMPO REAL com callbacks imediatos
+  // ⚡ Sistema PUSHER em TEMPO REAL com callbacks imediatos
   useEffect(() => {
     if (!isOpen || !pessoa?.id) return;
 
@@ -92,8 +92,6 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
           timestamp: evento.timestamp
         });
 
-        aviso(`Cadastro atualizado por ${evento.autorFuncao}`);
-
         // Auto-esconder após 5 segundos
         setTimeout(() => setAlertaConflito(null), 5000);
       }
@@ -105,7 +103,14 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
         console.log(`🗑️ ModalEdicao: Pessoa ${pessoa.id} foi deletada`);
         
         setPessoaExcluida(true);
-        erroToast(`Cadastro foi removido por ${evento.autorFuncao}`);
+        
+        // Notificar componente pai (ListaPessoas) para mostrar alerta
+        window.dispatchEvent(new CustomEvent('pessoaExcluidaDuranteEdicao', {
+          detail: {
+            pessoaNome: evento.pessoa.nome,
+            autorFuncao: evento.autorFuncao
+          }
+        }));
 
         let contador = 5;
         setContadorFechamento(contador);
