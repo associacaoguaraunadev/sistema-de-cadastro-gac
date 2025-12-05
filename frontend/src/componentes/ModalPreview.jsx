@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { X, Calendar, Phone, Mail, MapPin, Home, Building2 } from 'lucide-react';
 import { useSSEGlobal } from '../contexto/SSEContext';
 import { obterPessoa } from '../servicos/api';
+import { useGlobalToast } from '../contexto/ToastContext';
 import './ModalPreview.css';
 
 const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [pessoaAtualizada, setPessoaAtualizada] = useState(pessoa);
   const [idadeAtualizada, setIdadeAtualizada] = useState(idade);
   const { ultimosEventos } = useSSEGlobal();
+  const { erro, aviso } = useGlobalToast();
 
   // Atualizar dados quando props mudam
   useEffect(() => {
@@ -27,6 +29,10 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
         String(eventoAtualizacao.pessoa.id) === String(pessoaAtualizada.id)) {
 
       console.log('🔄 ModalPreview: Atualizando dados em tempo real');
+      
+      // Mostrar aviso sutil de atualização
+      aviso(`Pessoa "${eventoAtualizacao.pessoa.nome}" foi atualizada por outro usuário`);
+      
       // Buscar dados atualizados da pessoa
       obterPessoa(pessoaAtualizada.id)
         .then(dadosAtualizados => {
@@ -44,15 +50,26 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
         });
     }
 
-    // Verificar se a pessoa foi excluída - fechar modal e atualizar lista
+    // Verificar se a pessoa foi excluída - manter modal aberto mas atualizar lista
     if (eventoDelecao?.pessoa?.id &&
         String(eventoDelecao.pessoa.id) === String(pessoaAtualizada.id)) {
 
-      console.log('🗑️ ModalPreview: Pessoa excluída, fechando modal e atualizando lista');
-      onClose();
+      console.log('🗑️ ModalPreview: Pessoa excluída, mantendo modal aberto e atualizando lista');
+      
+      // Mostrar aviso global
+      erro(`Pessoa "${eventoDelecao.pessoa.nome}" foi removida do sistema por outro usuário`);
+      
+      // Atualizar lista
       if (onPessoaDeletada) {
         onPessoaDeletada();
       }
+      
+      // Marcar como deletada no preview
+      setPessoaAtualizada(prev => ({
+        ...prev,
+        _deletada: true,
+        _mensagemDelecao: 'Esta pessoa foi removida do sistema por outro usuário'
+      }));
     }
 
   }, [isOpen, pessoaAtualizada?.id, ultimosEventos, onClose]);
@@ -131,6 +148,16 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
             <div className="modal-badge-beneficio">{pessoaAtualizada.tipoBeneficio}</div>
           )}
         </div>
+
+        {/* Aviso de pessoa deletada */}
+        {pessoaAtualizada._deletada && (
+          <div className="modal-aviso-delecao">
+            <div className="aviso-icone">⚠️</div>
+            <div className="aviso-texto">
+              {pessoaAtualizada._mensagemDelecao}
+            </div>
+          </div>
+        )}
 
         {/* Conteúdo principal */}
         <div className="modal-content">

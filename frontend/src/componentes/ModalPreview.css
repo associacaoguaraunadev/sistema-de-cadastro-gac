@@ -417,3 +417,39 @@
     height: 36px;
   }
 }
+
+/* Aviso de pessoa deletada */
+.modal-aviso-delecao {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideDownAviso 0.5s ease-out;
+}
+
+@keyframes slideDownAviso {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.aviso-icone {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.aviso-texto {
+  color: #dc2626;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 1.4;
+}

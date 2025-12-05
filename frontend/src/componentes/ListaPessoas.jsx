@@ -144,6 +144,19 @@ export const ListaPessoas = () => {
     if (eventosRecentes.length > 0) {
       console.log('🔄 SSE Global: Detectados eventos recentes, atualizando lista');
 
+      // Mostrar avisos específicos para cada tipo de evento
+      eventosRecentes.forEach(evento => {
+        if (evento.autorId !== usuario?.id) { // Só mostrar avisos de outros usuários
+          if (evento.tipo === 'cadastro') {
+            sucesso(`Nova pessoa "${evento.pessoa.nome}" cadastrada por ${evento.autorFuncao}`);
+          } else if (evento.tipo === 'edicao') {
+            aviso(`Pessoa "${evento.pessoa.nome}" atualizada por ${evento.autorFuncao}`);
+          } else if (evento.tipo === 'delecao') {
+            erroToast(`Pessoa "${evento.pessoa.nome}" removida por ${evento.autorFuncao}`);
+          }
+        }
+      });
+
       // Auto-refresh silencioso da lista
       Promise.all([
         carregarPessoas(),
@@ -153,7 +166,7 @@ export const ListaPessoas = () => {
       });
     }
 
-  }, [ultimosEventos]);
+  }, [ultimosEventos, usuario?.id, sucesso, aviso, erroToast]);
 
 
 
