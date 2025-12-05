@@ -49,13 +49,21 @@ async function enviarEventoPusher(evento, dados) {
       timestamp
     };
     
+    log(`📤 Preparando envio Pusher:`);
+    log(`   Evento: ${evento}`);
+    log(`   Canal: gac-realtime`);
+    log(`   Pessoa: ${dados.pessoa?.nome || 'N/A'}`);
+    log(`   Autor: ${dados.autorFuncao} (ID: ${dados.autorId})`);
+    log(`   Payload: ${JSON.stringify(payload)}`);
+    
     // Canal 'gac-realtime' - todos os clientes conectados recebem
     await pusherInstance.trigger('gac-realtime', evento, payload);
     
-    log(`🚀 Pusher: Evento ${evento} (ID: ${eventoId}) enviado com sucesso`);
+    log(`🚀 Pusher: Evento ${evento} (ID: ${eventoId}) enviado com sucesso para TODOS os clientes`);
     return true;
   } catch (erro) {
     log(`❌ Erro ao enviar evento Pusher: ${erro.message}`, 'error');
+    console.error('Stack trace:', erro.stack);
     return false;
   }
 }

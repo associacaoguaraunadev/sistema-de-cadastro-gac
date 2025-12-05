@@ -47,6 +47,10 @@ export const SSEProvider = ({ children }) => {
       }
 
       // Criar instância Pusher
+      console.log('🔑 Pusher KEY:', import.meta.env.VITE_PUSHER_KEY);
+      console.log('🌍 Pusher CLUSTER:', import.meta.env.VITE_PUSHER_CLUSTER);
+      console.log('👤 Usuário conectando:', usuario.nome, '| Função:', usuario.funcao);
+      
       const pusher = new Pusher(import.meta.env.VITE_PUSHER_KEY, {
         cluster: import.meta.env.VITE_PUSHER_CLUSTER || 'us2',
         encrypted: true
@@ -57,6 +61,7 @@ export const SSEProvider = ({ children }) => {
       // Monitorar conexão
       pusher.connection.bind('connected', () => {
         console.log('✅ Pusher: Conectado com sucesso');
+        console.log('👤 Conectado como:', usuario.nome, '(', usuario.funcao, ')');
         setIsConnected(true);
         setConnectionStatus('connected');
         reconnectAttempts.current = 0;
@@ -83,6 +88,8 @@ export const SSEProvider = ({ children }) => {
       // ⚡ EVENTO: Pessoa Cadastrada
       channel.bind('pessoaCadastrada', (data) => {
         console.log('👤 Pusher: Pessoa cadastrada em tempo real:', data.pessoa.nome);
+        console.log('📊 Dados do evento:', JSON.stringify(data));
+        console.log('🔔 Total de callbacks registrados:', callbacksRef.current.pessoaCadastrada.length);
 
         // Executar TODOS os callbacks registrados imediatamente
         callbacksRef.current.pessoaCadastrada.forEach(callback => {
@@ -92,11 +99,11 @@ export const SSEProvider = ({ children }) => {
             console.error('Erro ao executar callback pessoaCadastrada:', erro);
           }
         });
-      });
-
       // ⚡ EVENTO: Pessoa Atualizada
       channel.bind('pessoaAtualizada', (data) => {
         console.log('✏️ Pusher: Pessoa atualizada em tempo real:', data.pessoa.nome);
+        console.log('📊 Dados do evento:', JSON.stringify(data));
+        console.log('🔔 Total de callbacks registrados:', callbacksRef.current.pessoaAtualizada.length);
 
         // Executar TODOS os callbacks registrados imediatamente
         callbacksRef.current.pessoaAtualizada.forEach(callback => {
@@ -106,11 +113,13 @@ export const SSEProvider = ({ children }) => {
             console.error('Erro ao executar callback pessoaAtualizada:', erro);
           }
         });
-      });
-
+      }); }
+        });
       // ⚡ EVENTO: Pessoa Deletada
       channel.bind('pessoaDeletada', (data) => {
         console.log('🗑️ Pusher: Pessoa deletada em tempo real:', data.pessoa.nome);
+        console.log('📊 Dados do evento:', JSON.stringify(data));
+        console.log('🔔 Total de callbacks registrados:', callbacksRef.current.pessoaDeletada.length);
 
         // Executar TODOS os callbacks registrados imediatamente
         callbacksRef.current.pessoaDeletada.forEach(callback => {
@@ -119,6 +128,8 @@ export const SSEProvider = ({ children }) => {
           } catch (erro) {
             console.error('Erro ao executar callback pessoaDeletada:', erro);
           }
+        });
+      }); }
         });
       });
 
