@@ -43,12 +43,14 @@ export const ListaPessoas = () => {
   const [pessoaParaDeleter, setPessoaParaDeleter] = useState(null);
   const [deletandoPessoa, setDeletandoPessoa] = useState(false);
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
-  // ✨ ESTADOS PARA AUTO-REFRESH
+  // ✨ ESTADOS PARA AUTO-REFRESH E ALERTAS
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(Date.now());
+  const [alertaEdicao, setAlertaEdicao] = useState(null);
   const timeoutRef = useRef(null);
   const intervalRef = useRef(null);
   const abasWrapperRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
+  const alertaTimeoutRef = useRef(null);
   
   const { token, usuario, sair } = useAuth();
   const navegar = useNavigate();
@@ -132,16 +134,23 @@ export const ListaPessoas = () => {
 
     // Callback para quando pessoa for cadastrada
     const unsubCadastro = registrarCallback('pessoaCadastrada', (evento) => {
-      console.log(`👤 ListaPessoas: Nova pessoa cadastrada por ${evento.autorFuncao}`);
-      console.log(`📊 Dados completos do evento:`, JSON.stringify(evento));
-      console.log(`🆔 Autor ID: ${evento.autorId}, Usuario ID: ${usuario?.id}`);
+      console.log(`\n🎉🎉🎉 EVENTO PUSHER RECEBIDO: pessoaCadastrada`);
+      console.log(`👤 Nova pessoa: ${evento.pessoa?.nome || 'N/A'}`);
+      console.log(`👮 Cadastrada por: ${evento.autorFuncao} (ID: ${evento.autorId})`);
+      console.log(`📊 Evento completo:`, evento);
+      console.log(`🆔 Usuario atual: ${usuario?.nome} (ID: ${usuario?.id})`);
+      console.log(`🔄 Comparação IDs: ${String(evento.autorId)} !== ${String(usuario?.id)}`);
       
       // Mostrar toast apenas se NÃO for o próprio usuário
       if (usuario?.id && String(evento.autorId) !== String(usuario.id)) {
+        console.log(`✅ Mostrando toast (não é o próprio usuário)`);
         sucesso(`Nova pessoa "${evento.pessoa.nome}" cadastrada por ${evento.autorFuncao}`);
+      } else {
+        console.log(`⏭️ Não mostrando toast (é o próprio usuário)`);
       }
       
       // SEMPRE recarregar lista (comunicação bilateral)
+      console.log(`🔄 Recarregando lista de pessoas...`);
       carregarPessoas();
       carregarTotaisPorComunidade();
     });
@@ -149,6 +158,22 @@ export const ListaPessoas = () => {
     // Callback para quando pessoa for atualizada
     const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
       console.log(`✏️ ListaPessoas: Pessoa atualizada por ${evento.autorFuncao}`);
+      
+      // Mostrar alerta amarelo que desaparece em 10 segundos
+      setAlertaEdicao({
+        pessoaNome: evento.pessoa.nome,
+        autorFuncao: evento.autorFuncao
+      });
+      
+      // Limpar timeout anterior se existir
+      if (alertaTimeoutRef.current) {
+        clearTimeout(alertaTimeoutRef.current);
+      }
+      
+      // Auto-esconder após 10 segundos
+      alertaTimeoutRef.current = setTimeout(() => {
+        setAlertaEdicao(null);
+      }, 10000);
       
       // SEMPRE recarregar lista (comunicação bilateral)
       carregarPessoas();
@@ -169,6 +194,11 @@ export const ListaPessoas = () => {
       unsubCadastro();
       unsubAtualizacao();
       unsubDelecao();
+      
+      // Limpar timeout do alerta
+      if (alertaTimeoutRef.current) {
+        clearTimeout(alertaTimeoutRef.current);
+      }
     };
 
   }, [registrarCallback]);
@@ -459,6 +489,29 @@ export const ListaPessoas = () => {
 
   return (
     <div className="container-lista">
+      {/* Alerta amarelo de edição - aparece por 10 segundos */}
+      {alertaEdicao && (
+        <div className="alerta-edicao-flutuante">
+          <div className="alerta-edicao-conteudo">
+            <div className="alerta-icone">⚠️</div>
+            <div className="alerta-texto">
+              Pessoa <strong>"{alertaEdicao.pessoaNome}"</strong> foi atualizada por {alertaEdicao.autorFuncao}
+            </div>
+            <button 
+              className="alerta-fechar"
+              onClick={() => {
+                setAlertaEdicao(null);
+                if (alertaTimeoutRef.current) {
+                  clearTimeout(alertaTimeoutRef.current);
+                }
+              }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+      
       <main className="conteudo-lista">
         <div className="barra-acoes">
           <div className="campo-busca">
