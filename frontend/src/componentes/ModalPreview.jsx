@@ -11,7 +11,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [pessoaDeletada, setPessoaDeletada] = useState(false);
   const { registrarCallback } = useSSEGlobal();
   const { aviso, erro } = useGlobalToast();
-
+ 
   // Atualizar dados quando props mudam
   useEffect(() => {
     setPessoaAtualizada(pessoa);
