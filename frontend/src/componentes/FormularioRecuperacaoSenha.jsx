@@ -38,8 +38,13 @@ export const FormularioRecuperacaoSenha = () => {
         return;
       }
 
-      sucessoToast('Email Enviado!', `Um link de recuperação foi enviado para ${email}`);
+      sucessoToast('Código Enviado!', 'Verifique seu email para o código de recuperação');
       setEtapa('codigo');
+      
+      // Exibir token em desenvolvimento
+      if (dados.debug?.token) {
+        console.log(`\n🔑 [DEV] Código de Recuperação: ${dados.debug.token}\n`);
+      }
     } catch (erro) {
       setErro('Erro: ' + erro.message);
       erroToast('Erro de Conexão', 'Erro ao conectar com o servidor');
@@ -64,11 +69,11 @@ export const FormularioRecuperacaoSenha = () => {
 
       if (!resposta.ok) {
         setErro(dados.erro || 'Código inválido ou expirado');
-        erroToast('Código Inválido', dados.erro || 'Código inválido ou expirado');
+        erroToast('Código Inválido', dados.erro || 'Verifique o código e tente novamente');
         return;
       }
 
-      sucessoToast('Código Válido!', 'Agora defina sua nova senha');
+      sucessoToast('Código Válido!', 'Agora defina sua nova senha segura');
       setEtapa('novaSenha');
     } catch (erro) {
       setErro('Erro: ' + erro.message);
@@ -82,9 +87,28 @@ export const FormularioRecuperacaoSenha = () => {
     e.preventDefault();
     setErro('');
 
+    // Validações de senha
     if (novaSenha.length < 8) {
       setErro('Senha deve ter no mínimo 8 caracteres');
       erroToast('Senha Fraca', 'Mínimo 8 caracteres');
+      return;
+    }
+
+    if (!/[A-Z]/.test(novaSenha)) {
+      setErro('Senha deve conter pelo menos uma letra maiúscula');
+      erroToast('Senha Fraca', 'Inclua pelo menos uma letra maiúscula');
+      return;
+    }
+
+    if (!/[a-z]/.test(novaSenha)) {
+      setErro('Senha deve conter pelo menos uma letra minúscula');
+      erroToast('Senha Fraca', 'Inclua pelo menos uma letra minúscula');
+      return;
+    }
+
+    if (!/[0-9]/.test(novaSenha)) {
+      setErro('Senha deve conter pelo menos um número');
+      erroToast('Senha Fraca', 'Inclua pelo menos um número');
       return;
     }
 
@@ -111,10 +135,10 @@ export const FormularioRecuperacaoSenha = () => {
         return;
       }
 
-      sucessoToast('Sucesso!', 'Sua senha foi alterada com sucesso');
+      sucessoToast('Senha Alterada!', 'Sua senha foi redefinida. Redirecionando para o login...');
       setTimeout(() => {
         navegar('/entrar');
-      }, 2000);
+      }, 2500);
     } catch (erro) {
       setErro('Erro: ' + erro.message);
       erroToast('Erro de Conexão', 'Erro ao redefinir senha');
@@ -135,7 +159,7 @@ export const FormularioRecuperacaoSenha = () => {
         {etapa === 'email' && (
           <form onSubmit={solicitarRecuperacao} className="formulario">
             <h2>Recuperar Senha</h2>
-            <p className="texto-instrucao">Digite seu email para receber um código de recuperação</p>
+            <p className="texto-instrucao">Digite o email cadastrado em sua conta para receber um código de recuperação</p>
             
             {erro && <div className="alerta-erro">{erro}</div>}
 
@@ -180,12 +204,12 @@ export const FormularioRecuperacaoSenha = () => {
                 type="text"
                 value={token}
                 onChange={(e) => setToken(e.target.value.toUpperCase())}
-                placeholder="ABC123XYZ"
+                placeholder="Ex: A1B2C3D4E5"
                 required
                 disabled={carregando}
                 maxLength="10"
               />
-              <p className="texto-ajuda">Código de 10 caracteres enviado por email</p>
+              <p className="texto-ajuda">Digite o código de 10 caracteres enviado para seu email</p>
             </div>
 
             <button 
@@ -211,7 +235,7 @@ export const FormularioRecuperacaoSenha = () => {
         {etapa === 'novaSenha' && (
           <form onSubmit={redefinirSenha} className="formulario">
             <h2>Nova Senha</h2>
-            <p className="texto-instrucao">Defina uma nova senha para sua conta</p>
+            <p className="texto-instrucao">Defina uma senha forte: mínimo 8 caracteres, com maiúsculas, minúsculas e números</p>
             
             {erro && <div className="alerta-erro">{erro}</div>}
 

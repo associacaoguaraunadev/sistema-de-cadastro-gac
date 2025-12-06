@@ -633,20 +633,23 @@ async function recuperacaoSenhaSolicitar(req, res) {
       return res.status(400).json({ erro: 'Email é obrigatório' });
     }
 
+    // Verificar se email existe no sistema
     const usuario = await prisma.usuario.findUnique({ where: { email } });
+    
     if (!usuario) {
-      // Retornar sucesso mesmo se usuário não existe (segurança)
+      // Retornar sucesso mesmo se usuário não existe (segurança contra enumeração)
+      log(`⚠️ Tentativa de recuperação para email inexistente: ${email}`);
       return res.status(200).json({ 
-        mensagem: 'Se o email existe, um código foi enviado',
-        email 
+        mensagem: 'Se o email estiver cadastrado, você receberá um código de recuperação'
       });
     }
 
-    // Gerar token de recuperação
+    // Gerar token de recuperação (10 caracteres em maiúsculas)
     const token = require('crypto').randomBytes(5).toString('hex').toUpperCase();
     const agora = new Date();
     const expiracao = new Date(agora.getTime() + 30 * 60 * 1000); // 30 minutos
 
+    // Salvar hash do token no banco
     await prisma.usuario.update({
       where: { email },
       data: {
@@ -655,17 +658,23 @@ async function recuperacaoSenhaSolicitar(req, res) {
       }
     });
 
-    // Aqui você deveria enviar email com o token
-    log(`✅ Token de recuperação gerado para ${email}: ${token}`, 'info');
-    console.log(`\n📧 TOKEN DE RECUPERAÇÃO (use este código):`);
-    console.log(`   Email: ${email}`);
-    console.log(`   Código: ${token}`);
-    console.log(`   Expira em: ${expiracao.toLocaleString('pt-BR')}\n`);
+    log(`✅ Token de recuperação gerado para ${email} (expira em 30min)`);
+    
+    // TODO: Implementar envio de email
+    // await enviarEmailRecuperacao(email, token);
+    
+    // TEMPORÁRIO: Exibir token apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`\n📧 TOKEN DE RECUPERAÇÃO [DEV MODE]:`);
+      console.log(`   Email: ${email}`);
+      console.log(`   Código: ${token}`);
+      console.log(`   Expira em: ${expiracao.toLocaleString('pt-BR')}\n`);
+    }
 
     res.status(200).json({ 
-      mensagem: 'Se o email existe, um código foi enviado',
-      email,
-      debug: token // Para testes - remover em produção
+      mensagem: 'Se o email estiver cadastrado, você receberá um código de recuperação',
+      // Retornar token apenas em desenvolvimento
+      ...(process.env.NODE_ENV === 'development' && { debug: { token, expiraEm: expiracao } })
     });
   } catch (erro) {
     log(`Erro ao solicitar recuperação: ${erro.message}`, 'error');
@@ -684,24 +693,33 @@ async function recuperacaoSenhaValidarToken(req, res) {
 
     const usuario = await prisma.usuario.findUnique({ where: { email } });
     
-    if (!usuario || !usuario.tokenRecuperacao) {
-      return res.status(401).json({ erro: 'Token inválido' });
+    if (!usuario) {
+      log(`❌ Tentativa de validar token para email inexistente: ${email}`);
+      return res.status(401).json({ erro: 'Email não encontrado' });
+    }
+    
+    if (!usuario.tokenRecuperacao) {
+      log(`❌ Nenhum token de recuperação ativo para: ${email}`);
+      return res.status(401).json({ erro: 'Nenhuma solicitação de recuperação encontrada' });
     }
 
     // Verificar se expirou
-    if (new Date() > usuario.expiracaoToken) {
-      return res.status(401).json({ erro: 'Token expirado' });
+    if (!usuario.expiracaoToken || new Date() > usuario.expiracaoToken) {
+      log(`❌ Token expirado para: ${email}`);
+      return res.status(401).json({ erro: 'Código expirado. Solicite um novo código de recuperação' });
     }
 
     // Verificar se o token está correto
     const tokenValido = await bcrypt.compare(token, usuario.tokenRecuperacao);
     
     if (!tokenValido) {
-      return res.status(401).json({ erro: 'Token inválido' });
+      log(`❌ Token inválido fornecido para: ${email}`);
+      return res.status(401).json({ erro: 'Código inválido. Verifique e tente novamente' });
     }
 
+    log(`✅ Token validado com sucesso para: ${email}`);
     res.status(200).json({ 
-      mensagem: 'Token validado com sucesso',
+      mensagem: 'Código validado com sucesso',
       email
     });
   } catch (erro) {
@@ -725,36 +743,61 @@ async function recuperacaoSenhaRedefinir(req, res) {
 
     const usuario = await prisma.usuario.findUnique({ where: { email } });
     
-    if (!usuario || !usuario.tokenRecuperacao) {
-      return res.status(401).json({ erro: 'Token inválido' });
+    if (!usuario) {
+      log(`❌ Tentativa de redefinir senha para email inexistente: ${email}`);
+      return res.status(401).json({ erro: 'Email não encontrado' });
+    }
+    
+    if (!usuario.tokenRecuperacao) {
+      log(`❌ Nenhum token de recuperação para redefinir senha: ${email}`);
+      return res.status(401).json({ erro: 'Nenhuma solicitação de recuperação encontrada' });
     }
 
     // Verificar se expirou
-    if (new Date() > usuario.expiracaoToken) {
-      return res.status(401).json({ erro: 'Token expirado' });
+    if (!usuario.expiracaoToken || new Date() > usuario.expiracaoToken) {
+      log(`❌ Token expirado ao tentar redefinir senha: ${email}`);
+      // Limpar token expirado
+      await prisma.usuario.update({
+        where: { email },
+        data: { tokenRecuperacao: null, expiracaoToken: null }
+      });
+      return res.status(401).json({ erro: 'Código expirado. Solicite um novo código de recuperação' });
     }
 
     // Verificar se o token está correto
     const tokenValido = await bcrypt.compare(token, usuario.tokenRecuperacao);
     
     if (!tokenValido) {
-      return res.status(401).json({ erro: 'Token inválido' });
+      log(`❌ Token inválido ao redefinir senha: ${email}`);
+      return res.status(401).json({ erro: 'Código inválido. Verifique e tente novamente' });
     }
 
-    // Atualizar senha e limpar token
+    // Validações adicionais de senha
+    if (!/[A-Z]/.test(novaSenha)) {
+      return res.status(400).json({ erro: 'Senha deve conter pelo menos uma letra maiúscula' });
+    }
+    if (!/[a-z]/.test(novaSenha)) {
+      return res.status(400).json({ erro: 'Senha deve conter pelo menos uma letra minúscula' });
+    }
+    if (!/[0-9]/.test(novaSenha)) {
+      return res.status(400).json({ erro: 'Senha deve conter pelo menos um número' });
+    }
+
+    // Atualizar senha com bcrypt e limpar token
+    const senhaCriptografada = await bcrypt.hash(novaSenha, 10);
     await prisma.usuario.update({
       where: { email },
       data: {
-        senha: await bcrypt.hash(novaSenha, 10),
+        senha: senhaCriptografada,
         tokenRecuperacao: null,
         expiracaoToken: null
       }
     });
 
-    log(`✅ Senha redefinida com sucesso para ${email}`, 'info');
+    log(`✅ Senha redefinida com sucesso para ${email}`);
 
     res.status(200).json({ 
-      mensagem: 'Senha redefinida com sucesso'
+      mensagem: 'Senha redefinida com sucesso! Você já pode fazer login'
     });
   } catch (erro) {
     log(`Erro ao redefinir senha: ${erro.message}`, 'error');
