@@ -124,40 +124,6 @@ export const ListaPessoas = () => {
     }
   };
 
-  // 🔄 Função para refresh manual do preview quando alerta de edição aparece
-  const handleRefreshPreview = async () => {
-    if (!pessoaSelecionada?.pessoa?.id || !token) return;
-    
-    console.log(`🔄 Refresh manual do preview iniciado...`);
-    
-    try {
-      const { obterPessoa } = await import('../servicos/api');
-      const pessoaAtualizada = await obterPessoa(token, pessoaSelecionada.pessoa.id);
-      
-      // Recalcular idade
-      let novaIdade = pessoaSelecionada.idade;
-      if (pessoaAtualizada.dataNascimento) {
-        const hoje = new Date();
-        const nascimento = new Date(pessoaAtualizada.dataNascimento);
-        novaIdade = hoje.getFullYear() - nascimento.getFullYear();
-      }
-      
-      setPessoaSelecionada({ pessoa: pessoaAtualizada, idade: novaIdade });
-      console.log(`✅ Preview atualizado manualmente: ${pessoaAtualizada.nome}`);
-      
-      // Fechar o alerta após refresh bem-sucedido
-      setAlertaEdicao(null);
-      if (alertaTimeoutRef.current) {
-        clearTimeout(alertaTimeoutRef.current);
-      }
-      
-      sucesso('Atualizado', 'Dados do preview atualizados com sucesso!');
-    } catch (erro) {
-      console.error(`❌ Erro ao atualizar preview manualmente:`, erro);
-      erroToast('Erro', 'Não foi possível atualizar os dados. Tente novamente.');
-    }
-  };
-
   useEffect(() => {
     carregarPessoas();
     carregarTotaisPorComunidade();
@@ -195,14 +161,7 @@ export const ListaPessoas = () => {
       console.log(`✏️ ListaPessoas: Pessoa atualizada por ${evento.autorFuncao}`);
       console.log(`🔍 Modal de edição aberto? ${modalEdicaoAbertoRef.current}`);
       console.log(`🔍 Modal de preview aberto? ${modalPreviewAbertoRef.current}`);
-      console.log(`🔍 Pessoa no preview: ${pessoaSelecionadaRef.current?.pessoa?.id}`);
-      console.log(`🔍 Pessoa editada: ${evento.pessoa.id}`);
-      
-      // Verificar se o modal preview está aberto COM A MESMA PESSOA que foi editada
-      const previewAbertoDaMesmaPessoa = modalPreviewAbertoRef.current && 
-        pessoaSelecionadaRef.current?.pessoa?.id === evento.pessoa.id;
-      
-      console.log(`🔍 Preview aberto da mesma pessoa? ${previewAbertoDaMesmaPessoa}`);
+      console.log(`📢 BIDIRECIONAL: Mostrando alerta para TODOS os usuários`);
       
       // NÃO mostrar alerta amarelo APENAS se modal de edição estiver aberto
       // (para não atrapalhar a edição do usuário)
@@ -212,10 +171,7 @@ export const ListaPessoas = () => {
         // Mostrar alerta amarelo que desaparece em 10 segundos
         setAlertaEdicao({
           pessoaNome: evento.pessoa.nome,
-          pessoaId: evento.pessoa.id,
-          autorFuncao: evento.autorFuncao,
-          // Adicionar flag para mostrar botão de refresh apenas se preview estiver aberto da mesma pessoa
-          mostrarRefresh: previewAbertoDaMesmaPessoa
+          autorFuncao: evento.autorFuncao
         });
         
         // Limpar timeout anterior se existir
@@ -578,21 +534,7 @@ export const ListaPessoas = () => {
             <div className="alerta-icone">⚠️</div>
             <div className="alerta-texto">
               Pessoa <strong>"{alertaEdicao.pessoaNome}"</strong> foi atualizada por {alertaEdicao.autorFuncao}
-              {alertaEdicao.mostrarRefresh && (
-                <div className="alerta-subtexto">
-                  <small>Você está visualizando esta pessoa. Clique em "Atualizar" para ver as mudanças.</small>
-                </div>
-              )}
             </div>
-            {alertaEdicao.mostrarRefresh && (
-              <button 
-                className="alerta-btn-refresh"
-                onClick={handleRefreshPreview}
-                title="Atualizar preview"
-              >
-                🔄 Atualizar
-              </button>
-            )}
             <button 
               className="alerta-fechar"
               onClick={() => {
