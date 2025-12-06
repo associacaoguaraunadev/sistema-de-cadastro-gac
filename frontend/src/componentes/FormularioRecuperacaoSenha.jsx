@@ -188,9 +188,11 @@ export const FormularioRecuperacaoSenha = () => {
               {carregando ? 'Enviando...' : 'Enviar Código'}
             </button>
 
-            <p className="texto-rodape">
-              Lembrou sua senha? <Link to="/entrar">Entre aqui</Link>
-            </p>
+            <div className="texto-rodape" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Link to="/entrar">← Voltar para login</Link>
+              <span>ou</span>
+              <Link to="/registrar">Criar conta</Link>
+            </div>
           </form>
         )}
 
@@ -224,15 +226,16 @@ export const FormularioRecuperacaoSenha = () => {
               {carregando ? 'Validando...' : 'Validar Código'}
             </button>
 
-            <p className="texto-rodape">
+            <div className="texto-rodape" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <button 
                 type="button" 
                 className="botao-link"
                 onClick={() => { setEtapa('email'); setToken(''); }}
               >
-                Usar outro email
+                ← Voltar
               </button>
-            </p>
+              <Link to="/entrar">Cancelar</Link>
+            </div>
           </form>
         )}
 
@@ -299,9 +302,16 @@ export const FormularioRecuperacaoSenha = () => {
               {carregando ? 'Redefinindo...' : 'Redefinir Senha'}
             </button>
 
-            <p className="texto-rodape">
-              <Link to="/entrar">Voltar ao Login</Link>
-            </p>
+            <div className="texto-rodape" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button 
+                type="button" 
+                className="botao-link"
+                onClick={() => setEtapa('codigo')}
+              >
+                ← Voltar
+              </button>
+              <Link to="/entrar">Cancelar</Link>
+            </div>
           </form>
         )}
       </div>

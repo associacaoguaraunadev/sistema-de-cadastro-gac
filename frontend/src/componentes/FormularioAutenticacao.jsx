@@ -286,11 +286,15 @@ export const FormularioRegistro = () => {
             </>
           )}
 
-          {codigoValidado && (
-            <p className="texto-rodape">
-              Já tem conta? <Link to="/entrar">Entre aqui</Link>
-            </p>
-          )}
+          <div className="texto-rodape" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+            <Link to="/entrar" style={{ textDecoration: 'none' }}>← Voltar para login</Link>
+            {!codigoValidado && (
+              <>
+                <span style={{ color: '#666' }}>ou</span>
+                <Link to="/recuperar-senha" style={{ textDecoration: 'none' }}>Esqueci senha</Link>
+              </>
+            )}
+          </div>
         </form>
       </div>
     </div>
