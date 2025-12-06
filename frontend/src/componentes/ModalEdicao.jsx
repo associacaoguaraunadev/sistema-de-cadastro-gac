@@ -40,6 +40,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
   const [alertaConflito, setAlertaConflito] = useState(null);
   const [pessoaExcluida, setPessoaExcluida] = useState(false);
   const [contadorFechamento, setContadorFechamento] = useState(null);
+  const [carregandoRefresh, setCarregandoRefresh] = useState(false);
   const { sucesso, erro: erroToast, aviso } = useGlobalToast();
   const { token, usuario } = useAuth();
   const { registrarCallback } = usePusher();
@@ -428,6 +429,38 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
     }
   };
 
+  // 🔄 Função para recarregar dados da pessoa sem fechar o modal
+  const handleRefreshDados = async () => {
+    if (!pessoa?.id || !token) return;
+    
+    setCarregandoRefresh(true);
+    
+    try {
+      const { obterPessoa } = await import('../servicos/api');
+      const dadosAtualizados = await obterPessoa(token, pessoa.id);
+      
+      // Atualizar formData com dados frescos do backend
+      const dadosFormatados = {
+        ...dadosAtualizados,
+        rendaFamiliar: dadosAtualizados.rendaFamiliar 
+          ? formatarMoeda((dadosAtualizados.rendaFamiliar * 100).toString()) 
+          : ''
+      };
+      
+      setFormData(dadosFormatados);
+      setAlertaConflito(null); // Esconder o alerta após refresh
+      
+      console.log('✅ Dados recarregados com sucesso no modal de edição');
+      aviso('Atualizado', 'Dados recarregados com sucesso!');
+      
+    } catch (erro) {
+      console.error('❌ Erro ao recarregar dados:', erro);
+      erroToast('Erro', 'Não foi possível recarregar os dados. Tente novamente.');
+    } finally {
+      setCarregandoRefresh(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -542,18 +575,32 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
           <div className="conflito-texto">
             <strong>Cadastro atualizado por {alertaConflito.autorFuncao || 'outro usuário'}</strong>
             <br />
-            <small>Recarregue a página para ver os dados mais recentes.</small>
+            <small>Os dados exibidos podem estar desatualizados. Clique em "Atualizar" para ver as alterações.</small>
           </div>
-          <button 
-            type="button"
-            className="conflito-fechar"
-            onClick={(e) => {
-              e.stopPropagation();
-              setAlertaConflito(null);
-            }}
-          >
-            ×
-          </button>
+          <div className="conflito-acoes">
+            <button 
+              type="button"
+              className="conflito-btn-refresh"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRefreshDados();
+              }}
+              disabled={carregandoRefresh}
+            >
+              {carregandoRefresh ? '🔄 Atualizando...' : '🔄 Atualizar Dados'}
+            </button>
+            <button 
+              type="button"
+              className="conflito-fechar"
+              onClick={(e) => {
+                e.stopPropagation();
+                setAlertaConflito(null);
+              }}
+              title="Fechar alerta"
+            >
+              ×
+            </button>
+          </div>
         </div>
       )}
 

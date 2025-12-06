@@ -139,10 +139,15 @@ export const ListaPessoas = () => {
       console.log(`\n🎉🎉🎉 EVENTO PUSHER RECEBIDO: pessoaCadastrada`);
       console.log(`👤 Nova pessoa: ${evento.pessoa?.nome || 'N/A'}`);
       console.log(`👮 Cadastrada por: ${evento.autorFuncao} (ID: ${evento.autorId})`);
-      console.log(`📢 BIDIRECIONAL: Mostrando alerta para TODOS os usuários`);
+      console.log(`👤 Usuário atual: ${usuario?.nome} (ID: ${usuario?.id})`);
       
-      // Mostrar toast para TODOS (bidirecional)
-      sucesso(`✨ ${evento.pessoa.nome} foi cadastrado(a)`, `Cadastrado por ${evento.autorFuncao}`);
+      // ⚡ Filtrar: NÃO mostrar toast para quem executou a ação
+      if (evento.autorId !== usuario?.id) {
+        console.log(`📢 Mostrando toast para outros usuários`);
+        sucesso(`✨ ${evento.pessoa.nome} foi cadastrado(a)`, `Cadastrado por ${evento.autorFuncao}`);
+      } else {
+        console.log(`🔇 Silenciando toast (autor da ação)`);
+      }
       
       // SEMPRE recarregar lista (comunicação bilateral)
       console.log(`🔄 Recarregando lista de pessoas...`);
@@ -189,13 +194,18 @@ export const ListaPessoas = () => {
     // Callback para quando pessoa for deletada
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
       console.log(`🗑️ ListaPessoas: Pessoa deletada por ${evento.autorFuncao}`);
-      console.log(`📢 BIDIRECIONAL: Mostrando alerta para TODOS os usuários`);
+      console.log(`👤 Usuário atual: ${usuario?.nome} (ID: ${usuario?.id})`);
       
-      // Mostrar toast para TODOS (bidirecional)
-      aviso(
-        `🗑️ ${evento.pessoa.nome} foi excluído(a)`,
-        `Excluído por ${evento.autorFuncao}`
-      );
+      // ⚡ Filtrar: NÃO mostrar toast para quem executou a ação
+      if (evento.autorId !== usuario?.id) {
+        console.log(`📢 Mostrando toast para outros usuários`);
+        aviso(
+          `🗑️ ${evento.pessoa.nome} foi excluído(a)`,
+          `Excluído por ${evento.autorFuncao}`
+        );
+      } else {
+        console.log(`🔇 Silenciando toast (autor da ação)`);
+      }
       
       // SEMPRE recarregar lista (comunicação bilateral)
       carregarPessoas();

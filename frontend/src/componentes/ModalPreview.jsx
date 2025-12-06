@@ -10,6 +10,8 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [idadeAtualizada, setIdadeAtualizada] = useState(idade);
   const [pessoaDeletada, setPessoaDeletada] = useState(false);
   const [pessoaIdFixo, setPessoaIdFixo] = useState(pessoa?.id);
+  const [camposAtualizados, setCamposAtualizados] = useState(new Set());
+  const [mostrarToastAtualizacao, setMostrarToastAtualizacao] = useState(false);
   const { registrarCallback } = usePusher();
   const { usuario } = useAuth();
  
@@ -34,14 +36,35 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
     const unsubAtualizacao = registrarCallback('pessoaAtualizada', (evento) => {
       if (String(evento.pessoa.id) === String(pessoaIdFixo)) {
         console.log(`✏️ ModalPreview: Pessoa ${pessoaIdFixo} foi atualizada por ${evento.autorFuncao}`);
-        console.log(`🔄 Atualizando dados em tempo real SILENCIOSAMENTE (sem alertas)`);
         
-        // Buscar dados atualizados imediatamente e silenciosamente
+        // ⚡ Filtrar: NÃO mostrar toast para quem executou a ação
+        const mostrarFeedback = evento.autorId !== usuario?.id;
+        
+        if (mostrarFeedback) {
+          console.log(`🔄 Atualizando preview com feedback visual`);
+        } else {
+          console.log(`🔇 Atualizando preview silenciosamente (autor da ação)`);
+        }
+        
+        // Buscar dados atualizados imediatamente
         obterPessoa(pessoaIdFixo)
           .then(dadosAtualizados => {
-            console.log(`✅ Dados atualizados recebidos, atualizando preview silenciosamente`);
+            console.log(`✅ Dados atualizados recebidos`);
             console.log(`🔒 Modal PERMANECE ABERTO`);
+            
+            // Detectar campos que mudaram
+            const camposMudados = new Set();
+            if (pessoaAtualizada) {
+              Object.keys(dadosAtualizados).forEach(campo => {
+                if (JSON.stringify(pessoaAtualizada[campo]) !== JSON.stringify(dadosAtualizados[campo])) {
+                  camposMudados.add(campo);
+                }
+              });
+            }
+            
+            // Atualizar dados
             setPessoaAtualizada(dadosAtualizados);
+            
             // Recalcular idade
             if (dadosAtualizados.dataNascimento) {
               const hoje = new Date();
@@ -49,7 +72,24 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
               const novaIdade = hoje.getFullYear() - nascimento.getFullYear();
               setIdadeAtualizada(novaIdade);
             }
-            console.log(`✅ Preview atualizado silenciosamente - modal ainda aberto`);
+            
+            // Mostrar feedback visual apenas se não for o autor
+            if (mostrarFeedback && camposMudados.size > 0) {
+              setCamposAtualizados(camposMudados);
+              setMostrarToastAtualizacao(true);
+              
+              // Remover destaque após 3 segundos
+              setTimeout(() => {
+                setCamposAtualizados(new Set());
+              }, 3000);
+              
+              // Esconder toast após 4 segundos
+              setTimeout(() => {
+                setMostrarToastAtualizacao(false);
+              }, 4000);
+            }
+            
+            console.log(`✅ Preview atualizado - modal ainda aberto`);
           })
           .catch(erro => {
             console.error('❌ Erro ao atualizar preview:', erro);
@@ -127,6 +167,11 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
     return [];
   };
 
+  // Função helper para adicionar classe de destaque em campos atualizados
+  const getClasseCampo = (nomeCampo) => {
+    return camposAtualizados.has(nomeCampo) ? 'campo-preview campo-atualizado' : 'campo-preview';
+  };
+
   return (
     <div className="modal-preview-overlay" onClick={onClose}>
       <div 
@@ -156,14 +201,22 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
           )}
         </div>
 
+        {/* Toast discreto de atualização */}
+        {mostrarToastAtualizacao && (
+          <div className="toast-atualizacao-preview">
+            <span className="toast-icone">👁️</span>
+            <span className="toast-texto">Dados atualizados em tempo real</span>
+          </div>
+        )}
+
         {/* Alerta de cadastro excluído (se deletado) */}
         {pessoaDeletada && (
-          <div className="modal-alerta-preview modal-alerta-exclusao">
-            <div className="alerta-icone">🗑️</div>
-            <div className="alerta-texto">
+          <div className="banner-exclusao-preview">
+            <div className="banner-icone">🗑️</div>
+            <div className="banner-texto">
               <strong>Este cadastro foi removido do sistema</strong>
               <br />
-              <small>Os dados abaixo são apenas para referência.</small>
+              <small>Os dados abaixo são apenas para referência histórica.</small>
             </div>
           </div>
         )}
@@ -175,7 +228,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
             <div className="modal-secao">
               <h3 className="secao-titulo">Informações Pessoais</h3>
               <div className="secao-conteudo">
-                <div className="campo-preview">
+                <div className={getClasseCampo('dataNascimento')}>
                   <div className="campo-label">
                     <Calendar size={16} />
                     Data de Nascimento
@@ -185,27 +238,27 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
                   </div>
                 </div>
 
-                <div className="campo-preview">
+                <div className={getClasseCampo('cpf')}>
                   <div className="campo-label">CPF</div>
                   <div className="campo-valor">{formatarCPF(pessoaAtualizada.cpf)}</div>
                 </div>
 
                 {pessoaAtualizada.sexo && (
-                  <div className="campo-preview">
+                  <div className={getClasseCampo('sexo')}>
                     <div className="campo-label">Sexo</div>
                     <div className="campo-valor">{pessoaAtualizada.sexo}</div>
                   </div>
                 )}
 
                 {pessoaAtualizada.estadoCivil && (
-                  <div className="campo-preview">
+                  <div className={getClasseCampo('estadoCivil')}>
                     <div className="campo-label">Estado Civil</div>
                     <div className="campo-valor">{pessoaAtualizada.estadoCivil}</div>
                   </div>
                 )}
 
                 {pessoaAtualizada.nomeMae && (
-                  <div className="campo-preview">
+                  <div className={getClasseCampo('nomeMae')}>
                     <div className="campo-label">Nome da Mãe</div>
                     <div className="campo-valor">{pessoaAtualizada.nomeMae}</div>
                   </div>
