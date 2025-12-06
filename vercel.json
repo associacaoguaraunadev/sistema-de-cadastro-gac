@@ -22,7 +22,7 @@
         },
         {
           "key": "Access-Control-Allow-Origin",
-          "value": "https://sistema-de-cadastro-gac.vercel.app"
+          "value": "https://gac-gestao.vercel.app"
         },
         {
           "key": "Access-Control-Allow-Methods",

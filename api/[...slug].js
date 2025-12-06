@@ -76,7 +76,8 @@ function setCors(res, req) {
   const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
-    'https://sistema-de-cadastro-gac.vercel.app'
+    'https://sistema-de-cadastro-gac.vercel.app',
+    'https://gac-gestao.vercel.app'
   ];
   
   const origin = req?.headers?.origin;
@@ -92,8 +93,12 @@ function setCors(res, req) {
       res.setHeader('Access-Control-Allow-Origin', '*');
     }
   } else {
-    // Produção: usar apenas origens permitidas
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[2]); // vercel
+    // Produção: usar apenas origens permitidas ou a origem da requisição se for vercel.app
+    if (origin && origin.includes('vercel.app')) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', allowedOrigins[3]); // gac-gestao
+    }
   }
   
   res.setHeader('Access-Control-Allow-Credentials', 'true');
