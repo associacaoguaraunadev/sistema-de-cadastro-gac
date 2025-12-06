@@ -13,18 +13,19 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
   const [camposAtualizados, setCamposAtualizados] = useState(new Set());
   const [mostrarToastAtualizacao, setMostrarToastAtualizacao] = useState(false);
   const { registrarCallback } = usePusher();
-  const { usuario } = useAuth();
+  const { usuario, token } = useAuth();
  
-  // Atualizar dados quando props mudam E o modal abre
+  // Atualizar dados APENAS quando o modal abre pela primeira vez
   useEffect(() => {
     if (isOpen && pessoa) {
-      console.log(`🔄 ModalPreview: Atualizando dados iniciais`, pessoa);
+      console.log(`🔄 ModalPreview: Modal abrindo com pessoa`, pessoa);
       setPessoaAtualizada(pessoa);
       setIdadeAtualizada(idade);
+      // IMPORTANTE: Só resetar pessoaDeletada quando o modal ABRE, não quando pessoa muda
       setPessoaDeletada(false);
       setPessoaIdFixo(pessoa.id);
     }
-  }, [isOpen, pessoa, idade]);
+  }, [isOpen]); // ⚠️ MUDANÇA CRÍTICA: Dependência apenas de isOpen, não de pessoa/idade
 
   // ⚡ Sistema PUSHER em TEMPO REAL com callbacks imediatos
   useEffect(() => {
@@ -46,10 +47,15 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
           console.log(`🔇 Atualizando preview silenciosamente (autor da ação)`);
         }
         
-        // Buscar dados atualizados imediatamente
-        obterPessoa(pessoaIdFixo)
+        // Buscar dados atualizados imediatamente COM TOKEN
+        if (!token) {
+          console.error('❌ Token não disponível para buscar dados');
+          return;
+        }
+        
+        obterPessoa(token, pessoaIdFixo)
           .then(dadosAtualizados => {
-            console.log(`✅ Dados atualizados recebidos`);
+            console.log(`✅ Dados atualizados recebidos:`, dadosAtualizados);
             console.log(`🔒 Modal PERMANECE ABERTO`);
             
             // Detectar campos que mudaram
@@ -58,9 +64,12 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
               Object.keys(dadosAtualizados).forEach(campo => {
                 if (JSON.stringify(pessoaAtualizada[campo]) !== JSON.stringify(dadosAtualizados[campo])) {
                   camposMudados.add(campo);
+                  console.log(`🔄 Campo "${campo}" foi alterado`);
                 }
               });
             }
+            
+            console.log(`📊 Total de campos alterados: ${camposMudados.size}`);
             
             // Atualizar dados
             setPessoaAtualizada(dadosAtualizados);
@@ -75,11 +84,13 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
             
             // Mostrar feedback visual apenas se não for o autor
             if (mostrarFeedback && camposMudados.size > 0) {
+              console.log(`🎨 Aplicando feedback visual em ${camposMudados.size} campos`);
               setCamposAtualizados(camposMudados);
               setMostrarToastAtualizacao(true);
               
               // Remover destaque após 3 segundos
               setTimeout(() => {
+                console.log(`🧹 Removendo destaque dos campos`);
                 setCamposAtualizados(new Set());
               }, 3000);
               
@@ -89,7 +100,7 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
               }, 4000);
             }
             
-            console.log(`✅ Preview atualizado - modal ainda aberto`);
+            console.log(`✅ Preview atualizado com sucesso - modal permanece aberto`);
           })
           .catch(erro => {
             console.error('❌ Erro ao atualizar preview:', erro);
@@ -100,16 +111,25 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
 
     // Callback para quando pessoa for deletada
     const unsubDelecao = registrarCallback('pessoaDeletada', (evento) => {
+      console.log(`🔔 ModalPreview: Evento pessoaDeletada recebido`);
+      console.log(`🔍 evento.pessoa.id: ${evento.pessoa.id}, pessoaIdFixo: ${pessoaIdFixo}`);
+      
       if (String(evento.pessoa.id) === String(pessoaIdFixo)) {
-        console.log(`🗑️ ModalPreview: Pessoa ${pessoaIdFixo} foi deletada`);
+        console.log(`🗑️ ModalPreview: Pessoa ${pessoaIdFixo} foi deletada por ${evento.autorFuncao}`);
         console.log(`🔒 Marcando como deletada - modal PERMANECE ABERTO`);
+        console.log(`⚠️ Banner de exclusão deve aparecer agora`);
         
         setPessoaDeletada(true);
+        
+        console.log(`✅ Estado pessoaDeletada alterado para true`);
 
         // Atualizar lista no fundo
         if (onPessoaDeletada) {
+          console.log(`🔄 Chamando callback onPessoaDeletada para recarregar lista`);
           onPessoaDeletada();
         }
+      } else {
+        console.log(`⏭️ Pessoa diferente, ignorando evento de deleção`);
       }
     });
 
