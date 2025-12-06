@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import Pusher from 'pusher';
 import { gerarTokenGeracao, listarTokens, revogarToken } from './autenticacao/tokens.js';
+import { enviarEmailRecuperacao } from './servicos/email.js';
 
 // Pool de conexão Prisma - CRUCIAL para serverless
 let prisma;
@@ -688,10 +689,16 @@ async function recuperacaoSenhaSolicitar(req, res) {
 
     log(`✅ Token de recuperação gerado para ${email} (expira em 30min)`);
     
-    // TODO: Implementar envio de email
-    // await enviarEmailRecuperacao(email, token);
+    // Enviar email com o código
+    try {
+      await enviarEmailRecuperacao(email, token);
+      log(`✅ Email enviado para ${email}`);
+    } catch (erroEmail) {
+      log(`⚠️ Falha ao enviar email: ${erroEmail.message}`, 'error');
+      // Continua mesmo se email falhar - token está salvo no banco
+    }
     
-    // TEMPORÁRIO: Exibir token apenas em desenvolvimento
+    // TEMPORÁRIO: Exibir token em desenvolvimento
     if (process.env.NODE_ENV === 'development') {
       console.log(`\n📧 TOKEN DE RECUPERAÇÃO [DEV MODE]:`);
       console.log(`   Email: ${email}`);
