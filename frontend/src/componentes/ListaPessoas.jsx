@@ -163,10 +163,13 @@ export const ListaPessoas = () => {
       console.log(`🔍 Modal de preview aberto? ${modalPreviewAbertoRef.current}`);
       console.log(`📢 BIDIRECIONAL: Mostrando alerta para TODOS os usuários`);
       
-      // NÃO mostrar alerta amarelo APENAS se modal de edição estiver aberto
-      // (para não atrapalhar a edição do usuário)
-      if (!modalEdicaoAbertoRef.current) {
-        console.log(`✅ Mostrando alerta de edição para TODOS (modal não está aberto)`);
+      // NÃO mostrar alerta amarelo se:
+      // 1. Modal de edição estiver aberto (para não atrapalhar a edição)
+      // 2. Modal de preview estiver aberto (já atualiza automaticamente em tempo real)
+      const naoMostrarAlerta = modalEdicaoAbertoRef.current || modalPreviewAbertoRef.current;
+      
+      if (!naoMostrarAlerta) {
+        console.log(`✅ Mostrando alerta de edição (nenhum modal aberto)`);
         
         // Mostrar alerta amarelo que desaparece em 10 segundos
         setAlertaEdicao({
@@ -184,7 +187,12 @@ export const ListaPessoas = () => {
           setAlertaEdicao(null);
         }, 10000);
       } else {
-        console.log(`⏭️ Modal de edição aberto, não mostrando alerta global`);
+        if (modalEdicaoAbertoRef.current) {
+          console.log(`⏭️ Modal de edição aberto, não mostrando alerta global`);
+        }
+        if (modalPreviewAbertoRef.current) {
+          console.log(`⏭️ Modal de preview aberto, não mostrando alerta global (atualização automática em tempo real)`);
+        }
       }
       
       // SEMPRE recarregar lista (comunicação bilateral)
