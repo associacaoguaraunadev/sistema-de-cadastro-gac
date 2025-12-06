@@ -46,8 +46,11 @@ export const useValidarTokenPeriodicamente = (intervaloMs = 60000) => {
 
     const validarToken = async () => {
       try {
+        const API_URL = import.meta.env.VITE_API_URL || 
+          (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api');
+        
         const resposta = await fetch(
-          'http://localhost:3001/api/autenticacao/validar-token',
+          `${API_URL}/autenticacao/validar-token`,
           {
             method: 'POST',
             headers: {

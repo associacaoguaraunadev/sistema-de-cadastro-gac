@@ -5,6 +5,10 @@ import { useToast } from '../hooks/useToast';
 import { ToastContainer } from './Toast';
 import './FormularioAutenticacao.css';
 
+// Detectar ambiente automaticamente
+const API_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api');
+
 export const FormularioLogin = () => {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -129,8 +133,8 @@ export const FormularioRegistro = () => {
       // Detectar qual tipo de código foi fornecido
       const ehToken = codigoConvite.startsWith('GAC-GEN-') || codigoConvite.startsWith('GAC-TOKEN-');
       const endpoint = ehToken 
-        ? 'http://localhost:3001/api/autenticacao/token/validar'
-        : 'http://localhost:3001/api/autenticacao/convite/validar';
+        ? `${API_URL}/autenticacao/token/validar`
+        : `${API_URL}/autenticacao/convite/validar`;
 
       const resposta = await fetch(endpoint, {
         method: 'POST',

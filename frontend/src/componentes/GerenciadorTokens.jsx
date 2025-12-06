@@ -5,7 +5,9 @@ import { Copy, Trash2, Check, Loader, AlertCircle, X } from 'lucide-react';
 import axios from 'axios';
 import './GerenciadorTokens.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Detectar ambiente automaticamente
+const API_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api');
 
 export const GerenciadorTokens = ({ onFechar }) => {
   const [email, setEmail] = useState('');

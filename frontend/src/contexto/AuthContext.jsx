@@ -4,7 +4,9 @@ import { criarInterceptor } from '../servicos/interceptorHttp';
 
 export const AuthContext = createContext();
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+// Detectar ambiente automaticamente
+const API_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api');
 
 // Instância axios customizada com configurações
 const instanciaAxios = axios.create({

@@ -4,6 +4,10 @@ import { useToast } from '../hooks/useToast';
 import { Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import './CriadorGerador.css';
 
+// Detectar ambiente automaticamente
+const API_URL = import.meta.env.VITE_API_URL || 
+  (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api');
+
 const formatarCPF = (cpf) => {
   cpf = (cpf || '').toString();
   return cpf.replace(/\D/g, '').replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
@@ -41,7 +45,7 @@ export const CriadorGerador = () => {
 
     try {
       setCarregando(true);
-      const response = await fetch('http://localhost:3001/api/autenticacao/token/validar', {
+      const response = await fetch(`${API_URL}/autenticacao/token/validar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token })
@@ -81,7 +85,7 @@ export const CriadorGerador = () => {
 
     try {
       setCarregando(true);
-      const response = await fetch('http://localhost:3001/api/autenticacao/token/usar', {
+      const response = await fetch(`${API_URL}/autenticacao/token/usar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, email, senha, nome })

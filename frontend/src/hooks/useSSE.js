@@ -18,7 +18,9 @@ export const useSSE = (onEvent) => {
     try {
       console.log('🔗 Conectando ao SSE...');
       
-      const eventSource = new EventSource(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/eventos/sse?token=${encodeURIComponent(token)}`);
+      const baseURL = import.meta.env.VITE_API_URL || 
+        (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api');
+      const eventSource = new EventSource(`${baseURL.replace('/api', '')}/api/eventos/sse?token=${encodeURIComponent(token)}`);
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
