@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import Pusher from 'pusher';
 import { gerarTokenGeracao, listarTokens, revogarToken } from './autenticacao/tokens.js';
@@ -70,10 +71,32 @@ async function enviarEventoPusher(evento, dados) {
 
 
 
-// CORS Handler
-function setCors(res) {
+// CORS Handler - Suporta múltiplas origens
+function setCors(res, req) {
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://sistema-de-cadastro-gac.vercel.app'
+  ];
+  
+  const origin = req?.headers?.origin;
+  
+  // Se a origem está na lista de permitidas, define ela especificamente
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV === 'development') {
+    // Em desenvolvimento, aceitar qualquer localhost
+    if (origin && origin.startsWith('http://localhost')) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  } else {
+    // Produção: usar apenas origens permitidas
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigins[2]); // vercel
+  }
+  
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 }
@@ -645,7 +668,7 @@ async function recuperacaoSenhaSolicitar(req, res) {
     }
 
     // Gerar token de recuperação (10 caracteres em maiúsculas)
-    const token = require('crypto').randomBytes(5).toString('hex').toUpperCase();
+    const token = crypto.randomBytes(5).toString('hex').toUpperCase();
     const agora = new Date();
     const expiracao = new Date(agora.getTime() + 30 * 60 * 1000); // 30 minutos
 
@@ -1515,7 +1538,7 @@ async function pessoasDeletar(req, res, id) {
 // ==================== HANDLER PRINCIPAL ====================
 
 export default async function handler(req, res) {
-  setCors(res);
+  setCors(res, req);
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();

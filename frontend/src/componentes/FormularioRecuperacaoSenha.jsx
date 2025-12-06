@@ -4,6 +4,8 @@ import { useToast } from '../hooks/useToast';
 import { ToastContainer } from './Toast';
 import './FormularioAutenticacao.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
 export const FormularioRecuperacaoSenha = () => {
   const [etapa, setEtapa] = useState('email'); // email | codigo | novaSenha
   const [email, setEmail] = useState('');
@@ -24,7 +26,7 @@ export const FormularioRecuperacaoSenha = () => {
     setCarregando(true);
 
     try {
-      const resposta = await fetch('http://localhost:3001/api/autenticacao/recuperacao-senha/solicitar', {
+      const resposta = await fetch(`${API_URL}/autenticacao/recuperacao-senha/solicitar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -59,7 +61,7 @@ export const FormularioRecuperacaoSenha = () => {
     setCarregando(true);
 
     try {
-      const resposta = await fetch('http://localhost:3001/api/autenticacao/recuperacao-senha/validar-token', {
+      const resposta = await fetch(`${API_URL}/autenticacao/recuperacao-senha/validar-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, token })
@@ -121,7 +123,7 @@ export const FormularioRecuperacaoSenha = () => {
     setCarregando(true);
 
     try {
-      const resposta = await fetch('http://localhost:3001/api/autenticacao/recuperacao-senha/redefinir', {
+      const resposta = await fetch(`${API_URL}/autenticacao/recuperacao-senha/redefinir`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, token, novaSenha })
