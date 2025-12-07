@@ -25,6 +25,10 @@ apiInstance.setApiKey(
  */
 export async function enviarEmailRecuperacao(email, token) {
   try {
+    console.log('🔍 [DEBUG] Iniciando envio de email...');
+    console.log('🔍 [DEBUG] BREVO_API_KEY existe?', !!process.env.BREVO_API_KEY);
+    console.log('🔍 [DEBUG] EMAIL_FROM:', process.env.EMAIL_FROM || 'não configurado');
+    
     if (!process.env.BREVO_API_KEY) {
       console.warn('⚠️ BREVO_API_KEY não configurada. Email não será enviado.');
       console.log(`📧 [DEV] Código de recuperação para ${email}: ${token}`);
@@ -32,6 +36,8 @@ export async function enviarEmailRecuperacao(email, token) {
     }
 
     const sendSmtpEmail = new brevo.SendSmtpEmail();
+    
+    console.log('🔍 [DEBUG] Objeto sendSmtpEmail criado');
 
     sendSmtpEmail.subject = 'Código de Recuperação de Senha - GAC';
     sendSmtpEmail.to = [{ email, name: email.split('@')[0] }];
@@ -207,20 +213,27 @@ export async function enviarEmailRecuperacao(email, token) {
       email: process.env.EMAIL_FROM || 'noreply@gac-gestao.com'
     };
 
-    // Enviar email
-    const resultado = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log('🔍 [DEBUG] Remetente configurado:', sendSmtpEmail.sender);
+    console.log('🔍 [DEBUG] Destinatário:', sendSmtpEmail.to);
 
+    // Enviar email
+    console.log('🔍 [DEBUG] Chamando apiInstance.sendTransacEmail...');
+    const resultado = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    
+    console.log('🔍 [DEBUG] Resultado completo:', JSON.stringify(resultado, null, 2));
     console.log(`✅ Email de recuperação enviado para ${email}`);
-    console.log(`   Message ID: ${resultado.messageId}`);
+    console.log(`   Message ID: ${resultado?.messageId || resultado?.response?.messageId || 'não disponível'}`);
 
     return {
       sucesso: true,
-      messageId: resultado.messageId,
+      messageId: resultado?.messageId || resultado?.response?.messageId,
       email
     };
 
   } catch (erro) {
     console.error('❌ Erro ao enviar email de recuperação:', erro);
+    console.error('❌ Stack trace:', erro.stack);
+    console.error('❌ Resposta da API:', erro.response?.body || erro.response || 'sem resposta');
     
     // Em caso de erro, ainda logar o código para debug
     console.log(`📧 [FALLBACK] Código de recuperação para ${email}: ${token}`);
