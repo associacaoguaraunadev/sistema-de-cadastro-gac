@@ -188,10 +188,8 @@ export const FormularioRecuperacaoSenha = () => {
               {carregando ? 'Enviando...' : 'Enviar Código'}
             </button>
 
-            <div className="texto-rodape" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="texto-rodape">
               <Link to="/entrar">← Voltar para login</Link>
-              <span>ou</span>
-              <Link to="/registrar">Criar conta</Link>
             </div>
           </form>
         )}

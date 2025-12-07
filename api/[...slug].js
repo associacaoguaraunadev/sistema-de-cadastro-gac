@@ -666,10 +666,9 @@ async function recuperacaoSenhaSolicitar(req, res) {
     const usuario = await prisma.usuario.findUnique({ where: { email } });
     
     if (!usuario) {
-      // Retornar sucesso mesmo se usuário não existe (segurança contra enumeração)
       log(`⚠️ Tentativa de recuperação para email inexistente: ${email}`);
-      return res.status(200).json({ 
-        mensagem: 'Se o email estiver cadastrado, você receberá um código de recuperação'
+      return res.status(404).json({ 
+        erro: 'Este email não está cadastrado no sistema. Crie uma conta primeiro.'
       });
     }
 
