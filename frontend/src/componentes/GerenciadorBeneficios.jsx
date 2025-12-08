@@ -1,26 +1,3 @@
-  // Função para buscar benefícios Governo do backend
-  const carregarBeneficiosGoverno = async () => {
-    setCarregando(true);
-    try {
-      const resposta = await fetch(`${API_URL}/beneficios/governo`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const dados = await resposta.json();
-      setBeneficiosGoverno(dados.beneficios || []);
-    } catch (erro) {
-      console.error('Erro ao carregar benefícios Governo:', erro);
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  // Função agregadora para carregar ambos
-  const carregarBeneficios = async () => {
-    await Promise.all([
-      carregarBeneficiosGAC(),
-      carregarBeneficiosGoverno()
-    ]);
-  };
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Edit2, AlertTriangle, Check, Save, Gift, Building2 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
@@ -61,6 +38,30 @@ export const GerenciadorBeneficios = () => {
     } finally {
       setCarregando(false);
     }
+  };
+
+  // Função para buscar benefícios Governo do backend
+  const carregarBeneficiosGoverno = async () => {
+    setCarregando(true);
+    try {
+      const resposta = await fetch(`${API_URL}/beneficios/governo`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const dados = await resposta.json();
+      setBeneficiosGoverno(dados.beneficios || []);
+    } catch (erro) {
+      console.error('Erro ao carregar benefícios Governo:', erro);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // Função agregadora para carregar ambos
+  const carregarBeneficios = async () => {
+    await Promise.all([
+      carregarBeneficiosGAC(),
+      carregarBeneficiosGoverno()
+    ]);
   };
 
   // Chama ao montar o componente
@@ -152,7 +153,7 @@ export const GerenciadorBeneficios = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ novoTipo: novoNome })
+        body: JSON.stringify({ novoNome })
       });
 
       if (!resposta.ok) {
@@ -198,8 +199,7 @@ export const GerenciadorBeneficios = () => {
       }
 
       sucesso('Benefício Removido', `"${confirmandoExclusaoGAC}" foi removido`);
-      cancelarExclusaoGAC();
-      await carregarBeneficios();
+      setConfirmandoExclusaoGAC(null);
       
       // Notificar outros componentes sobre a atualização
       window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
@@ -208,6 +208,7 @@ export const GerenciadorBeneficios = () => {
       erroToast('Erro ao Deletar', error.message);
     } finally {
       setCarregando(false);
+      carregarBeneficiosGAC();
     }
   };
 
@@ -341,6 +342,7 @@ export const GerenciadorBeneficios = () => {
       erroToast('Erro ao Deletar', error.message);
     } finally {
       setCarregando(false);
+      carregarBeneficiosGoverno();
     }
   };
 
