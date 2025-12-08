@@ -109,27 +109,31 @@ export const TransferenciaPessoas = () => {
   const carregarFiltrosGlobais = async () => {
     try {
       const cliente = criarCliente();
-      // Carregar todas as pessoas para extrair comunidades e benefícios únicos
-      const resposta = await cliente.get('/pessoas?pagina=1&limite=10000&status=');
-      const todasAsPessoas = resposta.data.pessoas;
-      
+      // Carregar apenas as pessoas que o usuário logado pode ver (usando mesmo filtro da listagem principal)
+      const params = new URLSearchParams({
+        pagina: '1',
+        limite: '10000',
+        status: filtros.status,
+        busca: busca || ''
+      });
+      const resposta = await cliente.get(`/pessoas?${params}`);
+      const pessoasVisiveis = resposta.data.pessoas;
+
       const comunidadesSet = new Set();
       const beneficiosGACSet = new Set();
       const beneficiosGovernoSet = new Set();
-      
-      todasAsPessoas.forEach(pessoa => {
+
+      pessoasVisiveis.forEach(pessoa => {
         // Comunidade
         if (pessoa.comunidade) {
           comunidadesSet.add(pessoa.comunidade);
         }
-        
         // Benefícios GAC
         if (pessoa.beneficiosGAC && Array.isArray(pessoa.beneficiosGAC)) {
           pessoa.beneficiosGAC.forEach(b => {
             if (b.tipo) beneficiosGACSet.add(b.tipo);
           });
         }
-        
         // Benefícios Governo
         if (pessoa.beneficiosGoverno && Array.isArray(pessoa.beneficiosGoverno)) {
           pessoa.beneficiosGoverno.forEach(b => {
@@ -137,7 +141,7 @@ export const TransferenciaPessoas = () => {
           });
         }
       });
-      
+
       setComunidades(Array.from(comunidadesSet).sort());
       setBeneficiosGAC(Array.from(beneficiosGACSet).sort());
       setBeneficiosGoverno(Array.from(beneficiosGovernoSet).sort());
@@ -240,262 +244,95 @@ export const TransferenciaPessoas = () => {
     <div className="container-transferencia">
       <div className="card-transferencia">
         <div className="cabecalho-transferencia">
-          <button
-            className="botao-voltar"
-            onClick={() => navegar('/')}
-            title="Voltar para lista de pessoas"
-          >
+          <button className="botao-voltar" onClick={() => navegar('/')} title="Voltar">
             ← Voltar
           </button>
-          <h2>📦 Transferência de Pessoas</h2>
+          <h2>Transferência de Pessoas</h2>
         </div>
-        <p className="subtitulo">Transfira múltiplas pessoas para outro usuário de forma eficiente</p>
-
-        {erro && <div className="alerta-erro">{erro}</div>}
-        {mensagem && <div className="alerta-sucesso">{mensagem}</div>}
-
-        <div className="secao-filtros">
-          <h3>Filtrar e Selecionar</h3>
-          
-          <div className="grupo-filtro">
-            <input
-              type="text"
-              placeholder="🔍 Buscar por nome, CPF, email..."
-              value={buscaInput}
-              onChange={(e) => setBuscaInput(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  clearTimeout(timeoutRef.current);
-                  setBusca(buscaInput);
-                  setPagina(1);
-                }
-              }}
-              className="entrada-busca"
-              disabled={carregando}
-            />
+        <div className="layout-transferencia">
+          <div className="painel-filtros">
+            <h3>Filtros</h3>
+            <input type="text" className="entrada-busca" placeholder="Buscar por nome, CPF, email..." value={buscaInput} onChange={e => setBuscaInput(e.target.value)} disabled={carregando} />
+            <div className="filtros-row">
+              <select value={filtros.status} onChange={e => { setFiltros({ ...filtros, status: e.target.value }); setPagina(1); }} className="select-filtro" disabled={carregando}>
+                <option value="ativo">✓ Ativo</option>
+                <option value="inativo">✗ Inativo</option>
+                <option value="">⚪ Todos</option>
+              </select>
+              <select value={filtros.comunidade} onChange={e => { setFiltros({ ...filtros, comunidade: e.target.value }); setPagina(1); }} className="select-filtro" disabled={carregando}>
+                <option value="">🏘️ Todas Comunidades</option>
+                {comunidades.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <select value={filtros.beneficioGAC} onChange={e => { setFiltros({ ...filtros, beneficioGAC: e.target.value }); setPagina(1); }} className="select-filtro" disabled={carregando}>
+                <option value="">🎁 GAC: Todos</option>
+                {beneficiosGAC.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+              <select value={filtros.beneficioGoverno} onChange={e => { setFiltros({ ...filtros, beneficioGoverno: e.target.value }); setPagina(1); }} className="select-filtro" disabled={carregando}>
+                <option value="">🏛️ Governo: Todos</option>
+                {beneficiosGoverno.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+            <div className="filtros-actions">
+              <button onClick={selecionarTodosPagina} className="botao-secundario" disabled={carregando || pessoas.length === 0}>{todosNaPagina ? '☐ Desselecionar Página' : '☑ Selecionar Página'}</button>
+              <button onClick={selecionarTodos} className="botao-secundario" disabled={carregando || pessoas.length === 0}>{selecionados.size === 0 ? '✓ Selecionar Filtros' : '✗ Limpar Seleção'}</button>
+              <button onClick={limparSelecao} className="botao-secundario" disabled={carregando || selecionados.size === 0}>🗑 Limpar</button>
+              <span className="contador-selecao">{selecionados.size} selecionado(s) de {total}</span>
+            </div>
           </div>
-
-          <div className="grupo-filtro filtros-inline">
-            <select
-              value={filtros.status}
-              onChange={(e) => {
-                setFiltros({ ...filtros, status: e.target.value });
-                setPagina(1);
-              }}
-              className="select-filtro"
-              disabled={carregando}
-            >
-              <option value="ativo">✓ Status: Ativo</option>
-              <option value="inativo">✗ Status: Inativo</option>
-              <option value="">⚪ Status: Todos</option>
-            </select>
-
-            <select
-              value={filtros.comunidade}
-              onChange={(e) => {
-                setFiltros({ ...filtros, comunidade: e.target.value });
-                setPagina(1);
-              }}
-              className="select-filtro"
-              disabled={carregando}
-            >
-              <option value="">🏘️ Todas as Comunidades</option>
-              {comunidades.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-
-            <select
-              value={filtros.beneficioGAC}
-              onChange={(e) => {
-                setFiltros({ ...filtros, beneficioGAC: e.target.value });
-                setPagina(1);
-              }}
-              className="select-filtro select-beneficio-gac"
-              disabled={carregando}
-            >
-              <option value="">🎁 Benefícios GAC: Todos</option>
-              {beneficiosGAC.map(b => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
-
-            <select
-              value={filtros.beneficioGoverno}
-              onChange={(e) => {
-                setFiltros({ ...filtros, beneficioGoverno: e.target.value });
-                setPagina(1);
-              }}
-              className="select-filtro select-beneficio-governo"
-              disabled={carregando}
-            >
-              <option value="">🏛️ Benefícios Governo: Todos</option>
-              {beneficiosGoverno.map(b => (
-                <option key={b} value={b}>{b}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grupo-controle">
-            <button
-              onClick={selecionarTodosPagina}
-              className="botao-secundario"
-              disabled={carregando || pessoas.length === 0}
-              title={todosNaPagina ? 'Desselecionar todos desta página' : 'Selecionar todos desta página'}
-            >
-              {todosNaPagina ? '☐ Desselecionar Página' : '☑ Selecionar Página'}
-            </button>
-
-            <button
-              onClick={selecionarTodos}
-              className="botao-secundario"
-              disabled={carregando || pessoas.length === 0}
-              title="Seleciona/Deseleciona usando os filtros atuais"
-            >
-              {selecionados.size === 0 ? '✓ Selecionar Com Filtros' : '✗ Limpar Seleção'}
-            </button>
-
-            <button
-              onClick={limparSelecao}
-              className="botao-secundario"
-              disabled={carregando || selecionados.size === 0}
-            >
-              🗑 Limpar Tudo
-            </button>
-
-            <span className="contador-selecao">
-              {selecionados.size} selecionado(s) de {total}
-            </span>
-          </div>
-        </div>
-
-        <div className="secao-transferencia">
-          <h3>Configurar Transferência</h3>
-          
-          <div className="grupo-selecao-usuario">
-            <label htmlFor="usuario-destino">Transferir para:</label>
-            <select
-              id="usuario-destino"
-              value={usuarioDestino}
-              onChange={(e) => setUsuarioDestino(e.target.value)}
-              className="select-usuario"
-              disabled={carregando || usuariosDisponiveis.length === 0}
-            >
-              <option value="">-- Selecione um usuário --</option>
-              {usuariosDisponiveis.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.nome} ({u.email}) - {u.funcao}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={executarTransferencia}
-            className="botao-transferir"
-            disabled={carregando || selecionados.size === 0 || !usuarioDestino}
-          >
-            {carregando ? '⏳ Transferindo...' : '🔄 Executar Transferência'}
-          </button>
-        </div>
-
-        <div className="secao-lista">
-          <h3>Pessoas ({total})</h3>
-          
-          {carregando && <p className="texto-carregando">⏳ Carregando...</p>}
-
-          {pessoas.length > 0 ? (
-            <>
+          <div className="painel-lista">
+            <h3>Pessoas ({total})</h3>
+            {carregando && <p className="texto-carregando">⏳ Carregando...</p>}
+            {pessoas.length > 0 ? (
               <div className="tabela-pessoas">
                 <div className="linha-cabecalho">
-                  <div className="coluna-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={todosNaPagina && pessoas.length > 0}
-                      onChange={selecionarTodosPagina}
-                      disabled={carregando}
-                    />
-                  </div>
+                  <div className="coluna-checkbox"><input type="checkbox" checked={todosNaPagina && pessoas.length > 0} onChange={selecionarTodosPagina} disabled={carregando} /></div>
                   <div className="coluna-nome">Nome</div>
                   <div className="coluna-cpf">CPF</div>
                   <div className="coluna-comunidade">Comunidade</div>
                   <div className="coluna-beneficios">Benefícios</div>
                 </div>
-
                 {pessoas.map(pessoa => {
                   const beneficiosGACAtivos = pessoa.beneficiosGAC?.filter(b => b.tipo) || [];
                   const beneficiosGovernoAtivos = pessoa.beneficiosGoverno?.filter(b => b.nome) || [];
                   const totalBeneficios = beneficiosGACAtivos.length + beneficiosGovernoAtivos.length;
-                  
                   return (
                     <div key={pessoa.id} className={`linha-pessoa ${selecionados.has(pessoa.id) ? 'selecionada' : ''}`}>
-                      <div className="coluna-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={selecionados.has(pessoa.id)}
-                          onChange={() => alternarSelecao(pessoa.id)}
-                          disabled={carregando}
-                        />
-                      </div>
+                      <div className="coluna-checkbox"><input type="checkbox" checked={selecionados.has(pessoa.id)} onChange={() => alternarSelecao(pessoa.id)} disabled={carregando} /></div>
                       <div className="coluna-nome">{pessoa.nome}</div>
                       <div className="coluna-cpf">{pessoa.cpf}</div>
                       <div className="coluna-comunidade">{pessoa.comunidade}</div>
                       <div className="coluna-beneficios">
                         {totalBeneficios > 0 ? (
                           <div className="badges-beneficios">
-                            {beneficiosGACAtivos.length > 0 && (
-                              <span className="badge-beneficio badge-gac" title={beneficiosGACAtivos.map(b => b.tipo).join(', ')}>
-                                🎁 GAC ({beneficiosGACAtivos.length})
-                              </span>
-                            )}
-                            {beneficiosGovernoAtivos.length > 0 && (
-                              <span className="badge-beneficio badge-governo" title={beneficiosGovernoAtivos.map(b => b.nome).join(', ')}>
-                                🏛️ Governo ({beneficiosGovernoAtivos.length})
-                              </span>
-                            )}
+                            {beneficiosGACAtivos.length > 0 && (<span className="badge-beneficio badge-gac" title={beneficiosGACAtivos.map(b => b.tipo).join(', ')}>🎁 GAC ({beneficiosGACAtivos.length})</span>)}
+                            {beneficiosGovernoAtivos.length > 0 && (<span className="badge-beneficio badge-governo" title={beneficiosGovernoAtivos.map(b => b.nome).join(', ')}>🏛️ Governo ({beneficiosGovernoAtivos.length})</span>)}
                           </div>
-                        ) : (
-                          <span className="sem-beneficios">Nenhum</span>
-                        )}
+                        ) : (<span className="sem-beneficios">Nenhum</span>)}
                       </div>
                     </div>
                   );
                 })}
               </div>
-
-              <div className="paginacao">
-                <button
-                  onClick={() => setPagina(p => Math.max(1, p - 1))}
-                  disabled={pagina === 1 || carregando}
-                  className="botao-paginacao"
-                >
-                  ← Anterior
-                </button>
-                
-                <span className="info-pagina">
-                  Página {pagina} de {totalPages}
-                </span>
-                
-                <button
-                  onClick={() => setPagina(p => Math.min(totalPages, p + 1))}
-                  disabled={pagina === totalPages || carregando}
-                  className="botao-paginacao"
-                >
-                  Próxima →
-                </button>
-
-                <button
-                  onClick={() => navegar('/')}
-                  className="botao-cancelar"
-                  disabled={carregando}
-                >
-                  ✕ Cancelar
-                </button>
-              </div>
-            </>
-          ) : (
-            !carregando && <p className="sem-resultados">Nenhuma pessoa encontrada com estes filtros</p>
-          )}
+            ) : (!carregando && <p className="sem-resultados">Nenhuma pessoa encontrada com estes filtros</p>)}
+            <div className="paginacao">
+              <button onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina === 1 || carregando} className="botao-paginacao">←</button>
+              <span className="info-pagina">Página {pagina} de {totalPages}</span>
+              <button onClick={() => setPagina(p => Math.min(totalPages, p + 1))} disabled={pagina === totalPages || carregando} className="botao-paginacao">→</button>
+            </div>
+          </div>
+          <div className="painel-transferencia">
+            <h3>Transferir Selecionados</h3>
+            <div className="grupo-selecao-usuario">
+              <label htmlFor="usuario-destino">Usuário destino:</label>
+              <select id="usuario-destino" value={usuarioDestino} onChange={e => setUsuarioDestino(e.target.value)} className="select-usuario" disabled={carregando || usuariosDisponiveis.length === 0}>
+                <option value="">-- Selecione um usuário --</option>
+                {usuariosDisponiveis.map(u => (<option key={u.id} value={u.id}>{u.nome} ({u.email}) - {u.funcao}</option>))}
+              </select>
+            </div>
+            <button onClick={executarTransferencia} className="botao-transferir" disabled={carregando || selecionados.size === 0 || !usuarioDestino}>{carregando ? '⏳ Transferindo...' : '🔄 Transferir'}</button>
+            {erro && <div className="alerta-erro" style={{marginTop: 12}}>{erro}</div>}
+            {mensagem && <div className="alerta-sucesso" style={{marginTop: 12}}>{mensagem}</div>}
+          </div>
         </div>
       </div>
       <ToastContainer toasts={toasts} onClose={removerToast} />
