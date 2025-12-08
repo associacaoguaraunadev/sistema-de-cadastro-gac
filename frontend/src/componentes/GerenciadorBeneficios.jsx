@@ -157,8 +157,8 @@ export const GerenciadorBeneficios = () => {
       });
 
       if (!resposta.ok) {
-        const erro = await resposta.json();
-        throw new Error(erro.erro || 'Erro ao renomear benefício');
+        const erroData = await resposta.json();
+        throw new Error(erroData.mensagem || erroData.erro || 'Erro ao deletar benefício');
       }
 
       const dados = await resposta.json();
@@ -195,7 +195,8 @@ export const GerenciadorBeneficios = () => {
       const dados = await resposta.json();
 
       if (!resposta.ok) {
-        throw new Error(dados.erro || dados.mensagem || 'Erro ao deletar benefício');
+        const erroData = await resposta.json();
+        throw new Error(erroData.mensagem || erroData.erro || 'Erro ao deletar benefício');
       }
 
       sucesso('Benefício Removido', `"${confirmandoExclusaoGAC}" foi removido`);

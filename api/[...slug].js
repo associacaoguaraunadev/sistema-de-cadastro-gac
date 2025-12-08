@@ -1450,23 +1450,38 @@ async function beneficiosGACDeletar(req, res, tipoParam) {
 
     const tipo = decodeURIComponent(tipoParam);
 
-    // Verificar se há uso ativo (dataFinal no futuro ou null)
-    const agora = new Date();
-    const pessoas = await prisma.pessoa.findMany();
-    
-    const usoAtivo = pessoas.some(p => 
-      p.beneficiosGAC && Array.isArray(p.beneficiosGAC) && 
-      p.beneficiosGAC.some(b => 
-        b.tipo === tipo && 
-        (!b.dataFinal || new Date(b.dataFinal) > agora)
-      )
-    );
+    // Verificar se há uso ativo (dataInicio <= hoje <= dataFinal)
+    const pessoasComBeneficio = await prisma.pessoa.findMany({
+      where: {
+        beneficiosGAC: {
+          // Filtro inicial no banco para otimizar a busca
+          string_contains: `"tipo":"${tipo}"`
+        }
+      },
+      select: { id: true, nome: true, beneficiosGAC: true } // Otimiza a query
+    });
 
-    if (usoAtivo) {
-      return res.status(400).json({ 
-        erro: 'Não é possível deletar este benefício',
-        mensagem: 'Existem pessoas com este benefício ativo. Encerre ou remova os benefícios ativos primeiro.'
-      });
+    if (pessoasComBeneficio.length > 0) {
+      const hoje = new Date();
+      const conflitos = pessoasComBeneficio.filter(p => 
+        p.beneficiosGAC.some(b => {
+          if (b.tipo !== tipo) return false;
+          
+          // Considera o benefício ativo se a data de hoje está entre o início e o fim
+          const dataInicio = new Date(b.dataInicio);
+          const dataFinal = b.dataFinal ? new Date(b.dataFinal) : null;
+          
+          return dataInicio <= hoje && (!dataFinal || dataFinal >= hoje);
+        })
+      );
+
+      if (conflitos.length > 0) {
+        const nomes = conflitos.map(p => p.nome).join(', ');
+        return res.status(400).json({ 
+          erro: 'Não é possível deletar este benefício pois está ativo.',
+          mensagem: `O benefício está ativo para ${conflitos.length} pessoa(s): ${nomes}. Encerre ou remova os benefícios ativos primeiro.`
+        });
+      }
     }
 
     await prisma.beneficioGAC.delete({ where: { tipo } });
@@ -1576,17 +1591,21 @@ async function beneficiosGovernoDeletar(req, res, nomeParam) {
     const nome = decodeURIComponent(nomeParam);
 
     // Verificar se há uso
-    const pessoas = await prisma.pessoa.findMany();
-    
-    const emUso = pessoas.some(p => 
-      p.beneficiosGoverno && Array.isArray(p.beneficiosGoverno) && 
-      p.beneficiosGoverno.some(b => b.nome === nome)
-    );
+    const pessoasComBeneficio = await prisma.pessoa.findMany({
+      where: {
+        beneficiosGoverno: {
+          // Procura pelo par chave-valor exato no JSON
+          string_contains: `"nome":"${nome}"`
+        }
+      },
+      select: { nome: true, id: true } // Otimiza a query para pegar apenas o necessário
+    });
 
-    if (emUso) {
+    if (pessoasComBeneficio.length > 0) {
+      const nomes = pessoasComBeneficio.map(p => p.nome).join(', ');
       return res.status(400).json({ 
-        erro: 'Não é possível deletar este benefício',
-        mensagem: 'Existem pessoas cadastradas com este benefício. Remova-o das pessoas primeiro.'
+        erro: 'Não é possível deletar este benefício pois está em uso.',
+        mensagem: `O benefício está vinculado a ${pessoasComBeneficio.length} pessoa(s): ${nomes}. Remova o benefício dessas pessoas antes de deletar.`
       });
     }
 
