@@ -383,36 +383,28 @@ async function rotear(req, res, slug) {
   }
 
   // BENEFÍCIOS - Gerenciamento
-  if (rota === 'beneficios/gac' && req.method === 'GET') {
-    return beneficiosGACListar(req, res);
+  if (slug.length >= 2 && slug[0] === 'beneficios' && slug[1] === 'gac') {
+    if (req.method === 'GET' && slug.length === 2) {
+      return beneficiosGACListar(req, res);
+    } else if (req.method === 'POST' && slug.length === 2) {
+      return beneficiosGACAdicionar(req, res);
+    } else if (req.method === 'PUT' && slug.length === 3) {
+      return beneficiosGACRenomear(req, res, slug[2]);
+    } else if (req.method === 'DELETE' && slug.length === 3) {
+      return beneficiosGACDeletar(req, res, slug[2]);
+    }
   }
 
-  if (rota === 'beneficios/gac' && req.method === 'POST') {
-    return beneficiosGACAdicionar(req, res);
-  }
-
-  if (rota.startsWith('beneficios/gac/') && req.method === 'PUT') {
-    return beneficiosGACRenomear(req, res);
-  }
-
-  if (rota.startsWith('beneficios/gac/') && req.method === 'DELETE') {
-    return beneficiosGACDeletar(req, res);
-  }
-
-  if (rota === 'beneficios/governo' && req.method === 'GET') {
-    return beneficiosGovernoListar(req, res);
-  }
-
-  if (rota === 'beneficios/governo' && req.method === 'POST') {
-    return beneficiosGovernoAdicionar(req, res);
-  }
-
-  if (rota.startsWith('beneficios/governo/') && req.method === 'PUT') {
-    return beneficiosGovernoRenomear(req, res);
-  }
-
-  if (rota.startsWith('beneficios/governo/') && req.method === 'DELETE') {
-    return beneficiosGovernoDeletar(req, res);
+  if (slug.length >= 2 && slug[0] === 'beneficios' && slug[1] === 'governo') {
+    if (req.method === 'GET' && slug.length === 2) {
+      return beneficiosGovernoListar(req, res);
+    } else if (req.method === 'POST' && slug.length === 2) {
+      return beneficiosGovernoAdicionar(req, res);
+    } else if (req.method === 'PUT' && slug.length === 3) {
+      return beneficiosGovernoRenomear(req, res, slug[2]);
+    } else if (req.method === 'DELETE' && slug.length === 3) {
+      return beneficiosGovernoDeletar(req, res, slug[2]);
+    }
   }
 
   if (rota === 'pessoas' && req.method === 'GET') {
@@ -1412,7 +1404,7 @@ async function beneficiosGACAdicionar(req, res) {
   }
 }
 
-async function beneficiosGACRenomear(req, res) {
+async function beneficiosGACRenomear(req, res, tipo) {
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -1424,7 +1416,7 @@ async function beneficiosGACRenomear(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem renomear benefícios' });
     }
 
-    const tipoAntigo = decodeURIComponent(req.url.split('/beneficios/gac/')[1]);
+    const tipoAntigo = decodeURIComponent(tipo);
     const { novoTipo } = req.body;
 
     if (!novoTipo || !novoTipo.trim()) {
@@ -1444,7 +1436,7 @@ async function beneficiosGACRenomear(req, res) {
   }
 }
 
-async function beneficiosGACDeletar(req, res) {
+async function beneficiosGACDeletar(req, res, tipoParam) {
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -1456,7 +1448,7 @@ async function beneficiosGACDeletar(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem deletar benefícios' });
     }
 
-    const tipo = decodeURIComponent(req.url.split('/beneficios/gac/')[1]);
+    const tipo = decodeURIComponent(tipoParam);
 
     // Verificar se há uso ativo (dataFinal no futuro ou null)
     const agora = new Date();
@@ -1537,7 +1529,7 @@ async function beneficiosGovernoAdicionar(req, res) {
   }
 }
 
-async function beneficiosGovernoRenomear(req, res) {
+async function beneficiosGovernoRenomear(req, res, nome) {
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -1549,7 +1541,7 @@ async function beneficiosGovernoRenomear(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem renomear benefícios' });
     }
 
-    const nomeAntigo = decodeURIComponent(req.url.split('/beneficios/governo/')[1]);
+    const nomeAntigo = decodeURIComponent(nome);
     const { novoNome } = req.body;
 
     if (!novoNome || !novoNome.trim()) {
@@ -1569,7 +1561,7 @@ async function beneficiosGovernoRenomear(req, res) {
   }
 }
 
-async function beneficiosGovernoDeletar(req, res) {
+async function beneficiosGovernoDeletar(req, res, nomeParam) {
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -1581,7 +1573,7 @@ async function beneficiosGovernoDeletar(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem deletar benefícios' });
     }
 
-    const nome = decodeURIComponent(req.url.split('/beneficios/governo/')[1]);
+    const nome = decodeURIComponent(nomeParam);
 
     // Verificar se há uso
     const pessoas = await prisma.pessoa.findMany();

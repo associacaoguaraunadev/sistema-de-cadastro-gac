@@ -117,3 +117,53 @@ export const deletarComunidade = async (token, id) => {
   const cliente = criarClienteAPI(token);
   await cliente.delete(`/comunidades/${id}`);
 };
+
+// ========== BENEFÍCIOS GAC ==========
+
+export const obterBeneficiosGAC = async (token) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.get('/beneficios/gac');
+  return resposta.data;
+};
+
+export const criarBeneficioGAC = async (token, dados) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.post('/beneficios/gac', dados);
+  return resposta.data;
+};
+
+export const atualizarBeneficioGAC = async (token, tipo, dados) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.put(`/beneficios/gac/${tipo}`, dados);
+  return resposta.data;
+};
+
+export const deletarBeneficioGAC = async (token, tipo) => {
+  const cliente = criarClienteAPI(token);
+  await cliente.delete(`/beneficios/gac/${tipo}`);
+};
+
+// ========== BENEFÍCIOS GOVERNO ==========
+
+export const obterBeneficiosGoverno = async (token) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.get('/beneficios/governo');
+  return resposta.data;
+};
+
+export const criarBeneficioGoverno = async (token, dados) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.post('/beneficios/governo', dados);
+  return resposta.data;
+};
+
+export const atualizarBeneficioGoverno = async (token, nome, dados) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.put(`/beneficios/governo/${nome}`, dados);
+  return resposta.data;
+};
+
+export const deletarBeneficioGoverno = async (token, nome) => {
+  const cliente = criarClienteAPI(token);
+  await cliente.delete(`/beneficios/governo/${nome}`);
+};
