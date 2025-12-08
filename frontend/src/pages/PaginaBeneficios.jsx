@@ -12,7 +12,7 @@ const PaginaBeneficios = () => {
     return <Navigate to="/login" replace />;
   }
 
-  if (usuario.papel !== 'admin') {
+  if (usuario.funcao !== 'admin') {
     return <Navigate to="/" replace />;
   }
 
