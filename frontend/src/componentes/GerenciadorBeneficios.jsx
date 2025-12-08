@@ -110,7 +110,7 @@ export const GerenciadorBeneficios = () => {
 
       sucesso('Benefício Adicionado', `"${tipo}" foi adicionado aos benefícios GAC`);
       setNovoBeneficioGAC('');
-      await carregarBeneficiosGAC();
+      await carregarBeneficios();
       
       // Notificar outros componentes sobre a atualização
       window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
@@ -163,7 +163,7 @@ export const GerenciadorBeneficios = () => {
       const dados = await resposta.json();
       sucesso('Benefício Renomeado', dados.mensagem || `"${editandoGAC}" → "${novoNome}"`);
       cancelarEdicaoGAC();
-      await carregarBeneficiosGAC();
+      await carregarBeneficios();
       
       // Notificar outros componentes sobre a atualização
       window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
@@ -199,7 +199,7 @@ export const GerenciadorBeneficios = () => {
 
       sucesso('Benefício Removido', `"${confirmandoExclusaoGAC}" foi removido`);
       cancelarExclusaoGAC();
-      await carregarBeneficiosGAC();
+      await carregarBeneficios();
       
       // Notificar outros componentes sobre a atualização
       window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
