@@ -74,6 +74,12 @@ export const GerenciadorBeneficios = () => {
     try {
       setCarregando(true);
       console.log('📤 Enviando POST para:', `${API_URL}/beneficios/gac`, { tipo });
+
+      // Validação extra para garantir que o token e o tipo estão corretos
+      if (!token) {
+        throw new Error('Token não encontrado ou inválido');
+      }
+
       const resposta = await fetch(`${API_URL}/beneficios/gac`, {
         method: 'POST',
         headers: {
@@ -82,6 +88,7 @@ export const GerenciadorBeneficios = () => {
         },
         body: JSON.stringify({ tipo })
       });
+
       console.log('📥 Resposta recebida:', resposta.status, resposta.ok);
 
       if (!resposta.ok) {
