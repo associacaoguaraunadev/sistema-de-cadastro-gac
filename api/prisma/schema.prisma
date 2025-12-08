@@ -62,7 +62,20 @@ model Pessoa {
   
   @@index([usuarioId])
   @@index([comunidade])
+
   @@index([cpf])
+}
+
+model BeneficioGAC {
+  id        Int      @id @default(autoincrement())
+  tipo     String   @unique
+  criadoEm DateTime @default(now())
+}
+
+model BeneficioGoverno {
+  id        Int      @id @default(autoincrement())
+  nome      String   @unique
+  criadoEm  DateTime @default(now())
 }
 
 

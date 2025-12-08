@@ -1370,24 +1370,10 @@ async function beneficiosGACListar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    // Buscar todas as pessoas e extrair benefícios GAC únicos
-    const pessoas = await prisma.pessoa.findMany({
-      select: { beneficiosGAC: true }
-    });
-
-    const beneficiosSet = new Set();
-    pessoas.forEach(pessoa => {
-      if (pessoa.beneficiosGAC && Array.isArray(pessoa.beneficiosGAC)) {
-        pessoa.beneficiosGAC.forEach(b => {
-          if (b.tipo) beneficiosSet.add(b.tipo);
-        });
-      }
-    });
-
-    const beneficios = Array.from(beneficiosSet).sort();
-    log(`✅ Listados ${beneficios.length} benefícios GAC únicos`);
-
-    res.status(200).json({ beneficios });
+    // Buscar do catálogo
+    const beneficios = await prisma.beneficioGAC.findMany({ orderBy: { tipo: 'asc' } });
+    log(`✅ Listados ${beneficios.length} benefícios GAC do catálogo`);
+    res.status(200).json({ beneficios: beneficios.map(b => b.tipo) });
   } catch (erro) {
     log(`Erro ao listar benefícios GAC: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao listar benefícios GAC' });
@@ -1412,20 +1398,12 @@ async function beneficiosGACAdicionar(req, res) {
       return res.status(400).json({ erro: 'Tipo do benefício é obrigatório' });
     }
 
-    // Verificar se já existe
-    const pessoas = await prisma.pessoa.findMany({
-      select: { beneficiosGAC: true }
-    });
-
-    const existe = pessoas.some(p => 
-      p.beneficiosGAC && Array.isArray(p.beneficiosGAC) && 
-      p.beneficiosGAC.some(b => b.tipo === tipo.trim())
-    );
-
+    // Verificar se já existe no catálogo
+    const existe = await prisma.beneficioGAC.findUnique({ where: { tipo: tipo.trim() } });
     if (existe) {
       return res.status(409).json({ erro: 'Este benefício GAC já existe' });
     }
-
+    await prisma.beneficioGAC.create({ data: { tipo: tipo.trim() } });
     log(`✅ Benefício GAC "${tipo}" adicionado ao catálogo`);
     res.status(201).json({ mensagem: 'Benefício GAC adicionado com sucesso', tipo: tipo.trim() });
   } catch (erro) {
@@ -1453,33 +1431,13 @@ async function beneficiosGACRenomear(req, res) {
       return res.status(400).json({ erro: 'Novo tipo é obrigatório' });
     }
 
-    // Buscar todas as pessoas com este benefício
-    const pessoas = await prisma.pessoa.findMany();
-    let count = 0;
-
-    for (const pessoa of pessoas) {
-      if (pessoa.beneficiosGAC && Array.isArray(pessoa.beneficiosGAC)) {
-        const beneficiosAtualizados = pessoa.beneficiosGAC.map(b => 
-          b.tipo === tipoAntigo ? { ...b, tipo: novoTipo.trim() } : b
-        );
-
-        const houveAlteracao = JSON.stringify(pessoa.beneficiosGAC) !== JSON.stringify(beneficiosAtualizados);
-        
-        if (houveAlteracao) {
-          await prisma.pessoa.update({
-            where: { id: pessoa.id },
-            data: { beneficiosGAC: beneficiosAtualizados }
-          });
-          count++;
-        }
-      }
-    }
-
-    log(`✅ Benefício GAC renomeado de "${tipoAntigo}" para "${novoTipo}" em ${count} pessoa(s)`);
-    res.status(200).json({ 
-      mensagem: `Benefício renomeado em ${count} pessoa(s)`,
-      quantidade: count
+    // Renomear no catálogo
+    await prisma.beneficioGAC.update({
+      where: { tipo: tipoAntigo },
+      data: { tipo: novoTipo.trim() }
     });
+    log(`✅ Benefício GAC renomeado de "${tipoAntigo}" para "${novoTipo}" no catálogo`);
+    res.status(200).json({ mensagem: 'Benefício renomeado com sucesso' });
   } catch (erro) {
     log(`Erro ao renomear benefício GAC: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao renomear benefício GAC' });
@@ -1519,8 +1477,9 @@ async function beneficiosGACDeletar(req, res) {
       });
     }
 
-    log(`✅ Benefício GAC "${tipo}" pode ser deletado (sem uso ativo)`);
-    res.status(200).json({ mensagem: 'Benefício pode ser removido' });
+    await prisma.beneficioGAC.delete({ where: { tipo } });
+    log(`✅ Benefício GAC "${tipo}" removido do catálogo`);
+    res.status(200).json({ mensagem: 'Benefício removido com sucesso' });
   } catch (erro) {
     log(`Erro ao deletar benefício GAC: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao deletar benefício GAC' });
@@ -1537,23 +1496,9 @@ async function beneficiosGovernoListar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const pessoas = await prisma.pessoa.findMany({
-      select: { beneficiosGoverno: true }
-    });
-
-    const beneficiosSet = new Set();
-    pessoas.forEach(pessoa => {
-      if (pessoa.beneficiosGoverno && Array.isArray(pessoa.beneficiosGoverno)) {
-        pessoa.beneficiosGoverno.forEach(b => {
-          if (b.nome) beneficiosSet.add(b.nome);
-        });
-      }
-    });
-
-    const beneficios = Array.from(beneficiosSet).sort();
-    log(`✅ Listados ${beneficios.length} benefícios Governo únicos`);
-
-    res.status(200).json({ beneficios });
+    const beneficios = await prisma.beneficioGoverno.findMany({ orderBy: { nome: 'asc' } });
+    log(`✅ Listados ${beneficios.length} benefícios Governo do catálogo`);
+    res.status(200).json({ beneficios: beneficios.map(b => b.nome) });
   } catch (erro) {
     log(`Erro ao listar benefícios Governo: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao listar benefícios Governo' });
@@ -1578,19 +1523,12 @@ async function beneficiosGovernoAdicionar(req, res) {
       return res.status(400).json({ erro: 'Nome do benefício é obrigatório' });
     }
 
-    const pessoas = await prisma.pessoa.findMany({
-      select: { beneficiosGoverno: true }
-    });
-
-    const existe = pessoas.some(p => 
-      p.beneficiosGoverno && Array.isArray(p.beneficiosGoverno) && 
-      p.beneficiosGoverno.some(b => b.nome === nome.trim())
-    );
-
+    // Verificar se já existe no catálogo
+    const existe = await prisma.beneficioGoverno.findUnique({ where: { nome: nome.trim() } });
     if (existe) {
       return res.status(409).json({ erro: 'Este benefício Governo já existe' });
     }
-
+    await prisma.beneficioGoverno.create({ data: { nome: nome.trim() } });
     log(`✅ Benefício Governo "${nome}" adicionado ao catálogo`);
     res.status(201).json({ mensagem: 'Benefício Governo adicionado com sucesso', nome: nome.trim() });
   } catch (erro) {
@@ -1618,32 +1556,13 @@ async function beneficiosGovernoRenomear(req, res) {
       return res.status(400).json({ erro: 'Novo nome é obrigatório' });
     }
 
-    const pessoas = await prisma.pessoa.findMany();
-    let count = 0;
-
-    for (const pessoa of pessoas) {
-      if (pessoa.beneficiosGoverno && Array.isArray(pessoa.beneficiosGoverno)) {
-        const beneficiosAtualizados = pessoa.beneficiosGoverno.map(b => 
-          b.nome === nomeAntigo ? { ...b, nome: novoNome.trim() } : b
-        );
-
-        const houveAlteracao = JSON.stringify(pessoa.beneficiosGoverno) !== JSON.stringify(beneficiosAtualizados);
-        
-        if (houveAlteracao) {
-          await prisma.pessoa.update({
-            where: { id: pessoa.id },
-            data: { beneficiosGoverno: beneficiosAtualizados }
-          });
-          count++;
-        }
-      }
-    }
-
-    log(`✅ Benefício Governo renomeado de "${nomeAntigo}" para "${novoNome}" em ${count} pessoa(s)`);
-    res.status(200).json({ 
-      mensagem: `Benefício renomeado em ${count} pessoa(s)`,
-      quantidade: count
+    // Renomear no catálogo
+    await prisma.beneficioGoverno.update({
+      where: { nome: nomeAntigo },
+      data: { nome: novoNome.trim() }
     });
+    log(`✅ Benefício Governo renomeado de "${nomeAntigo}" para "${novoNome}" no catálogo`);
+    res.status(200).json({ mensagem: 'Benefício renomeado com sucesso' });
   } catch (erro) {
     log(`Erro ao renomear benefício Governo: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao renomear benefício Governo' });
@@ -1679,8 +1598,9 @@ async function beneficiosGovernoDeletar(req, res) {
       });
     }
 
-    log(`✅ Benefício Governo "${nome}" pode ser deletado (sem uso)`);
-    res.status(200).json({ mensagem: 'Benefício pode ser removido' });
+    await prisma.beneficioGoverno.delete({ where: { nome } });
+    log(`✅ Benefício Governo "${nome}" removido do catálogo`);
+    res.status(200).json({ mensagem: 'Benefício removido com sucesso' });
   } catch (erro) {
     log(`Erro ao deletar benefício Governo: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao deletar benefício Governo' });
