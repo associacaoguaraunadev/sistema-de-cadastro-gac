@@ -18,7 +18,8 @@ export const TransferenciaPessoas = () => {
   const [pessoas, setPessoas] = useState([]);
   const [usuariosDisponiveis, setUsuariosDisponiveis] = useState([]);
   const [comunidades, setComunidades] = useState([]);
-  const [tiposBeneficio, setTiposBeneficio] = useState([]);
+  const [beneficiosGAC, setBeneficiosGAC] = useState([]);
+  const [beneficiosGoverno, setBeneficiosGoverno] = useState([]);
   const [selecionados, setSelecionados] = useState(new Set());
   const [carregando, setCarregando] = useState(false);
   const [pagina, setPagina] = useState(1);
@@ -28,7 +29,8 @@ export const TransferenciaPessoas = () => {
   const [busca, setBusca] = useState('');
   const [filtros, setFiltros] = useState({
     comunidade: '',
-    tipoBeneficio: '',
+    beneficioGAC: '',
+    beneficioGoverno: '',
     status: 'ativo'
   });
   const [usuarioDestino, setUsuarioDestino] = useState('');
@@ -107,15 +109,38 @@ export const TransferenciaPessoas = () => {
   const carregarFiltrosGlobais = async () => {
     try {
       const cliente = criarCliente();
-      // Carregar todas as pessoas para extrair comunidades e tipos únicos
+      // Carregar todas as pessoas para extrair comunidades e benefícios únicos
       const resposta = await cliente.get('/pessoas?pagina=1&limite=10000&status=');
       const todasAsPessoas = resposta.data.pessoas;
       
-      const comunidadesSet = new Set(todasAsPessoas.map(p => p.comunidade));
-      const tiposSet = new Set(todasAsPessoas.map(p => p.tipoBeneficio));
+      const comunidadesSet = new Set();
+      const beneficiosGACSet = new Set();
+      const beneficiosGovernoSet = new Set();
+      
+      todasAsPessoas.forEach(pessoa => {
+        // Comunidade
+        if (pessoa.comunidade) {
+          comunidadesSet.add(pessoa.comunidade);
+        }
+        
+        // Benefícios GAC
+        if (pessoa.beneficiosGAC && Array.isArray(pessoa.beneficiosGAC)) {
+          pessoa.beneficiosGAC.forEach(b => {
+            if (b.tipo) beneficiosGACSet.add(b.tipo);
+          });
+        }
+        
+        // Benefícios Governo
+        if (pessoa.beneficiosGoverno && Array.isArray(pessoa.beneficiosGoverno)) {
+          pessoa.beneficiosGoverno.forEach(b => {
+            if (b.nome) beneficiosGovernoSet.add(b.nome);
+          });
+        }
+      });
       
       setComunidades(Array.from(comunidadesSet).sort());
-      setTiposBeneficio(Array.from(tiposSet).sort());
+      setBeneficiosGAC(Array.from(beneficiosGACSet).sort());
+      setBeneficiosGoverno(Array.from(beneficiosGovernoSet).sort());
     } catch (err) {
       erroToast('Erro ao Carregar', 'Não foi possível carregar os filtros');
       console.error('Erro ao carregar filtros globais:', err);
@@ -260,9 +285,9 @@ export const TransferenciaPessoas = () => {
               className="select-filtro"
               disabled={carregando}
             >
-              <option value="ativo">Status: Ativo</option>
-              <option value="inativo">Status: Inativo</option>
-              <option value="">Status: Todos</option>
+              <option value="ativo">✓ Status: Ativo</option>
+              <option value="inativo">✗ Status: Inativo</option>
+              <option value="">⚪ Status: Todos</option>
             </select>
 
             <select
@@ -274,24 +299,39 @@ export const TransferenciaPessoas = () => {
               className="select-filtro"
               disabled={carregando}
             >
-              <option value="">Comunidade: Todas</option>
+              <option value="">🏘️ Todas as Comunidades</option>
               {comunidades.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
 
             <select
-              value={filtros.tipoBeneficio}
+              value={filtros.beneficioGAC}
               onChange={(e) => {
-                setFiltros({ ...filtros, tipoBeneficio: e.target.value });
+                setFiltros({ ...filtros, beneficioGAC: e.target.value });
                 setPagina(1);
               }}
-              className="select-filtro"
+              className="select-filtro select-beneficio-gac"
               disabled={carregando}
             >
-              <option value="">Benefício: Todos</option>
-              {tiposBeneficio.map(t => (
-                <option key={t} value={t}>{t}</option>
+              <option value="">🎁 Benefícios GAC: Todos</option>
+              {beneficiosGAC.map(b => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+
+            <select
+              value={filtros.beneficioGoverno}
+              onChange={(e) => {
+                setFiltros({ ...filtros, beneficioGoverno: e.target.value });
+                setPagina(1);
+              }}
+              className="select-filtro select-beneficio-governo"
+              disabled={carregando}
+            >
+              <option value="">🏛️ Benefícios Governo: Todos</option>
+              {beneficiosGoverno.map(b => (
+                <option key={b} value={b}>{b}</option>
               ))}
             </select>
           </div>
@@ -379,25 +419,48 @@ export const TransferenciaPessoas = () => {
                   <div className="coluna-nome">Nome</div>
                   <div className="coluna-cpf">CPF</div>
                   <div className="coluna-comunidade">Comunidade</div>
-                  <div className="coluna-beneficio">Benefício</div>
+                  <div className="coluna-beneficios">Benefícios</div>
                 </div>
 
-                {pessoas.map(pessoa => (
-                  <div key={pessoa.id} className={`linha-pessoa ${selecionados.has(pessoa.id) ? 'selecionada' : ''}`}>
-                    <div className="coluna-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={selecionados.has(pessoa.id)}
-                        onChange={() => alternarSelecao(pessoa.id)}
-                        disabled={carregando}
-                      />
+                {pessoas.map(pessoa => {
+                  const beneficiosGACAtivos = pessoa.beneficiosGAC?.filter(b => b.tipo) || [];
+                  const beneficiosGovernoAtivos = pessoa.beneficiosGoverno?.filter(b => b.nome) || [];
+                  const totalBeneficios = beneficiosGACAtivos.length + beneficiosGovernoAtivos.length;
+                  
+                  return (
+                    <div key={pessoa.id} className={`linha-pessoa ${selecionados.has(pessoa.id) ? 'selecionada' : ''}`}>
+                      <div className="coluna-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={selecionados.has(pessoa.id)}
+                          onChange={() => alternarSelecao(pessoa.id)}
+                          disabled={carregando}
+                        />
+                      </div>
+                      <div className="coluna-nome">{pessoa.nome}</div>
+                      <div className="coluna-cpf">{pessoa.cpf}</div>
+                      <div className="coluna-comunidade">{pessoa.comunidade}</div>
+                      <div className="coluna-beneficios">
+                        {totalBeneficios > 0 ? (
+                          <div className="badges-beneficios">
+                            {beneficiosGACAtivos.length > 0 && (
+                              <span className="badge-beneficio badge-gac" title={beneficiosGACAtivos.map(b => b.tipo).join(', ')}>
+                                🎁 GAC ({beneficiosGACAtivos.length})
+                              </span>
+                            )}
+                            {beneficiosGovernoAtivos.length > 0 && (
+                              <span className="badge-beneficio badge-governo" title={beneficiosGovernoAtivos.map(b => b.nome).join(', ')}>
+                                🏛️ Governo ({beneficiosGovernoAtivos.length})
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="sem-beneficios">Nenhum</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="coluna-nome">{pessoa.nome}</div>
-                    <div className="coluna-cpf">{pessoa.cpf}</div>
-                    <div className="coluna-comunidade">{pessoa.comunidade}</div>
-                    <div className="coluna-beneficio">{pessoa.tipoBeneficio}</div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="paginacao">

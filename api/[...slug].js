@@ -376,6 +376,12 @@ async function rotear(req, res, slug) {
     return atualizarComunidadeEmLote(req, res);
   }
 
+  // Rota para transferir pessoas entre usuários
+  if (rota === 'pessoas/transferir' && req.method === 'POST') {
+    log(`🔄 Chamando pessoasTransferir para rota: ${rota}`);
+    return pessoasTransferir(req, res);
+  }
+
   if (rota === 'pessoas' && req.method === 'GET') {
     return pessoasListar(req, res);
   }
@@ -1214,6 +1220,109 @@ async function pessoasTotaisPorComunidade(req, res) {
     res.status(500).json({ 
       erro: 'Erro ao obter totais por comunidade',
       codigo: 'TOTAIS_COMUNIDADE_ERROR'
+    });
+  }
+}
+
+async function pessoasTransferir(req, res) {
+  const prisma = getPrisma();
+  try {
+    // Autenticação
+    const usuarioAutenticado = autenticarToken(req);
+    if (!usuarioAutenticado) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Apenas admins podem transferir
+    if (usuarioAutenticado.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem transferir pessoas' });
+    }
+
+    const { pessoaIds, usuarioDestinoId } = req.body;
+
+    // Validações
+    if (!pessoaIds || !Array.isArray(pessoaIds) || pessoaIds.length === 0) {
+      return res.status(400).json({ erro: 'Lista de IDs de pessoas é obrigatória' });
+    }
+
+    if (!usuarioDestinoId) {
+      return res.status(400).json({ erro: 'ID do usuário destino é obrigatório' });
+    }
+
+    // Validar usuário destino
+    const usuarioDestino = await prisma.usuario.findUnique({
+      where: { id: parseInt(usuarioDestinoId) },
+      select: { id: true, nome: true, email: true, funcao: true, ativo: true }
+    });
+
+    if (!usuarioDestino) {
+      return res.status(404).json({ erro: 'Usuário destino não encontrado' });
+    }
+
+    if (!usuarioDestino.ativo) {
+      return res.status(400).json({ erro: 'Usuário destino está inativo' });
+    }
+
+    log(`🔄 Iniciando transferência de ${pessoaIds.length} pessoa(s) para ${usuarioDestino.nome} (ID: ${usuarioDestino.id})`);
+
+    // Executar transferência em transação
+    const resultado = await prisma.$transaction(async (tx) => {
+      // Atualizar todas as pessoas
+      const updateResult = await tx.pessoa.updateMany({
+        where: {
+          id: { in: pessoaIds.map(id => parseInt(id)) }
+        },
+        data: {
+          usuarioId: usuarioDestino.id
+        }
+      });
+
+      // Buscar as pessoas transferidas para log
+      const pessoasTransferidas = await tx.pessoa.findMany({
+        where: {
+          id: { in: pessoaIds.map(id => parseInt(id)) }
+        },
+        select: { id: true, nome: true, cpf: true }
+      });
+
+      return { quantidade: updateResult.count, pessoas: pessoasTransferidas };
+    });
+
+    log(`✅ Transferência concluída: ${resultado.quantidade} pessoa(s) transferida(s)`);
+    log(`   De: ${usuarioAutenticado.nome} (ID: ${usuarioAutenticado.id})`);
+    log(`   Para: ${usuarioDestino.nome} (ID: ${usuarioDestino.id})`);
+
+    // Enviar evento Pusher para atualização em tempo real
+    try {
+      await enviarEventoPusher('pessoasTransferidas', {
+        quantidade: resultado.quantidade,
+        usuarioOrigemId: usuarioAutenticado.id,
+        usuarioOrigemNome: usuarioAutenticado.nome,
+        usuarioDestinoId: usuarioDestino.id,
+        usuarioDestinoNome: usuarioDestino.nome,
+        pessoaIds: pessoaIds,
+        timestamp: new Date().toISOString()
+      });
+    } catch (erroPusher) {
+      log(`⚠️ Erro ao enviar evento Pusher (não crítico): ${erroPusher.message}`, 'error');
+    }
+
+    res.status(200).json({
+      mensagem: `${resultado.quantidade} pessoa(s) transferida(s) com sucesso`,
+      quantidade: resultado.quantidade,
+      usuarioDestino: {
+        id: usuarioDestino.id,
+        nome: usuarioDestino.nome,
+        email: usuarioDestino.email
+      }
+    });
+  } catch (erro) {
+    log(`❌ Erro ao transferir pessoas: ${erro.message}`, 'error');
+    console.error('Stack trace:', erro.stack);
+    res.status(500).json({ 
+      erro: 'Erro ao transferir pessoas',
+      codigo: 'TRANSFER_PERSONS_ERROR',
+      detalhes: erro.message
     });
   }
 }
