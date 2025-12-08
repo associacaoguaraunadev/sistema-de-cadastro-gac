@@ -184,6 +184,7 @@ export const GerenciadorUsuarios = () => {
   };
 
   if (carregando) {
+    console.log('🔄 [DEBUG] Ainda carregando...');
     return (
       <div className="gerenciador-usuarios">
         <div className="carregando">
@@ -193,6 +194,8 @@ export const GerenciadorUsuarios = () => {
       </div>
     );
   }
+
+  console.log('🎨 [DEBUG] Renderizando tabela com', usuarios.length, 'usuários');
 
   return (
     <div className="gerenciador-usuarios">
