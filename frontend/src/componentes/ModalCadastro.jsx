@@ -77,8 +77,6 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
   const [mostrarGerenciadorBeneficios, setMostrarGerenciadorBeneficios] = useState(false);
   const [tiposBeneficios, setTiposBeneficios] = useState([]);
   const [beneficiosGovernoDisponiveis, setBeneficiosGovernoDisponiveis] = useState([]);
-  const [adicionandoNovoTipo, setAdicionandoNovoTipo] = useState(false);
-  const [novoTipoBeneficio, setNovoTipoBeneficio] = useState('');
   const { sucesso, erro: erroToast } = useGlobalToast();
   const { token, usuario } = useAuth();
 
@@ -513,25 +511,7 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
   };
 
   // Adicionar novo tipo de benefício
-  const adicionarNovoTipoBeneficio = () => {
-    const tipoTrimmed = novoTipoBeneficio.trim();
-    
-    if (!tipoTrimmed) {
-      erroToast('Campo Vazio', 'Digite o nome do benefício');
-      return;
-    }
 
-    if (tiposBeneficios.includes(tipoTrimmed)) {
-      erroToast('Duplicado', 'Este benefício já existe');
-      return;
-    }
-
-    const novosTipos = [...tiposBeneficios, tipoTrimmed];
-    setTiposBeneficios(novosTipos);
-    localStorage.setItem('beneficiosGACTipos', JSON.stringify(novosTipos));
-    setNovoTipoBeneficio('');
-    sucesso('Benefício Adicionado', `${tipoTrimmed} foi adicionado`);
-  };
 
   const adicionarBeneficioGoverno = () => {
     if (!novoBeneficioGoverno.nome.trim()) {
@@ -863,46 +843,6 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
                     ))}
                   </select>
                 </div>
-
-                {/* 2️⃣ PAINEL GERENCIAR TIPOS (Colapsável) */}
-                {adicionandoNovoTipo && (
-                  <div style={{
-                    background: '#f9fdf9',
-                    border: '2px solid #2e7d32',
-                    borderRadius: '8px',
-                    padding: '14px',
-                    marginBottom: '14px'
-                  }}>
-                    {/* Lista Tipos Atuais */}
-                    <div style={{ marginBottom: '14px' }}>
-                      <h5 style={{ margin: '0 0 10px 0', fontSize: '11px', fontWeight: '700', color: '#1b5e20', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        ✓ Tipos Atuais
-                      </h5>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto' }}>
-                        {tiposBeneficios.map((tipo, idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'white', border: '1px solid #c8e6c9', borderRadius: '6px', fontSize: '13px' }}>
-                            <span>{tipo}</span>
-                            <button type="button" onClick={() => { const ns = tiposBeneficios.filter((_, i) => i !== idx); setTiposBeneficios(ns); localStorage.setItem('beneficiosGACTipos', JSON.stringify(ns)); sucesso('✓', tipo); }} style={{ background: '#ff6b6b', color: 'white', border: 'none', width: '24px', height: '24px', borderRadius: '50%', cursor: 'pointer', fontSize: '13px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Linha Divisória */}
-                    <div style={{ borderTop: '1px solid #c8e6c9', marginBottom: '14px' }} />
-
-                    {/* Adicionar Novo Tipo */}
-                    <div>
-                      <h5 style={{ margin: '0 0 10px 0', fontSize: '11px', fontWeight: '700', color: '#1b5e20', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        + Novo Tipo
-                      </h5>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <input type="text" value={novoTipoBeneficio} onChange={(e) => setNovoTipoBeneficio(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && adicionarNovoTipoBeneficio()} placeholder="Ex: Auxílio Emergencial" style={{ flex: 1, padding: '8px 10px', border: '1px solid #2e7d32', borderRadius: '6px', fontSize: '12px' }} />
-                        <button type="button" onClick={adicionarNovoTipoBeneficio} style={{ background: '#2e7d32', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: '600', whiteSpace: 'nowrap' }}>+ Adicionar</button>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* Campos de data */}
                 <div className="beneficio-gac-form-row">
