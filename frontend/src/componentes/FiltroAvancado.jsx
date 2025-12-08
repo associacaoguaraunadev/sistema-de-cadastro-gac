@@ -3,6 +3,43 @@ import { Filter, X, Search } from 'lucide-react';
 import './FiltroAvancado.css';
 
 export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
+  // Funções de máscara
+  const aplicarMascaraData = (valor) => {
+    const numeros = valor.replace(/\D/g, '');
+    if (numeros.length <= 2) return numeros;
+    if (numeros.length <= 4) return `${numeros.slice(0, 2)}/${numeros.slice(2)}`;
+    return `${numeros.slice(0, 2)}/${numeros.slice(2, 4)}/${numeros.slice(4, 8)}`;
+  };
+
+  const aplicarMascaraCPF = (valor) => {
+    const numeros = valor.replace(/\D/g, '');
+    if (numeros.length <= 3) return numeros;
+    if (numeros.length <= 6) return `${numeros.slice(0, 3)}.${numeros.slice(3)}`;
+    if (numeros.length <= 9) return `${numeros.slice(0, 3)}.${numeros.slice(3, 6)}.${numeros.slice(6)}`;
+    return `${numeros.slice(0, 3)}.${numeros.slice(3, 6)}.${numeros.slice(6, 9)}-${numeros.slice(9, 11)}`;
+  };
+
+  const aplicarMascaraTelefone = (valor) => {
+    const numeros = valor.replace(/\D/g, '');
+    if (numeros.length <= 2) return numeros;
+    if (numeros.length <= 6) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
+    if (numeros.length <= 10) return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 6)}-${numeros.slice(6)}`;
+    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7, 11)}`;
+  };
+
+  const aplicarMascara = (campoId, valor) => {
+    switch (campoId) {
+      case 'dataCriacao':
+      case 'dataAtualizacao':
+        return aplicarMascaraData(valor);
+      case 'cpf':
+        return aplicarMascaraCPF(valor);
+      case 'telefone':
+        return aplicarMascaraTelefone(valor);
+      default:
+        return valor;
+    }
+  };
   const [aberto, setAberto] = useState(false);
   const [filtros, setFiltros] = useState({});
   const [isDragging, setIsDragging] = useState(false);
@@ -35,9 +72,10 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
   };
 
   const handleAtualizar = (campoId, valor) => {
+    const valorMascarado = aplicarMascara(campoId, valor);
     setFiltros({
       ...filtros,
-      [campoId]: valor
+      [campoId]: valorMascarado
     });
   };
 
@@ -186,6 +224,12 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
                           value={valor}
                           onChange={(e) => handleAtualizar(campoId, e.target.value)}
                           onKeyPress={handleKeyPress}
+                          maxLength={
+                            campoId === 'cpf' ? 14 : 
+                            campoId === 'telefone' ? 15 : 
+                            (campoId === 'dataCriacao' || campoId === 'dataAtualizacao') ? 10 : 
+                            undefined
+                          }
                           autoFocus
                         />
                       </div>
