@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../contexto/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { TransferenciaPessoas } from '../componentes/TransferenciaPessoas';
+import TransferenciaPessoas from '../componentes/TransferenciaPessoas';
 import Breadcrumb from '../componentes/Breadcrumb';
 import './PaginaTransferencia.css';
 
