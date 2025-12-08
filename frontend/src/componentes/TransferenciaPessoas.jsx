@@ -30,6 +30,16 @@ const TransferenciaPessoas = () => {
   const [buscaInput, setBuscaInput] = useState('');
   const [busca, setBusca] = useState('');
   const [pagina, setPagina] = useState(1);
+  const [limite] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [usuariosDisponiveis, setUsuariosDisponiveis] = useState([]);
+  const [comunidades, setComunidades] = useState([]);
+  const [beneficiosGAC, setBeneficiosGAC] = useState([]);
+  const [beneficiosGoverno, setBeneficiosGoverno] = useState([]);
+  const [todosNaPagina, setTodosNaPagina] = useState(false);
+  const [mensagem, setMensagem] = useState('');
+  const [erro, setErro] = useState('');
+  const [usuarioDestino, setUsuarioDestino] = useState('');
 
   // Carregar pessoas
   useEffect(() => {
