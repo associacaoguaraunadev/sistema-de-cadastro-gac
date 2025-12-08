@@ -26,21 +26,31 @@ export const GerenciadorUsuarios = () => {
       setCarregando(true);
       const token = localStorage.getItem('token');
       
+      console.log('🔍 [DEBUG] Carregando usuários...');
+      console.log('🔍 [DEBUG] API_URL:', API_URL);
+      console.log('🔍 [DEBUG] Token:', token ? 'Existe' : 'Não existe');
+      
       const resposta = await fetch(`${API_URL}/autenticacao/listar`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
+      console.log('🔍 [DEBUG] Status da resposta:', resposta.status);
+
       if (!resposta.ok) {
-        throw new Error('Erro ao carregar usuários');
+        const erro = await resposta.json();
+        console.error('❌ Erro na resposta:', erro);
+        throw new Error(erro.erro || 'Erro ao carregar usuários');
       }
 
       const dados = await resposta.json();
+      console.log('✅ [DEBUG] Usuários carregados:', dados.length, 'usuários');
+      console.log('✅ [DEBUG] Dados:', dados);
       setUsuarios(dados);
     } catch (erro) {
-      console.error('Erro ao carregar usuários:', erro);
-      erroToast('Erro', 'Não foi possível carregar a lista de usuários');
+      console.error('❌ Erro ao carregar usuários:', erro);
+      erroToast('Erro', 'Não foi possível carregar a lista de usuários: ' + erro.message);
     } finally {
       setCarregando(false);
     }
