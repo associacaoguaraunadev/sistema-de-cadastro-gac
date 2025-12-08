@@ -156,12 +156,12 @@ export const GerenciadorBeneficios = () => {
         body: JSON.stringify({ novoNome })
       });
 
+      const dados = await resposta.json();
+
       if (!resposta.ok) {
-        const erroData = await resposta.json();
-        throw new Error(erroData.mensagem || erroData.erro || 'Erro ao deletar benefício');
+        throw new Error(dados.mensagem || dados.erro || 'Erro ao renomear benefício');
       }
 
-      const dados = await resposta.json();
       sucesso('Benefício Renomeado', dados.mensagem || `"${editandoGAC}" → "${novoNome}"`);
       cancelarEdicaoGAC();
       await carregarBeneficios();
@@ -195,11 +195,10 @@ export const GerenciadorBeneficios = () => {
       const dados = await resposta.json();
 
       if (!resposta.ok) {
-        const erroData = await resposta.json();
-        throw new Error(erroData.mensagem || erroData.erro || 'Erro ao deletar benefício');
+        throw new Error(dados.mensagem || dados.erro || 'Erro ao deletar benefício');
       }
 
-      sucesso('Benefício Removido', `"${confirmandoExclusaoGAC}" foi removido`);
+      sucesso('Benefício Removido', dados.mensagem || `"${confirmandoExclusaoGAC}" foi removido`);
       setConfirmandoExclusaoGAC(null);
       
       // Notificar outros componentes sobre a atualização
@@ -290,12 +289,12 @@ export const GerenciadorBeneficios = () => {
         body: JSON.stringify({ novoNome })
       });
 
+      const dados = await resposta.json();
+
       if (!resposta.ok) {
-        const erro = await resposta.json();
-        throw new Error(erro.erro || 'Erro ao renomear benefício');
+        throw new Error(dados.erro || dados.mensagem || 'Erro ao renomear benefício');
       }
 
-      const dados = await resposta.json();
       sucesso('Benefício Renomeado', dados.mensagem || `"${editandoGoverno}" → "${novoNome}"`);
       cancelarEdicaoGoverno();
       await carregarBeneficios();

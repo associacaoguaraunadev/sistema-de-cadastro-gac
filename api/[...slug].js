@@ -1449,47 +1449,100 @@ async function beneficiosGACDeletar(req, res, tipoParam) {
     }
 
     const tipo = decodeURIComponent(tipoParam);
+    log(`🗑️ Tentando deletar benefício GAC: "${tipo}"`);
 
     // Verificar se há uso ativo (dataInicio <= hoje <= dataFinal)
-    const pessoasComBeneficio = await prisma.pessoa.findMany({
-      where: {
-        beneficiosGAC: {
-          path: '$.tipo',
-          equals: tipo,
-        }
-      },
-      select: { id: true, nome: true, beneficiosGAC: true }
-    });
+    try {
+      const pessoasComBeneficio = await prisma.pessoa.findMany({
+        where: {
+          beneficiosGAC: {
+            path: '$.tipo',
+            equals: tipo,
+          }
+        },
+        select: { id: true, nome: true, beneficiosGAC: true }
+      });
 
-    if (pessoasComBeneficio.length > 0) {
-      const hoje = new Date();
-      const conflitos = pessoasComBeneficio.filter(p => 
-        p.beneficiosGAC.some(b => {
-          if (b.tipo !== tipo) return false;
-          
-          // Considera o benefício ativo se a data de hoje está entre o início e o fim
-          const dataInicio = new Date(b.dataInicio);
-          const dataFinal = b.dataFinal ? new Date(b.dataFinal) : null;
-          
-          return dataInicio <= hoje && (!dataFinal || dataFinal >= hoje);
-        })
-      );
+      log(`📊 Encontradas ${pessoasComBeneficio.length} pessoas com benefício "${tipo}"`);
 
-      if (conflitos.length > 0) {
-        const nomes = conflitos.map(p => p.nome).join(', ');
-        return res.status(400).json({ 
-          erro: 'Não é possível deletar este benefício pois está ativo.',
-          mensagem: `O benefício está ativo para ${conflitos.length} pessoa(s): ${nomes}. Encerre ou remova os benefícios ativos primeiro.`
+      if (pessoasComBeneficio.length > 0) {
+        const hoje = new Date();
+        const conflitos = pessoasComBeneficio.filter(p => {
+          if (!Array.isArray(p.beneficiosGAC)) {
+            log(`⚠️ beneficiosGAC não é array para pessoa ${p.id}`, 'warn');
+            return false;
+          }
+          
+          return p.beneficiosGAC.some(b => {
+            if (!b || typeof b !== 'object') return false;
+            if (b.tipo !== tipo) return false;
+            
+            // Considera o benefício ativo se a data de hoje está entre o início e o fim
+            const dataInicio = new Date(b.dataInicio);
+            const dataFinal = b.dataFinal ? new Date(b.dataFinal) : null;
+            
+            return dataInicio <= hoje && (!dataFinal || dataFinal >= hoje);
+          });
         });
+
+        if (conflitos.length > 0) {
+          const nomes = conflitos.map(p => p.nome).join(', ');
+          log(`❌ Benefício "${tipo}" está ativo para ${conflitos.length} pessoa(s)`);
+          res.status(400).json({ 
+            erro: 'Não é possível deletar este benefício pois está ativo.',
+            mensagem: `O benefício está ativo para ${conflitos.length} pessoa(s): ${nomes}. Encerre ou remova os benefícios ativos primeiro.`
+          });
+          return;
+        }
+      }
+    } catch (erroConsulta) {
+      log(`⚠️ Erro na consulta de benefícios ativos: ${erroConsulta.message}`, 'warn');
+      // Se a consulta com path falhar, tentar alternativa
+      log(`🔄 Tentando consulta alternativa...`, 'warn');
+      
+      const todasPessoas = await prisma.pessoa.findMany({
+        select: { id: true, nome: true, beneficiosGAC: true }
+      });
+      
+      const pessoasComBeneficio = todasPessoas.filter(p => {
+        if (!Array.isArray(p.beneficiosGAC)) return false;
+        return p.beneficiosGAC.some(b => b && b.tipo === tipo);
+      });
+      
+      if (pessoasComBeneficio.length > 0) {
+        const hoje = new Date();
+        const conflitos = pessoasComBeneficio.filter(p => {
+          if (!Array.isArray(p.beneficiosGAC)) return false;
+          return p.beneficiosGAC.some(b => {
+            if (!b || b.tipo !== tipo) return false;
+            const dataInicio = new Date(b.dataInicio);
+            const dataFinal = b.dataFinal ? new Date(b.dataFinal) : null;
+            return dataInicio <= hoje && (!dataFinal || dataFinal >= hoje);
+          });
+        });
+
+        if (conflitos.length > 0) {
+          const nomes = conflitos.map(p => p.nome).join(', ');
+          res.status(400).json({ 
+            erro: 'Não é possível deletar este benefício pois está ativo.',
+            mensagem: `O benefício está ativo para ${conflitos.length} pessoa(s): ${nomes}. Encerre ou remova os benefícios ativos primeiro.`
+          });
+          return;
+        }
       }
     }
 
+    log(`🗑️ Deletando benefício GAC: "${tipo}"`);
     await prisma.beneficioGAC.delete({ where: { tipo } });
     log(`✅ Benefício GAC "${tipo}" removido do catálogo`);
     res.status(200).json({ mensagem: 'Benefício removido com sucesso' });
   } catch (erro) {
-    log(`Erro ao deletar benefício GAC: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao deletar benefício GAC' });
+    log(`❌ Erro ao deletar benefício GAC: ${erro.message}`, 'error');
+    log(`Stack trace: ${erro.stack}`, 'error');
+    res.status(500).json({ 
+      erro: 'Erro ao deletar benefício GAC',
+      mensagem: erro.message 
+    });
   }
 }
 
