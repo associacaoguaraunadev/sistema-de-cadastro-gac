@@ -24,37 +24,26 @@ export const GerenciadorBeneficios = () => {
   const { toasts, removerToast, sucesso, erro: erroToast } = useToast();
   const { token } = useAuth();
 
-  useEffect(() => {
-    carregarBeneficios();
-  }, [token]);
-
-  const carregarBeneficios = async () => {
-    if (!token) return;
-    
+  // Função para buscar benefícios GAC do backend
+  const carregarBeneficiosGAC = async () => {
+    setCarregando(true);
     try {
-      setCarregando(true);
-      
-      // Carregar benefícios GAC
-      const respostaGAC = await fetch(`${API_URL}/beneficios/gac`, {
+      const resposta = await fetch(`${API_URL}/beneficios/gac`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      const dadosGAC = await respostaGAC.json();
-      
-      // Carregar benefícios Governo
-      const respostaGoverno = await fetch(`${API_URL}/beneficios/governo`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const dadosGoverno = await respostaGoverno.json();
-      
-      setBeneficiosGAC(dadosGAC.beneficios || []);
-      setBeneficiosGoverno(dadosGoverno.beneficios || []);
-    } catch (error) {
-      console.error('Erro ao carregar benefícios:', error);
-      erroToast('Erro ao Carregar', 'Não foi possível carregar os benefícios');
+      const dados = await resposta.json();
+      setBeneficiosGAC(dados.beneficios || []);
+    } catch (erro) {
+      console.error('Erro ao carregar benefícios GAC:', erro);
     } finally {
       setCarregando(false);
     }
   };
+
+  // Chama ao montar o componente
+  useEffect(() => {
+    carregarBeneficiosGAC();
+  }, [token]);
 
   // ==================== BENEFÍCIOS GAC ====================
 
@@ -98,7 +87,7 @@ export const GerenciadorBeneficios = () => {
 
       sucesso('Benefício Adicionado', `"${tipo}" foi adicionado aos benefícios GAC`);
       setNovoBeneficioGAC('');
-      await carregarBeneficios();
+      await carregarBeneficiosGAC();
       
       // Notificar outros componentes sobre a atualização
       window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
@@ -151,7 +140,7 @@ export const GerenciadorBeneficios = () => {
       const dados = await resposta.json();
       sucesso('Benefício Renomeado', dados.mensagem || `"${editandoGAC}" → "${novoNome}"`);
       cancelarEdicaoGAC();
-      await carregarBeneficios();
+      await carregarBeneficiosGAC();
       
       // Notificar outros componentes sobre a atualização
       window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
@@ -187,7 +176,7 @@ export const GerenciadorBeneficios = () => {
 
       sucesso('Benefício Removido', `"${confirmandoExclusaoGAC}" foi removido`);
       cancelarExclusaoGAC();
-      await carregarBeneficios();
+      await carregarBeneficiosGAC();
       
       // Notificar outros componentes sobre a atualização
       window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));

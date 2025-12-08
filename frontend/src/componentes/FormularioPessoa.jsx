@@ -103,15 +103,6 @@ export const FormularioPessoa = () => {
     dataFinal: ''
   });
 
-  // Escutar atualizações de tipos de benefícios
-  useEffect(() => {
-    const handleBeneficiosAtualizados = (e) => {
-      setTiposBeneficios(e.detail);
-    };
-    window.addEventListener('beneficiosGACAtualizados', handleBeneficiosAtualizados);
-    return () => window.removeEventListener('beneficiosGACAtualizados', handleBeneficiosAtualizados);
-  }, []);
-
   // Debug: verificar se tipos estão sendo carregados
   useEffect(() => {
     if (tiposBeneficios.length > 0) {
