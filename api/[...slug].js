@@ -1644,22 +1644,34 @@ async function beneficiosGovernoDeletar(req, res, nomeParam) {
     const nome = decodeURIComponent(nomeParam);
 
     // Verificar se há uso
-    const pessoasComBeneficio = await prisma.pessoa.findMany({
-      where: {
-        beneficiosGoverno: {
-          path: '$.nome',
-          equals: nome,
-        }
-      },
-      select: { nome: true, id: true }
-    });
+    let pessoasComBeneficio = [];
+    try {
+      pessoasComBeneficio = await prisma.pessoa.findMany({
+        where: {
+          beneficiosGoverno: {
+            path: '$.nome',
+            equals: nome,
+          }
+        },
+        select: { nome: true, id: true, beneficiosGoverno: true }
+      });
+    } catch (erroConsulta) {
+      log(`⚠️ Erro na consulta de benefícios do governo por JSON path: ${erroConsulta.message}`, 'warn');
+      // Fallback manual
+      const todasPessoas = await prisma.pessoa.findMany({ select: { nome: true, id: true, beneficiosGoverno: true } });
+      pessoasComBeneficio = todasPessoas.filter(p => {
+        if (!Array.isArray(p.beneficiosGoverno)) return false;
+        return p.beneficiosGoverno.some(b => b && b.nome === nome);
+      });
+    }
 
     if (pessoasComBeneficio.length > 0) {
       const nomes = pessoasComBeneficio.map(p => p.nome).join(', ');
-      return res.status(400).json({ 
+      res.status(400).json({ 
         erro: 'Não é possível deletar este benefício pois está em uso.',
         mensagem: `O benefício está vinculado a ${pessoasComBeneficio.length} pessoa(s): ${nomes}. Remova o benefício dessas pessoas antes de deletar.`
       });
+      return;
     }
 
     await prisma.beneficioGoverno.delete({ where: { nome } });
