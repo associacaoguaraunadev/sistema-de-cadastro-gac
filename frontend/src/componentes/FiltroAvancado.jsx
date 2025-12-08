@@ -27,6 +27,12 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
     return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7, 11)}`;
   };
 
+  const aplicarMascaraCEP = (valor) => {
+    const numeros = valor.replace(/\D/g, '');
+    if (numeros.length <= 5) return numeros;
+    return `${numeros.slice(0, 5)}-${numeros.slice(5, 8)}`;
+  };
+
   const aplicarMascara = (campoId, valor) => {
     switch (campoId) {
       case 'dataCriacao':
@@ -36,6 +42,8 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
         return aplicarMascaraCPF(valor);
       case 'telefone':
         return aplicarMascaraTelefone(valor);
+      case 'cep':
+        return aplicarMascaraCEP(valor);
       default:
         return valor;
     }
@@ -227,6 +235,7 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
                           maxLength={
                             campoId === 'cpf' ? 14 : 
                             campoId === 'telefone' ? 15 : 
+                            campoId === 'cep' ? 9 :
                             (campoId === 'dataCriacao' || campoId === 'dataAtualizacao') ? 10 : 
                             undefined
                           }
