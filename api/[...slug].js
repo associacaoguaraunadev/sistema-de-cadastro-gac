@@ -916,8 +916,9 @@ async function usuariosDeletar(req, res) {
       return res.status(404).json({ erro: 'Usuário não encontrado' });
     }
 
-    // PROTEÇÃO: Não pode deletar associacaoguarauna@gmail.com
-    if (usuarioParaDeletar.email === 'associacaoguarauna@gmail.com') {
+    // PROTEÇÃO: Não pode deletar o super admin
+    const emailSuperAdmin = process.env.EMAIL_SUPERADMIN || 'associacaoguarauna@gmail.com';
+    if (usuarioParaDeletar.email === emailSuperAdmin) {
       return res.status(403).json({ 
         erro: 'Este usuário não pode ser deletado (conta principal do sistema)' 
       });
@@ -985,8 +986,9 @@ async function usuariosAlterarFuncao(req, res) {
       return res.status(404).json({ erro: 'Usuário não encontrado' });
     }
 
-    // PROTEÇÃO: Não pode alterar função de associacaoguarauna@gmail.com
-    if (usuario.email === 'associacaoguarauna@gmail.com') {
+    // PROTEÇÃO: Não pode alterar função do super admin
+    const emailSuperAdmin = process.env.EMAIL_SUPERADMIN || 'associacaoguarauna@gmail.com';
+    if (usuario.email === emailSuperAdmin) {
       return res.status(403).json({ 
         erro: 'Este usuário não pode ter sua função alterada (conta principal do sistema)' 
       });

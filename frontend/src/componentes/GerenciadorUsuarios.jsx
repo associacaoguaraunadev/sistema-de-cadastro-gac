@@ -17,6 +17,11 @@ export const GerenciadorUsuarios = () => {
   const { usuario: usuarioLogado } = useAuth();
   const { toasts, removerToast, sucesso, erro: erroToast } = useToast();
 
+  // Debug: Monitorar mudanças no modalConfirmacao
+  useEffect(() => {
+    console.log('🔵 [DEBUG] modalConfirmacao atualizado:', modalConfirmacao);
+  }, [modalConfirmacao]);
+
   useEffect(() => {
     carregarUsuarios();
   }, []);
@@ -57,16 +62,24 @@ export const GerenciadorUsuarios = () => {
   };
 
   const confirmarDeletar = (usuario) => {
-    if (usuario.email === 'associacaoguarauna@gmail.com') {
+    console.log('🔴 [DEBUG] confirmarDeletar chamado:', usuario);
+    
+    // Usar env variable para super admin
+    const emailSuperAdmin = 'associacaoguarauna@gmail.com'; // Será checado no backend também
+    
+    if (usuario.email === emailSuperAdmin) {
+      console.log('❌ [DEBUG] Bloqueado: conta principal');
       erroToast('Ação Bloqueada', 'Este usuário não pode ser deletado (conta principal do sistema)');
       return;
     }
 
     if (usuario.id === usuarioLogado?.id) {
+      console.log('❌ [DEBUG] Bloqueado: próprio usuário');
       erroToast('Ação Bloqueada', 'Você não pode deletar sua própria conta');
       return;
     }
 
+    console.log('✅ [DEBUG] Abrindo modal de confirmação para deletar');
     setModalConfirmacao({
       tipo: 'deletar',
       usuario,
@@ -78,18 +91,26 @@ export const GerenciadorUsuarios = () => {
   };
 
   const confirmarAlterarFuncao = (usuario, novaFuncao) => {
-    if (usuario.email === 'associacaoguarauna@gmail.com') {
+    console.log('🔵 [DEBUG] confirmarAlterarFuncao chamado:', { usuario, novaFuncao });
+    
+    // Usar env variable para super admin
+    const emailSuperAdmin = 'associacaoguarauna@gmail.com'; // Será checado no backend também
+    
+    if (usuario.email === emailSuperAdmin) {
+      console.log('❌ [DEBUG] Bloqueado: conta principal');
       erroToast('Ação Bloqueada', 'Este usuário não pode ter sua função alterada (conta principal do sistema)');
       return;
     }
 
     if (usuario.id === usuarioLogado?.id) {
+      console.log('❌ [DEBUG] Bloqueado: próprio usuário');
       erroToast('Ação Bloqueada', 'Você não pode alterar sua própria função');
       return;
     }
 
     const funcaoTexto = novaFuncao === 'admin' ? 'Administrador' : 'Funcionário';
     
+    console.log('✅ [DEBUG] Abrindo modal de confirmação:', funcaoTexto);
     setModalConfirmacao({
       tipo: 'alterarFuncao',
       usuario,
@@ -255,7 +276,12 @@ export const GerenciadorUsuarios = () => {
                             {usuario.funcao === 'admin' ? (
                               <button
                                 className="botao-acao botao-rebaixar"
-                                onClick={() => confirmarAlterarFuncao(usuario, 'funcionario')}
+                                onClick={(e) => {
+                                  console.log('🟠 [DEBUG] Clique no botão REBAIXAR:', usuario);
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  confirmarAlterarFuncao(usuario, 'funcionario');
+                                }}
                                 title="Alterar para Funcionário"
                                 disabled={processando}
                               >
@@ -264,7 +290,12 @@ export const GerenciadorUsuarios = () => {
                             ) : (
                               <button
                                 className="botao-acao botao-promover"
-                                onClick={() => confirmarAlterarFuncao(usuario, 'admin')}
+                                onClick={(e) => {
+                                  console.log('🟢 [DEBUG] Clique no botão PROMOVER:', usuario);
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  confirmarAlterarFuncao(usuario, 'admin');
+                                }}
                                 title="Promover para Admin"
                                 disabled={processando}
                               >
@@ -273,7 +304,12 @@ export const GerenciadorUsuarios = () => {
                             )}
                             <button
                               className="botao-acao botao-deletar"
-                              onClick={() => confirmarDeletar(usuario)}
+                              onClick={(e) => {
+                                console.log('🔴 [DEBUG] Clique no botão DELETAR:', usuario);
+                                e.preventDefault();
+                                e.stopPropagation();
+                                confirmarDeletar(usuario);
+                              }}
                               title="Deletar Usuário"
                               disabled={processando}
                             >
