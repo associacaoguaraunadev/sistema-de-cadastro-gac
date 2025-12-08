@@ -1218,11 +1218,18 @@ async function pessoasTotaisPorComunidade(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    // Obter o total geral de pessoas
-    const totalGeral = await prisma.pessoa.count();
+    // Filtrar por usuarioId se não for admin
+    let filtroUsuario = {};
+    if (usuario.funcao !== 'admin') {
+      filtroUsuario.usuarioId = usuario.id;
+    }
 
-    // Agrupar por comunidade e contar
+    // Obter o total geral de pessoas do usuário
+    const totalGeral = await prisma.pessoa.count({ where: filtroUsuario });
+
+    // Agrupar por comunidade e contar (apenas do usuário)
     const pessoas = await prisma.pessoa.findMany({
+      where: filtroUsuario,
       select: { comunidade: true }
     });
 
