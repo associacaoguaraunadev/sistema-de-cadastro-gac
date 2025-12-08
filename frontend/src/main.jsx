@@ -16,6 +16,7 @@ import PaginaComunidades from './pages/PaginaComunidades';
 import PaginaGerenciamentoComunidades from './pages/PaginaGerenciamentoComunidades';
 import PaginaTransferencia from './pages/PaginaTransferencia';
 import PaginaUsuarios from './pages/PaginaUsuarios';
+import PaginaBeneficios from './pages/PaginaBeneficios';
 import './index.css';
 
 // Limpar cache ao iniciar
@@ -86,6 +87,16 @@ function App() {
           <RotaPrivada>
             <LayoutComNavbar>
               <PaginaGerenciamentoComunidades />
+            </LayoutComNavbar>
+          </RotaPrivada>
+        } 
+      />
+      <Route 
+        path="/beneficios" 
+        element={
+          <RotaPrivada>
+            <LayoutComNavbar>
+              <PaginaBeneficios />
             </LayoutComNavbar>
           </RotaPrivada>
         } 

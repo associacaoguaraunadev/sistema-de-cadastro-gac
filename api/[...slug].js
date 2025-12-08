@@ -382,6 +382,39 @@ async function rotear(req, res, slug) {
     return pessoasTransferir(req, res);
   }
 
+  // BENEFÍCIOS - Gerenciamento
+  if (rota === 'beneficios/gac' && req.method === 'GET') {
+    return beneficiosGACListar(req, res);
+  }
+
+  if (rota === 'beneficios/gac' && req.method === 'POST') {
+    return beneficiosGACAdicionar(req, res);
+  }
+
+  if (rota.startsWith('beneficios/gac/') && req.method === 'PUT') {
+    return beneficiosGACRenomear(req, res);
+  }
+
+  if (rota.startsWith('beneficios/gac/') && req.method === 'DELETE') {
+    return beneficiosGACDeletar(req, res);
+  }
+
+  if (rota === 'beneficios/governo' && req.method === 'GET') {
+    return beneficiosGovernoListar(req, res);
+  }
+
+  if (rota === 'beneficios/governo' && req.method === 'POST') {
+    return beneficiosGovernoAdicionar(req, res);
+  }
+
+  if (rota.startsWith('beneficios/governo/') && req.method === 'PUT') {
+    return beneficiosGovernoRenomear(req, res);
+  }
+
+  if (rota.startsWith('beneficios/governo/') && req.method === 'DELETE') {
+    return beneficiosGovernoDeletar(req, res);
+  }
+
   if (rota === 'pessoas' && req.method === 'GET') {
     return pessoasListar(req, res);
   }
@@ -1324,6 +1357,333 @@ async function pessoasTransferir(req, res) {
       codigo: 'TRANSFER_PERSONS_ERROR',
       detalhes: erro.message
     });
+  }
+}
+
+// ==================== BENEFÍCIOS GAC ====================
+
+async function beneficiosGACListar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Buscar todas as pessoas e extrair benefícios GAC únicos
+    const pessoas = await prisma.pessoa.findMany({
+      select: { beneficiosGAC: true }
+    });
+
+    const beneficiosSet = new Set();
+    pessoas.forEach(pessoa => {
+      if (pessoa.beneficiosGAC && Array.isArray(pessoa.beneficiosGAC)) {
+        pessoa.beneficiosGAC.forEach(b => {
+          if (b.tipo) beneficiosSet.add(b.tipo);
+        });
+      }
+    });
+
+    const beneficios = Array.from(beneficiosSet).sort();
+    log(`✅ Listados ${beneficios.length} benefícios GAC únicos`);
+
+    res.status(200).json({ beneficios });
+  } catch (erro) {
+    log(`Erro ao listar benefícios GAC: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar benefícios GAC' });
+  }
+}
+
+async function beneficiosGACAdicionar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    if (usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem adicionar benefícios' });
+    }
+
+    const { tipo } = req.body;
+
+    if (!tipo || !tipo.trim()) {
+      return res.status(400).json({ erro: 'Tipo do benefício é obrigatório' });
+    }
+
+    // Verificar se já existe
+    const pessoas = await prisma.pessoa.findMany({
+      select: { beneficiosGAC: true }
+    });
+
+    const existe = pessoas.some(p => 
+      p.beneficiosGAC && Array.isArray(p.beneficiosGAC) && 
+      p.beneficiosGAC.some(b => b.tipo === tipo.trim())
+    );
+
+    if (existe) {
+      return res.status(409).json({ erro: 'Este benefício GAC já existe' });
+    }
+
+    log(`✅ Benefício GAC "${tipo}" adicionado ao catálogo`);
+    res.status(201).json({ mensagem: 'Benefício GAC adicionado com sucesso', tipo: tipo.trim() });
+  } catch (erro) {
+    log(`Erro ao adicionar benefício GAC: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao adicionar benefício GAC' });
+  }
+}
+
+async function beneficiosGACRenomear(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    if (usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem renomear benefícios' });
+    }
+
+    const tipoAntigo = decodeURIComponent(req.url.split('/beneficios/gac/')[1]);
+    const { novoTipo } = req.body;
+
+    if (!novoTipo || !novoTipo.trim()) {
+      return res.status(400).json({ erro: 'Novo tipo é obrigatório' });
+    }
+
+    // Buscar todas as pessoas com este benefício
+    const pessoas = await prisma.pessoa.findMany();
+    let count = 0;
+
+    for (const pessoa of pessoas) {
+      if (pessoa.beneficiosGAC && Array.isArray(pessoa.beneficiosGAC)) {
+        const beneficiosAtualizados = pessoa.beneficiosGAC.map(b => 
+          b.tipo === tipoAntigo ? { ...b, tipo: novoTipo.trim() } : b
+        );
+
+        const houveAlteracao = JSON.stringify(pessoa.beneficiosGAC) !== JSON.stringify(beneficiosAtualizados);
+        
+        if (houveAlteracao) {
+          await prisma.pessoa.update({
+            where: { id: pessoa.id },
+            data: { beneficiosGAC: beneficiosAtualizados }
+          });
+          count++;
+        }
+      }
+    }
+
+    log(`✅ Benefício GAC renomeado de "${tipoAntigo}" para "${novoTipo}" em ${count} pessoa(s)`);
+    res.status(200).json({ 
+      mensagem: `Benefício renomeado em ${count} pessoa(s)`,
+      quantidade: count
+    });
+  } catch (erro) {
+    log(`Erro ao renomear benefício GAC: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao renomear benefício GAC' });
+  }
+}
+
+async function beneficiosGACDeletar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    if (usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar benefícios' });
+    }
+
+    const tipo = decodeURIComponent(req.url.split('/beneficios/gac/')[1]);
+
+    // Verificar se há uso ativo (dataFinal no futuro ou null)
+    const agora = new Date();
+    const pessoas = await prisma.pessoa.findMany();
+    
+    const usoAtivo = pessoas.some(p => 
+      p.beneficiosGAC && Array.isArray(p.beneficiosGAC) && 
+      p.beneficiosGAC.some(b => 
+        b.tipo === tipo && 
+        (!b.dataFinal || new Date(b.dataFinal) > agora)
+      )
+    );
+
+    if (usoAtivo) {
+      return res.status(400).json({ 
+        erro: 'Não é possível deletar este benefício',
+        mensagem: 'Existem pessoas com este benefício ativo. Encerre ou remova os benefícios ativos primeiro.'
+      });
+    }
+
+    log(`✅ Benefício GAC "${tipo}" pode ser deletado (sem uso ativo)`);
+    res.status(200).json({ mensagem: 'Benefício pode ser removido' });
+  } catch (erro) {
+    log(`Erro ao deletar benefício GAC: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar benefício GAC' });
+  }
+}
+
+// ==================== BENEFÍCIOS GOVERNO ====================
+
+async function beneficiosGovernoListar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const pessoas = await prisma.pessoa.findMany({
+      select: { beneficiosGoverno: true }
+    });
+
+    const beneficiosSet = new Set();
+    pessoas.forEach(pessoa => {
+      if (pessoa.beneficiosGoverno && Array.isArray(pessoa.beneficiosGoverno)) {
+        pessoa.beneficiosGoverno.forEach(b => {
+          if (b.nome) beneficiosSet.add(b.nome);
+        });
+      }
+    });
+
+    const beneficios = Array.from(beneficiosSet).sort();
+    log(`✅ Listados ${beneficios.length} benefícios Governo únicos`);
+
+    res.status(200).json({ beneficios });
+  } catch (erro) {
+    log(`Erro ao listar benefícios Governo: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar benefícios Governo' });
+  }
+}
+
+async function beneficiosGovernoAdicionar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    if (usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem adicionar benefícios' });
+    }
+
+    const { nome } = req.body;
+
+    if (!nome || !nome.trim()) {
+      return res.status(400).json({ erro: 'Nome do benefício é obrigatório' });
+    }
+
+    const pessoas = await prisma.pessoa.findMany({
+      select: { beneficiosGoverno: true }
+    });
+
+    const existe = pessoas.some(p => 
+      p.beneficiosGoverno && Array.isArray(p.beneficiosGoverno) && 
+      p.beneficiosGoverno.some(b => b.nome === nome.trim())
+    );
+
+    if (existe) {
+      return res.status(409).json({ erro: 'Este benefício Governo já existe' });
+    }
+
+    log(`✅ Benefício Governo "${nome}" adicionado ao catálogo`);
+    res.status(201).json({ mensagem: 'Benefício Governo adicionado com sucesso', nome: nome.trim() });
+  } catch (erro) {
+    log(`Erro ao adicionar benefício Governo: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao adicionar benefício Governo' });
+  }
+}
+
+async function beneficiosGovernoRenomear(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    if (usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem renomear benefícios' });
+    }
+
+    const nomeAntigo = decodeURIComponent(req.url.split('/beneficios/governo/')[1]);
+    const { novoNome } = req.body;
+
+    if (!novoNome || !novoNome.trim()) {
+      return res.status(400).json({ erro: 'Novo nome é obrigatório' });
+    }
+
+    const pessoas = await prisma.pessoa.findMany();
+    let count = 0;
+
+    for (const pessoa of pessoas) {
+      if (pessoa.beneficiosGoverno && Array.isArray(pessoa.beneficiosGoverno)) {
+        const beneficiosAtualizados = pessoa.beneficiosGoverno.map(b => 
+          b.nome === nomeAntigo ? { ...b, nome: novoNome.trim() } : b
+        );
+
+        const houveAlteracao = JSON.stringify(pessoa.beneficiosGoverno) !== JSON.stringify(beneficiosAtualizados);
+        
+        if (houveAlteracao) {
+          await prisma.pessoa.update({
+            where: { id: pessoa.id },
+            data: { beneficiosGoverno: beneficiosAtualizados }
+          });
+          count++;
+        }
+      }
+    }
+
+    log(`✅ Benefício Governo renomeado de "${nomeAntigo}" para "${novoNome}" em ${count} pessoa(s)`);
+    res.status(200).json({ 
+      mensagem: `Benefício renomeado em ${count} pessoa(s)`,
+      quantidade: count
+    });
+  } catch (erro) {
+    log(`Erro ao renomear benefício Governo: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao renomear benefício Governo' });
+  }
+}
+
+async function beneficiosGovernoDeletar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    if (usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar benefícios' });
+    }
+
+    const nome = decodeURIComponent(req.url.split('/beneficios/governo/')[1]);
+
+    // Verificar se há uso
+    const pessoas = await prisma.pessoa.findMany();
+    
+    const emUso = pessoas.some(p => 
+      p.beneficiosGoverno && Array.isArray(p.beneficiosGoverno) && 
+      p.beneficiosGoverno.some(b => b.nome === nome)
+    );
+
+    if (emUso) {
+      return res.status(400).json({ 
+        erro: 'Não é possível deletar este benefício',
+        mensagem: 'Existem pessoas cadastradas com este benefício. Remova-o das pessoas primeiro.'
+      });
+    }
+
+    log(`✅ Benefício Governo "${nome}" pode ser deletado (sem uso)`);
+    res.status(200).json({ mensagem: 'Benefício pode ser removido' });
+  } catch (erro) {
+    log(`Erro ao deletar benefício Governo: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar benefício Governo' });
   }
 }
 

@@ -1,0 +1,348 @@
+.gerenciador-beneficios {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header-gerenciador {
+  margin-bottom: 2.5rem;
+}
+
+.header-gerenciador h2 {
+  font-size: 2rem;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.subtitulo {
+  color: #666;
+  font-size: 1rem;
+}
+
+/* SEÇÕES */
+.secao-beneficios {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.secao-gac {
+  border-left: 4px solid #4caf50;
+}
+
+.secao-governo {
+  border-left: 4px solid #2196f3;
+}
+
+.secao-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.secao-gac .secao-header svg {
+  color: #4caf50;
+}
+
+.secao-governo .secao-header svg {
+  color: #2196f3;
+}
+
+.secao-header h3 {
+  font-size: 1.5rem;
+  color: #1a1a1a;
+  margin: 0;
+  flex: 1;
+}
+
+.contador-beneficios {
+  background: #f5f5f5;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* ADICIONAR BENEFÍCIO */
+.adicionar-beneficio {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.input-beneficio {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.input-beneficio:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.secao-governo .input-beneficio:focus {
+  border-color: #2196f3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.botao-adicionar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.botao-gac {
+  background: linear-gradient(135deg, #4caf50, #45a049);
+}
+
+.botao-gac:hover:not(:disabled) {
+  background: linear-gradient(135deg, #45a049, #388e3c);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.botao-governo {
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+}
+
+.botao-governo:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1976d2, #0d47a1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.botao-adicionar:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* LISTA DE BENEFÍCIOS */
+.lista-beneficios {
+  min-height: 100px;
+}
+
+.carregando,
+.vazio {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 2rem;
+}
+
+.lista-items {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.item-beneficio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  margin-bottom: 0.5rem;
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.item-beneficio:hover {
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+  transform: translateX(4px);
+}
+
+.nome-beneficio {
+  flex: 1;
+  font-size: 1rem;
+  color: #333;
+  font-weight: 500;
+}
+
+/* AÇÕES */
+.acoes-item,
+.acoes-edicao,
+.acoes-confirmacao {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.botao-editar,
+.botao-deletar,
+.botao-salvar,
+.botao-cancelar,
+.botao-confirmar-deletar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.botao-editar {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.botao-editar:hover:not(:disabled) {
+  background: #bbdefb;
+  transform: scale(1.1);
+}
+
+.botao-deletar {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.botao-deletar:hover:not(:disabled) {
+  background: #ffcdd2;
+  transform: scale(1.1);
+}
+
+.botao-salvar {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.botao-salvar:hover:not(:disabled) {
+  background: #c8e6c9;
+  transform: scale(1.1);
+}
+
+.botao-cancelar {
+  background: #fafafa;
+  color: #757575;
+}
+
+.botao-cancelar:hover:not(:disabled) {
+  background: #eeeeee;
+  transform: scale(1.1);
+}
+
+.botao-confirmar-deletar {
+  background: #d32f2f;
+  color: white;
+  width: auto;
+  padding: 0 1rem;
+}
+
+.botao-confirmar-deletar:hover:not(:disabled) {
+  background: #b71c1c;
+  transform: scale(1.05);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* INPUT DE EDIÇÃO */
+.input-edicao {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #4caf50;
+  border-radius: 6px;
+  font-size: 1rem;
+  background: white;
+}
+
+.secao-governo .input-edicao {
+  border-color: #2196f3;
+}
+
+.input-edicao:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+}
+
+.secao-governo .input-edicao:focus {
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+}
+
+/* CONFIRMAÇÃO DE EXCLUSÃO */
+.texto-confirmacao {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  color: #d32f2f;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.texto-confirmacao svg {
+  flex-shrink: 0;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 768px) {
+  .gerenciador-beneficios {
+    padding: 1rem;
+  }
+
+  .header-gerenciador h2 {
+    font-size: 1.5rem;
+  }
+
+  .secao-header h3 {
+    font-size: 1.25rem;
+  }
+
+  .adicionar-beneficio {
+    flex-direction: column;
+  }
+
+  .botao-adicionar {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .item-beneficio {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .nome-beneficio {
+    flex-basis: 100%;
+  }
+
+  .acoes-item,
+  .acoes-edicao,
+  .acoes-confirmacao {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+
+  .texto-confirmacao {
+    flex-basis: 100%;
+    font-size: 0.875rem;
+  }
+
+  .botao-confirmar-deletar {
+    flex: 1;
+  }
+}

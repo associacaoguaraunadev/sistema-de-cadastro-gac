@@ -7,6 +7,7 @@ import {
   Settings, 
   Key, 
   MapPin, 
+  Gift,
   ChevronDown, 
   LogOut, 
   Menu, 
@@ -84,7 +85,7 @@ const Navbar = () => {
             <div className="navbar-dropdown">
               <button 
                 className={`navbar-item dropdown-trigger ${
-                  isActive('/gerenciamento/comunidades') || isActive('/tokens') || isActive('/usuarios') ? 'active' : ''
+                  isActive('/gerenciamento/comunidades') || isActive('/beneficios') || isActive('/tokens') || isActive('/usuarios') ? 'active' : ''
                 }`}
                 onClick={toggleGerenciamento}
               >
@@ -104,6 +105,13 @@ const Navbar = () => {
                   >
                     <MapPin size={16} />
                     <span>Comunidades</span>
+                  </button>
+                  <button 
+                    className={`dropdown-item ${isActive('/beneficios') ? 'active' : ''}`}
+                    onClick={() => navegarPara('/beneficios')}
+                  >
+                    <Gift size={16} />
+                    <span>Benefícios</span>
                   </button>
                   <button 
                     className={`dropdown-item ${isActive('/tokens') ? 'active' : ''}`}
