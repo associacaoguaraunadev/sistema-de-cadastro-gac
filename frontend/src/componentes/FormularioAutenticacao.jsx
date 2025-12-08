@@ -20,6 +20,26 @@ export const FormularioLogin = () => {
   const navegar = useNavigate();
   const { toasts, removerToast, sucesso: sucessoToast, erro: erroToast } = useToast();
 
+  const validarEmail = (e) => {
+    const campo = e.target;
+    if (campo.validity.valueMissing) {
+      campo.setCustomValidity('Por favor, digite seu email');
+    } else if (campo.validity.typeMismatch) {
+      campo.setCustomValidity('Por favor, digite um email válido (exemplo: seu@email.com)');
+    } else {
+      campo.setCustomValidity('');
+    }
+  };
+
+  const validarSenha = (e) => {
+    const campo = e.target;
+    if (campo.validity.valueMissing) {
+      campo.setCustomValidity('Por favor, digite sua senha');
+    } else {
+      campo.setCustomValidity('');
+    }
+  };
+
   const aoEnviar = async (e) => {
     e.preventDefault();
     setErro('');
@@ -60,9 +80,13 @@ export const FormularioLogin = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              onInvalid={validarEmail}
+              onInput={validarEmail}
               placeholder="seu@email.com"
               required
               disabled={carregando}
+              title="Digite seu endereço de email completo"
+              autoComplete="email"
             />
           </div>
 
@@ -74,9 +98,13 @@ export const FormularioLogin = () => {
                 type={mostrarSenha ? 'text' : 'password'}
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
+                onInvalid={validarSenha}
+                onInput={validarSenha}
                 placeholder="Sua senha"
                 required
                 disabled={carregando}
+                title="Digite sua senha de acesso"
+                autoComplete="current-password"
               />
               <button
                 type="button"
@@ -124,6 +152,26 @@ export const FormularioRegistro = () => {
   const { registrar } = useAuth();
   const navegar = useNavigate();
   const { toasts: toastsReg, removerToast: removerToastReg, sucesso: sucessoToastReg, erro: erroToastReg, aviso: avisoReg } = useToast();
+
+  const validarCampoTexto = (e, mensagem = 'Este campo é obrigatório') => {
+    const campo = e.target;
+    if (campo.validity.valueMissing) {
+      campo.setCustomValidity(mensagem);
+    } else {
+      campo.setCustomValidity('');
+    }
+  };
+
+  const validarSenhaRegistro = (e) => {
+    const campo = e.target;
+    if (campo.validity.valueMissing) {
+      campo.setCustomValidity('Por favor, crie uma senha para sua conta');
+    } else if (campo.value.length < 8) {
+      campo.setCustomValidity('A senha deve ter pelo menos 8 caracteres');
+    } else {
+      campo.setCustomValidity('');
+    }
+  };
 
   const validarCodigo = async () => {
     setErro('');
@@ -206,9 +254,12 @@ export const FormularioRegistro = () => {
                   type="text"
                   value={codigoConvite}
                   onChange={(e) => setCodigoConvite(e.target.value)}
+                  onInvalid={(e) => validarCampoTexto(e, 'Por favor, cole o código de convite que você recebeu por email')}
+                  onInput={(e) => validarCampoTexto(e, 'Por favor, cole o código de convite que você recebeu por email')}
                   placeholder="Cole o código que recebeu"
                   required
                   disabled={carregando}
+                  title="Cole aqui o código de convite enviado para seu email"
                 />
                 <button
                   type="button"
@@ -234,9 +285,13 @@ export const FormularioRegistro = () => {
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
+                  onInvalid={(e) => validarCampoTexto(e, 'Por favor, digite seu nome completo')}
+                  onInput={(e) => validarCampoTexto(e, 'Por favor, digite seu nome completo')}
                   placeholder="Seu nome completo"
                   required
                   disabled={carregando}
+                  title="Digite seu nome completo como deseja ser identificado no sistema"
+                  autoComplete="name"
                 />
               </div>
 
@@ -248,6 +303,7 @@ export const FormularioRegistro = () => {
                   value={email}
                   disabled
                   className="input-desabilitado"
+                  title="Este email foi validado pelo código de convite e não pode ser alterado"
                 />
                 <p className="texto-ajuda">Email do convite (não pode ser alterado)</p>
               </div>
@@ -260,9 +316,14 @@ export const FormularioRegistro = () => {
                     type={mostrarSenha ? 'text' : 'password'}
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
+                    onInvalid={validarSenhaRegistro}
+                    onInput={validarSenhaRegistro}
                     placeholder="Mínimo 8 caracteres"
                     required
+                    minLength={8}
                     disabled={carregando}
+                    title="Crie uma senha segura com pelo menos 8 caracteres"
+                    autoComplete="new-password"
                   />
                   <button
                     type="button"
