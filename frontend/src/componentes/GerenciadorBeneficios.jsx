@@ -59,6 +59,7 @@ export const GerenciadorBeneficios = () => {
   // ==================== BENEFÍCIOS GAC ====================
 
   const adicionarBeneficioGAC = async () => {
+    console.log('🔵 adicionarBeneficioGAC chamado', { novoBeneficioGAC, token });
     const tipo = novoBeneficioGAC.trim();
     if (!tipo) {
       erroToast('Campo obrigatório', 'Digite o nome do benefício GAC');
@@ -72,6 +73,7 @@ export const GerenciadorBeneficios = () => {
 
     try {
       setCarregando(true);
+      console.log('📤 Enviando POST para:', `${API_URL}/beneficios/gac`, { tipo });
       const resposta = await fetch(`${API_URL}/beneficios/gac`, {
         method: 'POST',
         headers: {
@@ -80,6 +82,7 @@ export const GerenciadorBeneficios = () => {
         },
         body: JSON.stringify({ tipo })
       });
+      console.log('📥 Resposta recebida:', resposta.status, resposta.ok);
 
       if (!resposta.ok) {
         const erro = await resposta.json();
