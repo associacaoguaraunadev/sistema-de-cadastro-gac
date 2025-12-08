@@ -27,6 +27,7 @@ const TransferenciaPessoas = () => {
   });
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [buscaInput, setBuscaInput] = useState('');
 
   // Carregar pessoas
   useEffect(() => {
