@@ -331,17 +331,17 @@ export const GerenciadorUsuarios = () => {
         )}
       </div>
 
-      {modalConfirmacao && (
-        <ModalConfirmacao
-          titulo={modalConfirmacao.titulo}
-          mensagem={modalConfirmacao.mensagem}
-          onConfirmar={confirmarModal}
-          onCancelar={() => setModalConfirmacao(null)}
-          textoConfirmar={modalConfirmacao.textoConfirmar}
-          classeBotao={modalConfirmacao.classeBotao}
-          carregando={processando}
-        />
-      )}
+      <ModalConfirmacao
+        aberto={!!modalConfirmacao}
+        titulo={modalConfirmacao?.titulo || 'Confirmar'}
+        mensagem={modalConfirmacao?.mensagem || ''}
+        botaoPrincipalTexto={modalConfirmacao?.textoConfirmar || 'Confirmar'}
+        botaoCancelarTexto="Cancelar"
+        onConfirmar={confirmarModal}
+        onCancelar={() => setModalConfirmacao(null)}
+        tipo={modalConfirmacao?.tipo === 'deletar' ? 'deletar' : 'alerta'}
+        carregando={processando}
+      />
     </div>
   );
 };
