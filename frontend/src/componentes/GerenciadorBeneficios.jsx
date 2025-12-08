@@ -1,3 +1,26 @@
+  // Função para buscar benefícios Governo do backend
+  const carregarBeneficiosGoverno = async () => {
+    setCarregando(true);
+    try {
+      const resposta = await fetch(`${API_URL}/beneficios/governo`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const dados = await resposta.json();
+      setBeneficiosGoverno(dados.beneficios || []);
+    } catch (erro) {
+      console.error('Erro ao carregar benefícios Governo:', erro);
+    } finally {
+      setCarregando(false);
+    }
+  };
+
+  // Função agregadora para carregar ambos
+  const carregarBeneficios = async () => {
+    await Promise.all([
+      carregarBeneficiosGAC(),
+      carregarBeneficiosGoverno()
+    ]);
+  };
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Edit2, AlertTriangle, Check, Save, Gift, Building2 } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
@@ -42,7 +65,7 @@ export const GerenciadorBeneficios = () => {
 
   // Chama ao montar o componente
   useEffect(() => {
-    carregarBeneficiosGAC();
+    carregarBeneficios();
   }, [token]);
 
   // ==================== BENEFÍCIOS GAC ====================
