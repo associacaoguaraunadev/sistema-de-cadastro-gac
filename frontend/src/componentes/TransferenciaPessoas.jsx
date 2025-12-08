@@ -16,29 +16,48 @@ export const TransferenciaPessoas = () => {
   const navegar = useNavigate();
   const timeoutRef = useRef(null);
   const [pessoas, setPessoas] = useState([]);
-  const [usuariosDisponiveis, setUsuariosDisponiveis] = useState([]);
-  const [comunidades, setComunidades] = useState([]);
-  const [beneficiosGAC, setBeneficiosGAC] = useState([]);
-  const [beneficiosGoverno, setBeneficiosGoverno] = useState([]);
-  const [selecionados, setSelecionados] = useState(new Set());
+  const [selecionados, setSelecionados] = useState([]);
   const [carregando, setCarregando] = useState(false);
-  const [pagina, setPagina] = useState(1);
-  const [limite] = useState(20);
-  const [total, setTotal] = useState(0);
-  const [buscaInput, setBuscaInput] = useState('');
-  const [busca, setBusca] = useState('');
   const [filtros, setFiltros] = useState({
+    busca: '',
+    status: '',
     comunidade: '',
-    beneficioGAC: '',
-    beneficioGoverno: '',
-    status: 'ativo'
+    beneficio: '',
+    cras: '',
   });
-  const [usuarioDestino, setUsuarioDestino] = useState('');
-  const [mensagem, setMensagem] = useState('');
-  const [erro, setErro] = useState('');
-  const [todosNaPagina, setTodosNaPagina] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
-  // Debounce para busca - espera 800ms após parar de digitar
+  // Carregar pessoas
+  useEffect(() => {
+    carregarPessoas();
+  }, []);
+
+  const carregarPessoas = async () => {
+    setCarregando(true);
+    try {
+      const res = await axios.get(`${API_URL}/pessoas/listar`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPessoas(res.data);
+    } catch (err) {
+      setFeedback({ type: 'error', message: 'Erro ao carregar pessoas' });
+    }
+    setCarregando(false);
+  };
+
+  // Filtragem moderna e funcional
+  const pessoasFiltradas = pessoas.filter(p => {
+    const buscaMatch = filtros.busca === '' ||
+      p.nome?.toLowerCase().includes(filtros.busca.toLowerCase()) ||
+      p.cpf?.includes(filtros.busca) ||
+      p.email?.toLowerCase().includes(filtros.busca.toLowerCase());
+    const statusMatch = filtros.status === '' || p.status === filtros.status;
+    const comunidadeMatch = filtros.comunidade === '' || p.comunidade === filtros.comunidade;
+    const beneficioMatch = filtros.beneficio === '' || (p.beneficios && p.beneficios.includes(filtros.beneficio));
+    const crasMatch = filtros.cras === '' || p.cras === filtros.cras;
+    return buscaMatch && statusMatch && comunidadeMatch && beneficioMatch && crasMatch;
+  });
   useEffect(() => {
     clearTimeout(timeoutRef.current);
     
@@ -71,28 +90,7 @@ export const TransferenciaPessoas = () => {
     carregarFiltrosGlobais();
   }, []);
 
-  const carregarPessoas = async () => {
-    try {
-      setCarregando(true);
-      const cliente = criarCliente();
-      const params = new URLSearchParams({
-        pagina: pagina.toString(),
-        limite: limite.toString(),
-        status: filtros.status,
-        busca: busca || ''
-      });
-
-      const resposta = await cliente.get(`/pessoas?${params}`);
-      setPessoas(resposta.data.pessoas);
-      setTotal(resposta.data.total);
-    } catch (err) {
-      setErro('Erro ao carregar pessoas');
-      erroToast('Erro ao Carregar', 'Não foi possível carregar a lista de pessoas');
-      console.error(err);
-    } finally {
-      setCarregando(false);
-    }
-  };
+  // (Removido: função duplicada carregarPessoas com JSX e finally)
 
   const carregarUsuarios = async () => {
     try {
