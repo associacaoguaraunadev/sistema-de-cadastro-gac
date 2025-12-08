@@ -1698,6 +1698,10 @@ async function pessoasListar(req, res) {
 
     // Construir filtros
     const where = {};
+    // Restrição por usuário (não-admin)
+    if (usuario.funcao !== 'admin') {
+      where.usuarioId = usuario.id;
+    }
 
     // Processar filtros avançados se fornecidos
     if (filtros) {
@@ -2038,7 +2042,12 @@ async function pessoasObter(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const pessoa = await prisma.pessoa.findUnique({ where: { id: parseInt(id) } });
+    let pessoa;
+    if (usuario.funcao === 'admin') {
+      pessoa = await prisma.pessoa.findUnique({ where: { id: parseInt(id) } });
+    } else {
+      pessoa = await prisma.pessoa.findFirst({ where: { id: parseInt(id), usuarioId: usuario.id } });
+    }
     if (!pessoa) {
       return res.status(404).json({ erro: 'Pessoa não encontrada' });
     }
