@@ -280,16 +280,16 @@ const TransferenciaPessoas = () => {
           <div className="painel-lista">
             <h3>Pessoas ({total})</h3>
             {carregando && <p className="texto-carregando">⏳ Carregando...</p>}
-            {pessoas.length > 0 ? (
+            {pessoasFiltradas.length > 0 ? (
               <div className="tabela-pessoas">
                 <div className="linha-cabecalho">
-                  <div className="coluna-checkbox"><input type="checkbox" checked={todosNaPagina && pessoas.length > 0} onChange={selecionarTodosPagina} disabled={carregando} /></div>
+                  <div className="coluna-checkbox"><input type="checkbox" checked={todosNaPagina && pessoasFiltradas.length > 0} onChange={selecionarTodosPagina} disabled={carregando} /></div>
                   <div className="coluna-nome">Nome</div>
                   <div className="coluna-cpf">CPF</div>
                   <div className="coluna-comunidade">Comunidade</div>
                   <div className="coluna-beneficios">Benefícios</div>
                 </div>
-                {pessoas.map(pessoa => {
+                {pessoasFiltradas.map(pessoa => {
                   const beneficiosGACAtivos = pessoa.beneficiosGAC?.filter(b => b.tipo) || [];
                   const beneficiosGovernoAtivos = pessoa.beneficiosGoverno?.filter(b => b.nome) || [];
                   const totalBeneficios = beneficiosGACAtivos.length + beneficiosGovernoAtivos.length;
