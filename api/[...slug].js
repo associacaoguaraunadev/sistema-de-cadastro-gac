@@ -339,6 +339,19 @@ async function rotear(req, res, slug) {
     return revogarToken(req, res);
   }
 
+  // GERENCIAMENTO DE USUÁRIOS (ADMIN ONLY)
+  if (rota.startsWith('usuarios/') && req.method === 'DELETE') {
+    const id = slug[1];
+    req.params = { id };
+    return usuariosDeletar(req, res);
+  }
+
+  if (rota.startsWith('usuarios/') && rota.includes('/funcao') && req.method === 'PATCH') {
+    const id = slug[1];
+    req.params = { id };
+    return usuariosAlterarFuncao(req, res);
+  }
+
   // EVENTOS SSE
   if (rota === 'eventos/sse' && req.method === 'GET') {
     log(`🚀 Iniciando SSE para rota: ${rota}`);
@@ -869,6 +882,137 @@ async function autenticacaoValidarToken(req, res) {
     res.status(200).json({ valido: true, usuario });
   } catch (erro) {
     res.status(401).json({ valido: false });
+  }
+}
+
+async function usuariosDeletar(req, res) {
+  const prisma = getPrisma();
+  try {
+    // Verificar autenticação
+    const usuarioAutenticado = autenticarToken(req);
+    if (!usuarioAutenticado) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Apenas admins podem deletar usuários
+    if (usuarioAutenticado.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar usuários' });
+    }
+
+    const { id } = req.params;
+    const idUsuario = parseInt(id);
+
+    if (!idUsuario || isNaN(idUsuario)) {
+      return res.status(400).json({ erro: 'ID de usuário inválido' });
+    }
+
+    // Buscar usuário a ser deletado
+    const usuarioParaDeletar = await prisma.usuario.findUnique({
+      where: { id: idUsuario },
+      include: { pessoas: true }
+    });
+
+    if (!usuarioParaDeletar) {
+      return res.status(404).json({ erro: 'Usuário não encontrado' });
+    }
+
+    // PROTEÇÃO: Não pode deletar associacaoguarauna@gmail.com
+    if (usuarioParaDeletar.email === 'associacaoguarauna@gmail.com') {
+      return res.status(403).json({ 
+        erro: 'Este usuário não pode ser deletado (conta principal do sistema)' 
+      });
+    }
+
+    // Não pode deletar a si mesmo
+    if (usuarioParaDeletar.id === usuarioAutenticado.id) {
+      return res.status(403).json({ erro: 'Você não pode deletar sua própria conta' });
+    }
+
+    // Deletar todas as pessoas associadas
+    await prisma.pessoa.deleteMany({
+      where: { usuarioId: usuarioParaDeletar.id }
+    });
+
+    // Deletar usuário
+    await prisma.usuario.delete({
+      where: { id: idUsuario }
+    });
+
+    log(`✅ Usuário deletado: ${usuarioParaDeletar.email} por ${usuarioAutenticado.email}`);
+
+    res.status(200).json({ 
+      mensagem: 'Usuário deletado com sucesso',
+      pessoasDeletadas: usuarioParaDeletar.pessoas.length
+    });
+  } catch (erro) {
+    log(`Erro ao deletar usuário: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar usuário' });
+  }
+}
+
+async function usuariosAlterarFuncao(req, res) {
+  const prisma = getPrisma();
+  try {
+    // Verificar autenticação
+    const usuarioAutenticado = autenticarToken(req);
+    if (!usuarioAutenticado) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Apenas admins podem alterar funções
+    if (usuarioAutenticado.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem alterar funções' });
+    }
+
+    const { id } = req.params;
+    const { funcao } = req.body;
+    const idUsuario = parseInt(id);
+
+    if (!idUsuario || isNaN(idUsuario)) {
+      return res.status(400).json({ erro: 'ID de usuário inválido' });
+    }
+
+    if (!funcao || !['admin', 'funcionario'].includes(funcao)) {
+      return res.status(400).json({ erro: 'Função inválida. Use "admin" ou "funcionario"' });
+    }
+
+    // Buscar usuário
+    const usuario = await prisma.usuario.findUnique({
+      where: { id: idUsuario }
+    });
+
+    if (!usuario) {
+      return res.status(404).json({ erro: 'Usuário não encontrado' });
+    }
+
+    // PROTEÇÃO: Não pode alterar função de associacaoguarauna@gmail.com
+    if (usuario.email === 'associacaoguarauna@gmail.com') {
+      return res.status(403).json({ 
+        erro: 'Este usuário não pode ter sua função alterada (conta principal do sistema)' 
+      });
+    }
+
+    // Não pode alterar própria função
+    if (usuario.id === usuarioAutenticado.id) {
+      return res.status(403).json({ erro: 'Você não pode alterar sua própria função' });
+    }
+
+    // Atualizar função
+    const usuarioAtualizado = await prisma.usuario.update({
+      where: { id: idUsuario },
+      data: { funcao },
+      select: { id: true, email: true, nome: true, funcao: true, ativo: true }
+    });
+
+    log(`✅ Função alterada: ${usuario.email} de "${usuario.funcao}" para "${funcao}" por ${usuarioAutenticado.email}`);
+
+    res.status(200).json({ 
+      mensagem: 'Função alterada com sucesso',
+      usuario: usuarioAtualizado
+    });
+  } catch (erro) {
+    log(`Erro ao alterar função: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao alterar função' });
   }
 }
 

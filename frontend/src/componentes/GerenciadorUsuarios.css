@@ -1,0 +1,266 @@
+.gerenciador-usuarios {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header-gerenciador {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.info-header h2 {
+  font-size: 1.75rem;
+  color: #2d5016;
+  margin-bottom: 0.5rem;
+}
+
+.descricao {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+.lista-usuarios {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.tabela-container {
+  overflow-x: auto;
+}
+
+.tabela-usuarios {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabela-usuarios thead {
+  background: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.tabela-usuarios th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tabela-usuarios tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.2s;
+}
+
+.tabela-usuarios tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+.tabela-usuarios tbody tr.usuario-protegido {
+  background-color: #fef3c7;
+}
+
+.tabela-usuarios tbody tr.usuario-protegido:hover {
+  background-color: #fde68a;
+}
+
+.tabela-usuarios td {
+  padding: 1rem;
+  color: #1f2937;
+}
+
+.nome-usuario {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.coluna-acoes {
+  text-align: center;
+}
+
+.acoes-usuario {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.botao-acao {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.botao-acao:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.botao-promover {
+  background: #3b82f6;
+  color: white;
+}
+
+.botao-promover:hover:not(:disabled) {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.botao-rebaixar {
+  background: #f59e0b;
+  color: white;
+}
+
+.botao-rebaixar:hover:not(:disabled) {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.botao-deletar {
+  background: #ef4444;
+  color: white;
+}
+
+.botao-deletar:hover:not(:disabled) {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.texto-sem-acoes {
+  color: #9ca3af;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-admin {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-funcionario {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.badge-ativo {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-inativo {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-principal {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
+}
+
+.badge-voce {
+  background: #ddd6fe;
+  color: #5b21b6;
+}
+
+/* Estados vazios */
+.vazio {
+  padding: 3rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.vazio p {
+  font-size: 1.1rem;
+}
+
+/* Loading */
+.carregando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #2d5016;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.carregando p {
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .header-gerenciador {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .tabela-usuarios {
+    font-size: 0.875rem;
+  }
+
+  .tabela-usuarios th,
+  .tabela-usuarios td {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .acoes-usuario {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .botao-acao {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .nome-usuario {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

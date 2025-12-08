@@ -84,7 +84,7 @@ const Navbar = () => {
             <div className="navbar-dropdown">
               <button 
                 className={`navbar-item dropdown-trigger ${
-                  isActive('/gerenciamento/comunidades') || isActive('/tokens') ? 'active' : ''
+                  isActive('/gerenciamento/comunidades') || isActive('/tokens') || isActive('/usuarios') ? 'active' : ''
                 }`}
                 onClick={toggleGerenciamento}
               >
@@ -111,6 +111,13 @@ const Navbar = () => {
                   >
                     <Key size={16} />
                     <span>Tokens</span>
+                  </button>
+                  <button 
+                    className={`dropdown-item ${isActive('/usuarios') ? 'active' : ''}`}
+                    onClick={() => navegarPara('/usuarios')}
+                  >
+                    <Users size={16} />
+                    <span>Usuários</span>
                   </button>
                 </div>
               )}
@@ -172,6 +179,13 @@ const Navbar = () => {
               >
                 <Key size={18} />
                 <span>Tokens</span>
+              </button>
+              <button 
+                className={`mobile-item indent ${isActive('/usuarios') ? 'active' : ''}`}
+                onClick={() => navegarPara('/usuarios')}
+              >
+                <Users size={18} />
+                <span>Usuários</span>
               </button>
             </>
           )}

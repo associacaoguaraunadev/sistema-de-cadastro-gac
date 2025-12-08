@@ -15,6 +15,7 @@ import PaginaTokens from './pages/PaginaTokens';
 import PaginaComunidades from './pages/PaginaComunidades';
 import PaginaGerenciamentoComunidades from './pages/PaginaGerenciamentoComunidades';
 import PaginaTransferencia from './pages/PaginaTransferencia';
+import PaginaUsuarios from './pages/PaginaUsuarios';
 import './index.css';
 
 // Limpar cache ao iniciar
@@ -106,6 +107,16 @@ function App() {
           <RotaPrivada>
             <LayoutComNavbar>
               <PaginaTokens />
+            </LayoutComNavbar>
+          </RotaPrivada>
+        } 
+      />
+      <Route 
+        path="/usuarios" 
+        element={
+          <RotaPrivada>
+            <LayoutComNavbar>
+              <PaginaUsuarios />
             </LayoutComNavbar>
           </RotaPrivada>
         } 
