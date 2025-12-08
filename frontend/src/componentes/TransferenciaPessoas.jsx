@@ -28,6 +28,7 @@ const TransferenciaPessoas = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [feedback, setFeedback] = useState(null);
   const [buscaInput, setBuscaInput] = useState('');
+  const [busca, setBusca] = useState('');
   const [pagina, setPagina] = useState(1);
 
   // Carregar pessoas
