@@ -76,10 +76,14 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
   const [novoBeneficioGoverno, setNovoBeneficioGoverno] = useState({ nome: '', valor: '' });
   const [mostrarGerenciadorBeneficios, setMostrarGerenciadorBeneficios] = useState(false);
   const [tiposBeneficios, setTiposBeneficios] = useState([]);
+  const [beneficiosGovernoDisponiveis, setBeneficiosGovernoDisponiveis] = useState([]);
   const [adicionandoNovoTipo, setAdicionandoNovoTipo] = useState(false);
   const [novoTipoBeneficio, setNovoTipoBeneficio] = useState('');
   const { sucesso, erro: erroToast } = useGlobalToast();
   const { token, usuario } = useAuth();
+
+  const API_URL = import.meta.env.VITE_API_URL || 
+    (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : '/api');
 
   // Função para gerar dados de teste aleatórios
   const gerarDadosTeste = () => {
@@ -130,26 +134,34 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
     setCamposTocados({});
   };
 
-  // Carregar tipos de benefícios do localStorage
+  // Carregar benefícios da API
   useEffect(() => {
-    const salvo = localStorage.getItem('beneficiosGACTipos');
-    if (salvo) {
-      setTiposBeneficios(JSON.parse(salvo));
-    } else {
-      const defaults = ['Cesta Básica', 'Auxílio Alimentação', 'Auxílio Financeiro', 'Bolsa Cultura', 'Outro'];
-      setTiposBeneficios(defaults);
-      localStorage.setItem('beneficiosGACTipos', JSON.stringify(defaults));
-    }
-  }, []);
+    const carregarBeneficios = async () => {
+      if (!token) return;
+      
+      try {
+        // Carregar benefícios GAC
+        const respostaGAC = await fetch(`${API_URL}/beneficios/gac`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const dadosGAC = await respostaGAC.json();
+        setTiposBeneficios(dadosGAC.beneficios || []);
 
-  // Escutar atualizações de tipos de benefícios
-  useEffect(() => {
-    const handleBeneficiosAtualizados = (e) => {
-      setTiposBeneficios(e.detail);
+        // Carregar benefícios Governo
+        const respostaGoverno = await fetch(`${API_URL}/beneficios/governo`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const dadosGoverno = await respostaGoverno.json();
+        setBeneficiosGovernoDisponiveis(dadosGoverno.beneficios || []);
+      } catch (error) {
+        console.error('Erro ao carregar benefícios:', error);
+      }
     };
-    window.addEventListener('beneficiosGACAtualizados', handleBeneficiosAtualizados);
-    return () => window.removeEventListener('beneficiosGACAtualizados', handleBeneficiosAtualizados);
-  }, []);
+
+    if (isOpen) {
+      carregarBeneficios();
+    }
+  }, [isOpen, token]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -1056,15 +1068,18 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
                 <div className="beneficio-gac-form-row">
                   <div className="beneficio-gac-input-group">
                     <label htmlFor="nomeBeneficioGoverno" className="beneficio-gac-label">Nome do Benefício</label>
-                    <input
+                    <select
                       id="nomeBeneficioGoverno"
-                      type="text"
                       value={novoBeneficioGoverno.nome}
                       onChange={(e) => setNovoBeneficioGoverno(prev => ({ ...prev, nome: e.target.value }))}
                       onKeyDown={handleKeyDown}
                       className="beneficio-gac-input"
-                      placeholder="Ex: LOAS, Bolsa Família, BPC, etc."
-                    />
+                    >
+                      <option value="">Selecione um benefício</option>
+                      {beneficiosGovernoDisponiveis.map((beneficio, idx) => (
+                        <option key={idx} value={beneficio}>{beneficio}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="beneficio-gac-input-group">
