@@ -73,6 +73,14 @@ export const FormularioPessoa = () => {
     };
 
     carregarBeneficios();
+
+    // Listener para recarregar quando houver atualizações
+    const handleBeneficiosAtualizados = () => {
+      carregarBeneficios();
+    };
+
+    window.addEventListener('beneficiosAtualizados', handleBeneficiosAtualizados);
+    return () => window.removeEventListener('beneficiosAtualizados', handleBeneficiosAtualizados);
   }, [token]);
 
   // Escutar atualizações de comunidades

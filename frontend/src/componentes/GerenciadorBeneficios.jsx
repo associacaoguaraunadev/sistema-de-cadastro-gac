@@ -89,6 +89,9 @@ export const GerenciadorBeneficios = () => {
       sucesso('Benefício Adicionado', `"${tipo}" foi adicionado aos benefícios GAC`);
       setNovoBeneficioGAC('');
       await carregarBeneficios();
+      
+      // Notificar outros componentes sobre a atualização
+      window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
     } catch (error) {
       console.error('Erro ao adicionar benefício GAC:', error);
       erroToast('Erro ao Adicionar', error.message);
@@ -139,6 +142,9 @@ export const GerenciadorBeneficios = () => {
       sucesso('Benefício Renomeado', dados.mensagem || `"${editandoGAC}" → "${novoNome}"`);
       cancelarEdicaoGAC();
       await carregarBeneficios();
+      
+      // Notificar outros componentes sobre a atualização
+      window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
     } catch (error) {
       console.error('Erro ao renomear benefício GAC:', error);
       erroToast('Erro ao Renomear', error.message);
@@ -172,6 +178,9 @@ export const GerenciadorBeneficios = () => {
       sucesso('Benefício Removido', `"${confirmandoExclusaoGAC}" foi removido`);
       cancelarExclusaoGAC();
       await carregarBeneficios();
+      
+      // Notificar outros componentes sobre a atualização
+      window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
     } catch (error) {
       console.error('Erro ao deletar benefício GAC:', error);
       erroToast('Erro ao Deletar', error.message);
@@ -213,6 +222,9 @@ export const GerenciadorBeneficios = () => {
       sucesso('Benefício Adicionado', `"${nome}" foi adicionado aos benefícios Governo`);
       setNovoBeneficioGoverno('');
       await carregarBeneficios();
+      
+      // Notificar outros componentes sobre a atualização
+      window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
     } catch (error) {
       console.error('Erro ao adicionar benefício Governo:', error);
       erroToast('Erro ao Adicionar', error.message);
@@ -263,6 +275,9 @@ export const GerenciadorBeneficios = () => {
       sucesso('Benefício Renomeado', dados.mensagem || `"${editandoGoverno}" → "${novoNome}"`);
       cancelarEdicaoGoverno();
       await carregarBeneficios();
+      
+      // Notificar outros componentes sobre a atualização
+      window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
     } catch (error) {
       console.error('Erro ao renomear benefício Governo:', error);
       erroToast('Erro ao Renomear', error.message);
@@ -296,6 +311,9 @@ export const GerenciadorBeneficios = () => {
       sucesso('Benefício Removido', `"${confirmandoExclusaoGoverno}" foi removido`);
       cancelarExclusaoGoverno();
       await carregarBeneficios();
+      
+      // Notificar outros componentes sobre a atualização
+      window.dispatchEvent(new CustomEvent('beneficiosAtualizados'));
     } catch (error) {
       console.error('Erro ao deletar benefício Governo:', error);
       erroToast('Erro ao Deletar', error.message);

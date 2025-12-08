@@ -159,6 +159,16 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
     if (isOpen) {
       carregarBeneficios();
     }
+
+    // Listener para recarregar quando houver atualizações
+    const handleBeneficiosAtualizados = () => {
+      if (isOpen) {
+        carregarBeneficios();
+      }
+    };
+
+    window.addEventListener('beneficiosAtualizados', handleBeneficiosAtualizados);
+    return () => window.removeEventListener('beneficiosAtualizados', handleBeneficiosAtualizados);
   }, [isOpen, token]);
 
   useEffect(() => {
