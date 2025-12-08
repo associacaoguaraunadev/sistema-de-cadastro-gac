@@ -1454,11 +1454,11 @@ async function beneficiosGACDeletar(req, res, tipoParam) {
     const pessoasComBeneficio = await prisma.pessoa.findMany({
       where: {
         beneficiosGAC: {
-          // Filtro inicial no banco para otimizar a busca
-          string_contains: `"tipo":"${tipo}"`
+          path: '$.tipo',
+          equals: tipo,
         }
       },
-      select: { id: true, nome: true, beneficiosGAC: true } // Otimiza a query
+      select: { id: true, nome: true, beneficiosGAC: true }
     });
 
     if (pessoasComBeneficio.length > 0) {
@@ -1594,11 +1594,11 @@ async function beneficiosGovernoDeletar(req, res, nomeParam) {
     const pessoasComBeneficio = await prisma.pessoa.findMany({
       where: {
         beneficiosGoverno: {
-          // Procura pelo par chave-valor exato no JSON
-          string_contains: `"nome":"${nome}"`
+          path: '$.nome',
+          equals: nome,
         }
       },
-      select: { nome: true, id: true } // Otimiza a query para pegar apenas o necessário
+      select: { nome: true, id: true }
     });
 
     if (pessoasComBeneficio.length > 0) {
