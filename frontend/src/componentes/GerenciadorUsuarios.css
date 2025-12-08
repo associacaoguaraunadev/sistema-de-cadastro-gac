@@ -30,16 +30,22 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  overflow: visible;
+  min-height: 200px;
+  border: 2px solid #e5e7eb;
 }
 
 .tabela-container {
   overflow-x: auto;
+  width: 100%;
+  display: block;
 }
 
 .tabela-usuarios {
   width: 100%;
   border-collapse: collapse;
+  display: table;
+  background: white;
 }
 
 .tabela-usuarios thead {
