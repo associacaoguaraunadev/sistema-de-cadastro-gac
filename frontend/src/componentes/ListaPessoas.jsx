@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { usePusher } from '../contexto/PusherContext';
-import { obterPessoas, deletarPessoa, obterTotaisPorComunidade } from '../servicos/api';
-import { Plus, Edit2, Trash2, Search, Users, Baby, User, Heart } from 'lucide-react';
+import { obterPessoas, deletarPessoa, deletarPessoasEmMassa, obterTotaisPorComunidade } from '../servicos/api';
+import { Plus, Edit2, Trash2, Search, Users, Baby, User, Heart, CheckSquare, Square, X } from 'lucide-react';
 import { FiltroAvancado } from './FiltroAvancado';
 
 
@@ -43,6 +43,13 @@ export const ListaPessoas = () => {
   const [pessoaParaDeleter, setPessoaParaDeleter] = useState(null);
   const [deletandoPessoa, setDeletandoPessoa] = useState(false);
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
+  
+  // 🗑️ ESTADOS PARA SELEÇÃO E DELEÇÃO EM MASSA
+  const [modoSelecao, setModoSelecao] = useState(false);
+  const [pessoasSelecionadas, setPessoasSelecionadas] = useState(new Set());
+  const [deletandoEmMassa, setDeletandoEmMassa] = useState(false);
+  const [modalDeleteMassaAberto, setModalDeleteMassaAberto] = useState(false);
+  
   // ✨ ESTADOS PARA AUTO-REFRESH E ALERTAS
   const [ultimaAtualizacao, setUltimaAtualizacao] = useState(Date.now());
   const [alertaEdicao, setAlertaEdicao] = useState(null);
@@ -389,6 +396,75 @@ export const ListaPessoas = () => {
     }
   };
 
+  // 🗑️ FUNÇÕES DE SELEÇÃO E DELEÇÃO EM MASSA
+  const toggleModoSelecao = () => {
+    setModoSelecao(!modoSelecao);
+    setPessoasSelecionadas(new Set());
+  };
+
+  const toggleSelecaoPessoa = (pessoaId) => {
+    const novasSelecoes = new Set(pessoasSelecionadas);
+    if (novasSelecoes.has(pessoaId)) {
+      novasSelecoes.delete(pessoaId);
+    } else {
+      novasSelecoes.add(pessoaId);
+    }
+    setPessoasSelecionadas(novasSelecoes);
+  };
+
+  const selecionarTodosVisiveis = () => {
+    const novasSelecoes = new Set();
+    pessoasFiltradas.forEach(p => novasSelecoes.add(p.id));
+    setPessoasSelecionadas(novasSelecoes);
+  };
+
+  const deselecionarTodos = () => {
+    setPessoasSelecionadas(new Set());
+  };
+
+  const confirmarDeletarEmMassa = async () => {
+    if (pessoasSelecionadas.size === 0 || deletandoEmMassa) return;
+    
+    setDeletandoEmMassa(true);
+    
+    try {
+      const ids = Array.from(pessoasSelecionadas);
+      await deletarPessoasEmMassa(token, ids);
+      
+      // Atualizar lista local removendo as pessoas deletadas
+      setPessoas(pessoas.filter(p => !pessoasSelecionadas.has(p.id)));
+      setTotal(total - pessoasSelecionadas.size);
+      
+      sucesso('Sucesso', `${pessoasSelecionadas.size} beneficiário(s) deletado(s) com sucesso!`);
+      
+      // Limpar seleção e sair do modo seleção
+      setPessoasSelecionadas(new Set());
+      setModoSelecao(false);
+      
+      // Recarregar dados para garantir sincronização
+      carregarPessoas();
+      carregarTotaisPorComunidade();
+      
+    } catch (erro) {
+      console.error('❌ Erro ao deletar pessoas em massa:', erro);
+      
+      if (erro.response?.status === 401) {
+        sair();
+        navegar('/entrar');
+        return;
+      }
+      
+      if (erro.response?.status === 403) {
+        erroToast('Acesso Negado', 'Apenas administradores podem deletar em massa');
+      } else {
+        erroToast('Erro ao Deletar', erro.response?.data?.erro || 'Não foi possível deletar os beneficiários');
+      }
+    } finally {
+      setDeletandoEmMassa(false);
+      setModalDeleteMassaAberto(false);
+    }
+  };
+
 
 
   // Calcular idade baseado em dataNascimento
@@ -600,7 +676,65 @@ export const ListaPessoas = () => {
           >
             <Plus size={18} /> Novo Cadastro
           </button>
+
+          {/* Botão para ativar/desativar modo seleção (apenas admin) */}
+          {usuario?.funcao === 'admin' && (
+            <button 
+              className={`botao-selecao ${modoSelecao ? 'ativo' : ''}`}
+              onClick={toggleModoSelecao}
+              title={modoSelecao ? 'Sair do modo seleção' : 'Entrar no modo seleção para deleção em massa'}
+            >
+              {modoSelecao ? <X size={18} /> : <CheckSquare size={18} />}
+              {modoSelecao ? 'Cancelar' : 'Selecionar'}
+            </button>
+          )}
         </div>
+
+        {/* 🗑️ BARRA DE AÇÕES FLUTUANTE PARA SELEÇÃO EM MASSA */}
+        {modoSelecao && (
+          <div className="barra-selecao-flutuante">
+            <div className="selecao-info">
+              <CheckSquare size={20} />
+              <span className="selecao-contador">
+                {pessoasSelecionadas.size} selecionado{pessoasSelecionadas.size !== 1 ? 's' : ''}
+              </span>
+            </div>
+            
+            <div className="selecao-acoes">
+              {pessoasFiltradas.length > 0 && pessoasSelecionadas.size < pessoasFiltradas.length && (
+                <button 
+                  className="botao-selecao-acao"
+                  onClick={selecionarTodosVisiveis}
+                  title="Selecionar todos os visíveis"
+                >
+                  Selecionar Todos ({pessoasFiltradas.length})
+                </button>
+              )}
+              
+              {pessoasSelecionadas.size > 0 && (
+                <button 
+                  className="botao-selecao-acao secundario"
+                  onClick={deselecionarTodos}
+                  title="Limpar seleção"
+                >
+                  Limpar Seleção
+                </button>
+              )}
+              
+              {pessoasSelecionadas.size > 0 && (
+                <button 
+                  className="botao-selecao-acao perigo"
+                  onClick={() => setModalDeleteMassaAberto(true)}
+                  disabled={deletandoEmMassa}
+                  title={`Deletar ${pessoasSelecionadas.size} pessoa(s)`}
+                >
+                  <Trash2 size={16} />
+                  Deletar {pessoasSelecionadas.size}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
 
 
@@ -702,6 +836,9 @@ export const ListaPessoas = () => {
                             }}
                             deletandoPessoa={deletandoPessoa}
                             pessoaParaDeleter={pessoaParaDeleter}
+                            modoSelecao={modoSelecao}
+                            selecionada={pessoasSelecionadas.has(pessoa.id)}
+                            onToggleSelecao={() => toggleSelecaoPessoa(pessoa.id)}
                           />
                         ))}
                       </div>
@@ -733,6 +870,9 @@ export const ListaPessoas = () => {
                             }}
                             deletandoPessoa={deletandoPessoa}
                             pessoaParaDeleter={pessoaParaDeleter}
+                            modoSelecao={modoSelecao}
+                            selecionada={pessoasSelecionadas.has(pessoa.id)}
+                            onToggleSelecao={() => toggleSelecaoPessoa(pessoa.id)}
                           />
                         ))}
                       </div>
@@ -764,6 +904,9 @@ export const ListaPessoas = () => {
                             }}
                             deletandoPessoa={deletandoPessoa}
                             pessoaParaDeleter={pessoaParaDeleter}
+                            modoSelecao={modoSelecao}
+                            selecionada={pessoasSelecionadas.has(pessoa.id)}
+                            onToggleSelecao={() => toggleSelecaoPessoa(pessoa.id)}
                           />
                         ))}
                       </div>
@@ -858,6 +1001,23 @@ export const ListaPessoas = () => {
         }}
       />
 
+      {/* Modal de Confirmação de Deleção em Massa */}
+      <ModalConfirmacao
+        aberto={modalDeleteMassaAberto}
+        tipo="delete"
+        titulo="Deletar Beneficiários em Massa"
+        mensagem={`Tem certeza que deseja deletar ${pessoasSelecionadas.size} beneficiário(s)? Esta ação não pode ser desfeita.`}
+        botaoPrincipalTexto={`Deletar ${pessoasSelecionadas.size}`}
+        botaoCancelarTexto="Cancelar"
+        onConfirmar={confirmarDeletarEmMassa}
+        onCancelar={() => {
+          if (!deletandoEmMassa) {
+            setModalDeleteMassaAberto(false);
+          }
+        }}
+        carregando={deletandoEmMassa}
+      />
+
     </div>
   );
 };
@@ -867,10 +1027,12 @@ const formatarCPF = (cpf) => {
   return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 };
 
-const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar, onPreview, deletandoPessoa, pessoaParaDeleter }) => {
+const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar, onPreview, deletandoPessoa, pessoaParaDeleter, modoSelecao, selecionada, onToggleSelecao }) => {
   const hoverTimeoutRef = useRef(null);
 
   const handleMouseEnter = () => {
+    // Não abrir preview no modo seleção
+    if (modoSelecao) return;
     hoverTimeoutRef.current = setTimeout(() => {
       onPreview(pessoa, idade);
     }, 2000);
@@ -898,11 +1060,30 @@ const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar, onPreview, deletando
 
   return (
     <div 
-      className="cartao-pessoa"
+      className={`cartao-pessoa ${modoSelecao ? 'modo-selecao' : ''} ${selecionada ? 'selecionado' : ''}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={() => onPreview(pessoa, idade)}
+      onClick={() => {
+        if (modoSelecao) {
+          onToggleSelecao();
+        } else {
+          onPreview(pessoa, idade);
+        }
+      }}
     >
+      {/* Checkbox de seleção no modo seleção */}
+      {modoSelecao && (
+        <div 
+          className="checkbox-selecao"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelecao();
+          }}
+        >
+          {selecionada ? <CheckSquare size={22} /> : <Square size={22} />}
+        </div>
+      )}
+      
       <div className="cartao-cabecalho">
         <div className="info-principal">
           <h3 className="nome-cartao">{pessoa.nome}</h3>

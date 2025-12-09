@@ -1,8 +1,25 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Filter, X, Search } from 'lucide-react';
 import './FiltroAvancado.css';
 
 export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
+  // Carregar comunidades do localStorage
+  const [comunidades, setComunidades] = useState(() => {
+    const salvas = localStorage.getItem('comunidadesCustomizadas');
+    return salvas ? JSON.parse(salvas) : [];
+  });
+
+  // Atualizar comunidades quando mudarem
+  useEffect(() => {
+    const handleComunidadesAtualizadas = () => {
+      const comunidadesAtualizadas = JSON.parse(localStorage.getItem('comunidadesCustomizadas') || '[]');
+      setComunidades(comunidadesAtualizadas);
+    };
+    
+    window.addEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
+    return () => window.removeEventListener('comunidadesAtualizadas', handleComunidadesAtualizadas);
+  }, []);
+
   // Funções de máscara
   const aplicarMascaraData = (valor) => {
     const numeros = valor.replace(/\D/g, '');
@@ -37,6 +54,7 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
     switch (campoId) {
       case 'dataCriacao':
       case 'dataAtualizacao':
+      case 'dataNascimento':
         return aplicarMascaraData(valor);
       case 'cpf':
         return aplicarMascaraCPF(valor);
@@ -44,6 +62,9 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
         return aplicarMascaraTelefone(valor);
       case 'cep':
         return aplicarMascaraCEP(valor);
+      case 'idadeMin':
+      case 'idadeMax':
+        return valor.replace(/\D/g, '').slice(0, 3);
       default:
         return valor;
     }
@@ -60,7 +81,14 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
     { id: 'email', label: 'Email', tipo: 'texto', placeholder: 'Ex: joao@email.com' },
     { id: 'cpf', label: 'CPF', tipo: 'texto', placeholder: 'Ex: 123.456.789-00' },
     { id: 'telefone', label: 'Telefone', tipo: 'texto', placeholder: 'Ex: (11) 98765-4321' },
+    { id: 'comunidade', label: 'Comunidade', tipo: 'select', opcoes: comunidades },
+    { id: 'faixaEtaria', label: 'Faixa Etária', tipo: 'select', opcoes: ['Crianças (0-17)', 'Adultos (18-59)', 'Idosos (60+)'] },
+    { id: 'idadeMin', label: 'Idade Mínima', tipo: 'numero', placeholder: 'Ex: 18' },
+    { id: 'idadeMax', label: 'Idade Máxima', tipo: 'numero', placeholder: 'Ex: 60' },
+    { id: 'dataNascimento', label: 'Data de Nascimento', tipo: 'texto', placeholder: 'Ex: 15/01/1990' },
     { id: 'tipoBeneficio', label: 'Tipo de Benefício', tipo: 'texto', placeholder: 'Ex: Cesta Básica' },
+    { id: 'temBeneficioGAC', label: 'Recebe Benefício GAC', tipo: 'checkbox' },
+    { id: 'temBeneficioGoverno', label: 'Recebe Benefício Governo', tipo: 'checkbox' },
     { id: 'endereco', label: 'Endereço', tipo: 'texto', placeholder: 'Ex: Rua das Flores' },
     { id: 'bairro', label: 'Bairro', tipo: 'texto', placeholder: 'Ex: Centro' },
     { id: 'cidade', label: 'Cidade', tipo: 'texto', placeholder: 'Ex: São Paulo' },
@@ -226,21 +254,50 @@ export const FiltroAvancado = ({ campos, onAplicar, onLimpar }) => {
                             <X size={16} />
                           </button>
                         </div>
-                        <input
-                          type="text"
-                          placeholder={campo?.placeholder}
-                          value={valor}
-                          onChange={(e) => handleAtualizar(campoId, e.target.value)}
-                          onKeyPress={handleKeyPress}
-                          maxLength={
-                            campoId === 'cpf' ? 14 : 
-                            campoId === 'telefone' ? 15 : 
-                            campoId === 'cep' ? 9 :
-                            (campoId === 'dataCriacao' || campoId === 'dataAtualizacao') ? 10 : 
-                            undefined
-                          }
-                          autoFocus
-                        />
+                        
+                        {/* Renderização condicional por tipo de campo */}
+                        {campo?.tipo === 'select' ? (
+                          <select
+                            value={valor}
+                            onChange={(e) => handleAtualizar(campoId, e.target.value)}
+                            className="select-filtro"
+                          >
+                            <option value="">Selecione...</option>
+                            {campo.opcoes?.map((opcao) => (
+                              <option key={opcao} value={opcao}>{opcao}</option>
+                            ))}
+                          </select>
+                        ) : campo?.tipo === 'checkbox' ? (
+                          <div className="checkbox-filtro-container">
+                            <label className="checkbox-label">
+                              <input
+                                type="checkbox"
+                                checked={valor === 'sim'}
+                                onChange={(e) => handleAtualizar(campoId, e.target.checked ? 'sim' : '')}
+                              />
+                              <span>Sim, possui</span>
+                            </label>
+                          </div>
+                        ) : (
+                          <input
+                            type={campo?.tipo === 'numero' ? 'number' : 'text'}
+                            placeholder={campo?.placeholder}
+                            value={valor}
+                            onChange={(e) => handleAtualizar(campoId, e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            maxLength={
+                              campoId === 'cpf' ? 14 : 
+                              campoId === 'telefone' ? 15 : 
+                              campoId === 'cep' ? 9 :
+                              (campoId === 'dataCriacao' || campoId === 'dataAtualizacao' || campoId === 'dataNascimento') ? 10 : 
+                              (campoId === 'idadeMin' || campoId === 'idadeMax') ? 3 :
+                              undefined
+                            }
+                            min={campo?.tipo === 'numero' ? 0 : undefined}
+                            max={campo?.tipo === 'numero' ? 150 : undefined}
+                            autoFocus
+                          />
+                        )}
                       </div>
                     );
                   })}

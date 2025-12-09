@@ -84,6 +84,13 @@ export const deletarPessoa = async (token, id) => {
   await cliente.delete(`/pessoas/${id}`);
 };
 
+// 🗑️ Deleção em massa de pessoas (apenas admin)
+export const deletarPessoasEmMassa = async (token, ids) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.post('/pessoas/deletar-em-massa', { ids });
+  return resposta.data;
+};
+
 export const atualizarComunidadeEmLote = async (token, nomeAntigo, nomeNovo) => {
   const cliente = criarClienteAPI(token);
   const resposta = await cliente.patch('/pessoas/comunidade/atualizar', {

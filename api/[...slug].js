@@ -401,6 +401,12 @@ async function rotear(req, res, slug) {
     return pessoasTransferir(req, res);
   }
 
+  // Rota para deletar pessoas em massa
+  if (rota === 'pessoas/deletar-em-massa' && req.method === 'POST') {
+    log(`🗑️ Chamando pessoasDeletarEmMassa para rota: ${rota}`);
+    return pessoasDeletarEmMassa(req, res);
+  }
+
   // BENEFÍCIOS - Gerenciamento
   if (slug.length >= 2 && slug[0] === 'beneficios' && slug[1] === 'gac') {
     if (req.method === 'GET' && slug.length === 2) {
@@ -1799,6 +1805,86 @@ async function pessoasListar(req, res) {
                 comunidade: { contains: valor, mode: 'insensitive' }
               });
               break;
+            case 'faixaEtaria':
+              // Filtrar por faixa etária baseado em dataNascimento
+              const hoje = new Date();
+              if (valor.includes('crianças') || valor.includes('0-17')) {
+                // Crianças: nascidos há menos de 18 anos
+                const dataLimite = new Date(hoje.getFullYear() - 18, hoje.getMonth(), hoje.getDate());
+                condicoes.push({
+                  dataNascimento: { gt: dataLimite }
+                });
+              } else if (valor.includes('adultos') || valor.includes('18-59')) {
+                // Adultos: nascidos entre 18 e 59 anos atrás
+                const dataMin = new Date(hoje.getFullYear() - 60, hoje.getMonth(), hoje.getDate());
+                const dataMax = new Date(hoje.getFullYear() - 18, hoje.getMonth(), hoje.getDate());
+                condicoes.push({
+                  dataNascimento: { gte: dataMin, lte: dataMax }
+                });
+              } else if (valor.includes('idosos') || valor.includes('60+')) {
+                // Idosos: nascidos há 60 anos ou mais
+                const dataLimite = new Date(hoje.getFullYear() - 60, hoje.getMonth(), hoje.getDate());
+                condicoes.push({
+                  dataNascimento: { lte: dataLimite }
+                });
+              }
+              break;
+            case 'idadeMin':
+              // Idade mínima: data de nascimento máxima
+              const idadeMin = parseInt(valor);
+              if (!isNaN(idadeMin)) {
+                const hojeMin = new Date();
+                const dataMaxNasc = new Date(hojeMin.getFullYear() - idadeMin, hojeMin.getMonth(), hojeMin.getDate());
+                condicoes.push({
+                  dataNascimento: { lte: dataMaxNasc }
+                });
+              }
+              break;
+            case 'idadeMax':
+              // Idade máxima: data de nascimento mínima
+              const idadeMax = parseInt(valor);
+              if (!isNaN(idadeMax)) {
+                const hojeMax = new Date();
+                const dataMinNasc = new Date(hojeMax.getFullYear() - idadeMax - 1, hojeMax.getMonth(), hojeMax.getDate());
+                condicoes.push({
+                  dataNascimento: { gt: dataMinNasc }
+                });
+              }
+              break;
+            case 'dataNascimento':
+              // Buscar por data de nascimento (formato DD/MM/YYYY convertido)
+              try {
+                const partes = valor.split('/');
+                if (partes.length === 3) {
+                  const dia = parseInt(partes[0]);
+                  const mes = parseInt(partes[1]) - 1;
+                  const ano = parseInt(partes[2]);
+                  const dataInicio = new Date(ano, mes, dia);
+                  const dataFim = new Date(ano, mes, dia + 1);
+                  condicoes.push({
+                    dataNascimento: { gte: dataInicio, lt: dataFim }
+                  });
+                }
+              } catch (e) {
+                log(`⚠️ Erro ao parsear dataNascimento: ${e.message}`);
+              }
+              break;
+            case 'temBeneficioGAC':
+              // Verificar se tem benefícios GAC (array não vazio)
+              if (valor === 'sim') {
+                condicoes.push({
+                  NOT: { beneficiosGAC: { equals: [] } }
+                });
+              }
+              break;
+            case 'temBeneficioGoverno':
+              // Verificar se tem benefícios do Governo (array não vazio)
+              if (valor === 'sim') {
+                condicoes.push({
+                  NOT: { beneficiosGoverno: { equals: [] } }
+                });
+              }
+              break;
             case 'dataCriacao':
               // Buscar por data exata ou parcial
               condicoes.push({
@@ -2220,6 +2306,70 @@ async function pessoasDeletar(req, res, id) {
   } catch (erro) {
     log(`Erro ao deletar pessoa: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao deletar pessoa' });
+  }
+}
+
+// 🗑️ DELEÇÃO EM MASSA DE PESSOAS
+async function pessoasDeletarEmMassa(req, res) {
+  console.log('\n🗑️🗑️🗑️ FUNÇÃO PESSOAS DELETAR EM MASSA CHAMADA! 🗑️🗑️🗑️');
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Apenas admin pode deletar em massa
+    if (usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar em massa' });
+    }
+
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ erro: 'Lista de IDs é obrigatória' });
+    }
+
+    // Limitar a quantidade para evitar timeouts (máximo 100 por vez)
+    if (ids.length > 100) {
+      return res.status(400).json({ 
+        erro: 'Máximo de 100 pessoas por vez',
+        mensagem: 'Divida a operação em lotes menores' 
+      });
+    }
+
+    log(`🗑️ Deletando ${ids.length} pessoas em massa`);
+
+    // Obter dados das pessoas antes de deletar para os eventos
+    const pessoasParaDeletar = await prisma.pessoa.findMany({ 
+      where: { id: { in: ids.map(id => parseInt(id)) } },
+      select: { id: true, nome: true, cpf: true }
+    });
+
+    // Deletar todas as pessoas
+    const resultado = await prisma.pessoa.deleteMany({
+      where: { id: { in: ids.map(id => parseInt(id)) } }
+    });
+
+    log(`✅ ${resultado.count} pessoas deletadas com sucesso`);
+
+    // 🚀 Enviar evento Pusher para cada pessoa deletada
+    for (const pessoa of pessoasParaDeletar) {
+      await enviarEventoPusher('pessoaDeletada', {
+        pessoa,
+        autorId: usuario.id,
+        autorFuncao: usuario.funcao,
+        tipo: 'delecao-em-massa'
+      });
+    }
+
+    res.status(200).json({ 
+      mensagem: `${resultado.count} pessoas deletadas com sucesso`,
+      quantidade: resultado.count
+    });
+  } catch (erro) {
+    log(`Erro ao deletar pessoas em massa: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar pessoas em massa' });
   }
 }
 

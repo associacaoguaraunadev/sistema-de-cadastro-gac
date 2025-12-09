@@ -312,6 +312,125 @@
   box-shadow: 0 4px 16px rgba(46, 125, 50, 0.3);
 }
 
+/* 🗑️ BOTÃO DE MODO SELEÇÃO */
+.botao-selecao {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(21, 101, 192, 0.2);
+}
+
+.botao-selecao:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(21, 101, 192, 0.3);
+}
+
+.botao-selecao.ativo {
+  background: linear-gradient(135deg, #c62828 0%, #b71c1c 100%);
+  box-shadow: 0 2px 8px rgba(198, 40, 40, 0.2);
+}
+
+.botao-selecao.ativo:hover {
+  box-shadow: 0 4px 16px rgba(198, 40, 40, 0.3);
+}
+
+/* 🗑️ BARRA DE SELEÇÃO FLUTUANTE */
+.barra-selecao-flutuante {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+  color: white;
+  padding: 12px 24px;
+  margin: 0 -8px 16px -8px;
+  border-radius: 0 0 12px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 20px rgba(21, 101, 192, 0.3);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.selecao-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selecao-contador {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.selecao-acoes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.botao-selecao-acao {
+  background: white;
+  color: #1565c0;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.botao-selecao-acao:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.botao-selecao-acao.secundario {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.botao-selecao-acao.secundario:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.botao-selecao-acao.perigo {
+  background: #c62828;
+  color: white;
+}
+
+.botao-selecao-acao.perigo:hover {
+  background: #b71c1c;
+}
+
+.botao-selecao-acao.perigo:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Ações Rápidas - Design Minimalista */
 .acoes-rapidas-container {
   background: rgba(255, 255, 255, 0.95);
@@ -806,6 +925,48 @@
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15),
               0 0 0 1px rgba(27, 94, 32, 0.1);
   border-color: #c8e6c9;
+}
+
+/* 🗑️ ESTILOS DE SELEÇÃO EM MASSA */
+.cartao-pessoa.modo-selecao {
+  position: relative;
+}
+
+.cartao-pessoa.modo-selecao:hover {
+  transform: scale(1.02);
+}
+
+.cartao-pessoa.selecionado {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.3),
+              0 4px 12px rgba(25, 118, 210, 0.2);
+}
+
+.cartao-pessoa.selecionado .cartao-cabecalho {
+  background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%);
+}
+
+.checkbox-selecao {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 10;
+  color: white;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  padding: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkbox-selecao:hover {
+  background: rgba(0, 0, 0, 0.6);
+  transform: scale(1.1);
+}
+
+.cartao-pessoa.selecionado .checkbox-selecao {
+  color: #1976d2;
+  background: white;
 }
 
 .cartao-cabecalho {
