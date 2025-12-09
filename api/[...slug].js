@@ -985,10 +985,46 @@ async function usuariosDeletar(req, res) {
       return res.status(403).json({ erro: 'Você não pode deletar sua própria conta' });
     }
 
-    // Deletar todas as pessoas associadas
-    await prisma.pessoa.deleteMany({
-      where: { usuarioId: usuarioParaDeletar.id }
+    // Buscar o super admin para transferir as pessoas
+    const superAdmin = await prisma.usuario.findUnique({
+      where: { email: emailSuperAdmin }
     });
+
+    if (!superAdmin) {
+      return res.status(500).json({ 
+        erro: 'Super admin não encontrado. Não é possível transferir as pessoas.' 
+      });
+    }
+
+    const quantidadePessoas = usuarioParaDeletar.pessoas.length;
+
+    // Transferir todas as pessoas para o super admin (ao invés de deletar)
+    if (quantidadePessoas > 0) {
+      await prisma.pessoa.updateMany({
+        where: { usuarioId: usuarioParaDeletar.id },
+        data: { usuarioId: superAdmin.id }
+      });
+
+      log(`📦 ${quantidadePessoas} pessoa(s) transferida(s) de ${usuarioParaDeletar.email} para ${superAdmin.email}`);
+
+      // Notificar via Pusher para todos os clientes sobre a transferência
+      await enviarEventoPusher('pessoas-transferidas', {
+        quantidadePessoas,
+        usuarioOrigem: {
+          id: usuarioParaDeletar.id,
+          nome: usuarioParaDeletar.nome,
+          email: usuarioParaDeletar.email
+        },
+        usuarioDestino: {
+          id: superAdmin.id,
+          nome: superAdmin.nome,
+          email: superAdmin.email
+        },
+        motivo: 'Usuário deletado do sistema',
+        autorId: usuarioAutenticado.id,
+        autorFuncao: usuarioAutenticado.funcao
+      });
+    }
 
     // Deletar usuário
     await prisma.usuario.delete({
@@ -998,8 +1034,11 @@ async function usuariosDeletar(req, res) {
     log(`✅ Usuário deletado: ${usuarioParaDeletar.email} por ${usuarioAutenticado.email}`);
 
     res.status(200).json({ 
-      mensagem: 'Usuário deletado com sucesso',
-      pessoasDeletadas: usuarioParaDeletar.pessoas.length
+      mensagem: quantidadePessoas > 0 
+        ? `Usuário deletado com sucesso. ${quantidadePessoas} pessoa(s) foram transferidas para o administrador principal.`
+        : 'Usuário deletado com sucesso.',
+      pessoasTransferidas: quantidadePessoas,
+      superAdminDestino: superAdmin.nome
     });
   } catch (erro) {
     log(`Erro ao deletar usuário: ${erro.message}`, 'error');

@@ -84,7 +84,7 @@ export const GerenciadorUsuarios = () => {
       tipo: 'deletar',
       usuario,
       titulo: 'Confirmar Exclusão',
-      mensagem: `Tem certeza que deseja deletar o usuário "${usuario.nome}" (${usuario.email})? Esta ação não pode ser desfeita e todas as pessoas cadastradas por este usuário também serão removidas.`,
+      mensagem: `Tem certeza que deseja deletar o usuário "${usuario.nome}" (${usuario.email})? Esta ação não pode ser desfeita. As pessoas cadastradas por este usuário serão automaticamente transferidas para o administrador principal do sistema.`,
       textoConfirmar: 'Deletar',
       classeBotao: 'botao-perigo'
     });
