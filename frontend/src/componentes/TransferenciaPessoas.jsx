@@ -49,7 +49,7 @@ const TransferenciaPessoas = () => {
     setCarregando(true);
     setErro('');
     try {
-      const res = await cliente.get('/pessoas/listar', {
+      const res = await cliente.get('/pessoas', {
         params: { limite: 1000 }
       });
       // O endpoint retorna { pessoas, total, ... }
