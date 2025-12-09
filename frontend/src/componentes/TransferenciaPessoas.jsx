@@ -218,6 +218,9 @@ const TransferenciaPessoas = () => {
     }
   };
 
+  // Verificar se todos estão selecionados
+  const todosSelcionados = pessoasFiltradas.length > 0 && selecionados.size === pessoasFiltradas.length;
+
   return (
     <div className="transferencia-container">
       <div className="transferencia-card">
@@ -304,21 +307,8 @@ const TransferenciaPessoas = () => {
               </div>
             </div>
 
-            {/* Ações de seleção */}
+            {/* Contador de seleção */}
             <div className="selecao-acoes">
-              <button 
-                onClick={alternarTodos} 
-                className="btn-secundario"
-                disabled={carregando || pessoasFiltradas.length === 0}
-              >
-              </button>
-              <button 
-                onClick={limparSelecao} 
-                className="btn-secundario"
-                disabled={selecionados.size === 0}
-              >
-                ✖️ Limpar Seleção
-              </button>
               <span className="contador-selecao">
                 <strong>{selecionados.size}</strong> selecionado(s)
               </span>
@@ -344,6 +334,14 @@ const TransferenciaPessoas = () => {
               ) : (
                 <>
                   <div className="lista-header">
+                    <div className="col-check">
+                      <input
+                        type="checkbox"
+                        checked={todosSelcionados}
+                        onChange={alternarTodos}
+                        title="Selecionar todos"
+                      />
+                    </div>
                     <div className="col-nome">Nome</div>
                     <div className="col-cpf">CPF</div>
                     <div className="col-comunidade">Comunidade</div>
