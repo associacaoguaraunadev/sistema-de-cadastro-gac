@@ -218,9 +218,6 @@ const TransferenciaPessoas = () => {
     }
   };
 
-  // Verificar se todos estão selecionados
-  const todosSelcionados = pessoasFiltradas.length > 0 && selecionados.size === pessoasFiltradas.length;
-
   return (
     <div className="transferencia-container">
       <div className="transferencia-card">
@@ -314,7 +311,6 @@ const TransferenciaPessoas = () => {
                 className="btn-secundario"
                 disabled={carregando || pessoasFiltradas.length === 0}
               >
-                {todosSelcionados ? '☐ Desmarcar Todos' : '☑️ Selecionar Todos'}
               </button>
               <button 
                 onClick={limparSelecao} 
@@ -348,14 +344,6 @@ const TransferenciaPessoas = () => {
               ) : (
                 <>
                   <div className="lista-header">
-                    <div className="col-check">
-                      <input
-                        type="checkbox"
-                        checked={todosSelcionados}
-                        onChange={alternarTodos}
-                        title="Selecionar todos"
-                      />
-                    </div>
                     <div className="col-nome">Nome</div>
                     <div className="col-cpf">CPF</div>
                     <div className="col-comunidade">Comunidade</div>
