@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
+import { useGlobalToast } from '../contexto/ToastContext';
 import Navbar from '../componentes/Navbar';
-import Toast from '../componentes/Toast';
-import ModalConfirmacao from '../componentes/ModalConfirmacao';
+import { ModalConfirmacao } from '../componentes/ModalConfirmacao';
 import { 
   ArrowLeft,
   Search,
@@ -25,6 +25,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 const PaginaAlunosGuarauna = () => {
   const { usuario, token } = useAuth();
+  const { adicionarToast } = useGlobalToast();
   const navegar = useNavigate();
   const [alunos, setAlunos] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -33,7 +34,6 @@ const PaginaAlunosGuarauna = () => {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [alunoSelecionado, setAlunoSelecionado] = useState(null);
   const [modalDeletar, setModalDeletar] = useState(false);
-  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     carregarAlunos();
@@ -57,7 +57,7 @@ const PaginaAlunosGuarauna = () => {
       }
     } catch (erro) {
       console.error('Erro ao carregar alunos:', erro);
-      setToast({ mensagem: 'Erro ao carregar alunos', tipo: 'erro' });
+      adicionarToast('Erro ao carregar alunos', 'erro');
     } finally {
       setCarregando(false);
     }
@@ -73,14 +73,14 @@ const PaginaAlunosGuarauna = () => {
       });
 
       if (resposta.ok) {
-        setToast({ mensagem: 'Aluno removido com sucesso', tipo: 'sucesso' });
+        adicionarToast('Aluno removido com sucesso', 'sucesso');
         carregarAlunos();
       } else {
         const erro = await resposta.json();
-        setToast({ mensagem: erro.erro || 'Erro ao remover aluno', tipo: 'erro' });
+        adicionarToast(erro.erro || 'Erro ao remover aluno', 'erro');
       }
     } catch (erro) {
-      setToast({ mensagem: 'Erro ao remover aluno', tipo: 'erro' });
+      adicionarToast('Erro ao remover aluno', 'erro');
     } finally {
       setModalDeletar(false);
       setAlunoSelecionado(null);
@@ -283,23 +283,17 @@ const PaginaAlunosGuarauna = () => {
 
       {modalDeletar && (
         <ModalConfirmacao
+          aberto={modalDeletar}
           titulo="Remover Aluno"
           mensagem={`Tem certeza que deseja remover ${alunoSelecionado?.pessoa?.nome} do Guaraúna?`}
-          textoBotaoConfirmar="Remover"
-          textoBotaoCancelar="Cancelar"
+          botaoPrincipalTexto="Remover"
+          botaoCancelarTexto="Cancelar"
+          tipo="deletar"
           onConfirmar={deletarAluno}
           onCancelar={() => {
             setModalDeletar(false);
             setAlunoSelecionado(null);
           }}
-        />
-      )}
-
-      {toast && (
-        <Toast 
-          mensagem={toast.mensagem} 
-          tipo={toast.tipo} 
-          onClose={() => setToast(null)} 
         />
       )}
     </div>
