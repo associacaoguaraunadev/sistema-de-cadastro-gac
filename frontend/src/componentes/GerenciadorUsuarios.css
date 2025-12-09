@@ -94,26 +94,29 @@
 
 .coluna-acoes {
   text-align: center;
+  min-width: 200px;
 }
 
 .acoes-usuario {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .botao-acao {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+  white-space: nowrap;
 }
 
 .botao-acao:disabled {

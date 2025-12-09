@@ -31,6 +31,9 @@ const TransferenciaPessoas = () => {
   const [usuariosDisponiveis, setUsuariosDisponiveis] = useState([]);
   const [usuarioDestino, setUsuarioDestino] = useState('');
 
+  // Modal de confirmação
+  const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
+
   // Feedback
   const [mensagem, setMensagem] = useState('');
   const [erro, setErro] = useState('');
@@ -183,12 +186,13 @@ const TransferenciaPessoas = () => {
       return;
     }
 
-    const confirmacao = window.confirm(
-      `Você está prestes a transferir ${selecionados.size} pessoa(s) para outro usuário.\n\nEsta ação não pode ser desfeita. Deseja continuar?`
-    );
+    // Abrir modal de confirmação em vez de window.confirm
+    setModalConfirmacaoAberto(true);
+  };
 
-    if (!confirmacao) return;
-
+  // Função que realmente executa a transferência após confirmação
+  const confirmarTransferencia = async () => {
+    setModalConfirmacaoAberto(false);
     setCarregandoTransferencia(true);
     setErro('');
     setMensagem('');
@@ -216,6 +220,12 @@ const TransferenciaPessoas = () => {
     } finally {
       setCarregandoTransferencia(false);
     }
+  };
+
+  // Obter nome do usuário de destino selecionado
+  const getNomeUsuarioDestino = () => {
+    const usuarioSelecionado = usuariosDisponiveis.find(u => u.id.toString() === usuarioDestino);
+    return usuarioSelecionado ? usuarioSelecionado.nome : 'usuário selecionado';
   };
 
   // Verificar se todos estão selecionados
@@ -453,6 +463,47 @@ const TransferenciaPessoas = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de Confirmação de Transferência */}
+      {modalConfirmacaoAberto && (
+        <div className="modal-confirmacao-overlay">
+          <div className="modal-confirmacao-transferencia">
+            <div className="modal-confirmacao-header">
+              <span className="modal-confirmacao-icone">🔄</span>
+              <h3>Confirmar Transferência</h3>
+            </div>
+            
+            <div className="modal-confirmacao-body">
+              <p className="modal-confirmacao-texto">
+                Você está prestes a transferir <strong>{selecionados.size} pessoa(s)</strong> para:
+              </p>
+              <div className="modal-confirmacao-destino">
+                <span className="destino-label">👤 Destino:</span>
+                <span className="destino-nome">{getNomeUsuarioDestino()}</span>
+              </div>
+              <div className="modal-confirmacao-aviso">
+                <span className="aviso-icone">⚠️</span>
+                <span>Esta ação não pode ser desfeita</span>
+              </div>
+            </div>
+            
+            <div className="modal-confirmacao-footer">
+              <button 
+                className="btn-cancelar-modal"
+                onClick={() => setModalConfirmacaoAberto(false)}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn-confirmar-modal"
+                onClick={confirmarTransferencia}
+              >
+                ✅ Confirmar Transferência
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ToastContainer toasts={toasts} onClose={removerToast} />
     </div>
