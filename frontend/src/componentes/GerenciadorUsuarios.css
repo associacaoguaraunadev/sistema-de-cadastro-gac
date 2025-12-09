@@ -109,8 +109,8 @@
   padding-right: 0.5rem;
 }
 
-.acoes-usuario .botao-acao {
-  padding: 0.5rem 0.75rem;
+.botao-acao {
+  padding: 0.5rem 1rem;
   border: none;
   border-radius: 6px;
   font-size: 0.8rem;
@@ -121,33 +121,29 @@
   align-items: center;
   gap: 0.25rem;
   white-space: nowrap;
-  min-width: 100px;
-  width: auto !important;
-  height: auto !important;
-  justify-content: center;
 }
 
-.acoes-usuario .botao-acao:disabled {
+.botao-acao:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.acoes-usuario .botao-promover {
+.botao-promover {
   background: #3b82f6;
   color: white;
 }
 
-.acoes-usuario .botao-promover:hover:not(:disabled) {
+.botao-promover:hover:not(:disabled) {
   background: #2563eb;
   transform: translateY(-1px);
 }
 
-.acoes-usuario .botao-rebaixar {
+.botao-rebaixar {
   background: #f59e0b;
   color: white;
 }
 
-.acoes-usuario .botao-rebaixar:hover:not(:disabled) {
+.botao-rebaixar:hover:not(:disabled) {
   background: #d97706;
   transform: translateY(-1px);
 }
