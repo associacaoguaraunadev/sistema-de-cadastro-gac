@@ -239,10 +239,14 @@ const GerenciadorComunidades = ({ isOpen, onClose }) => {
 
           {/* Lista de comunidades */}
           <div className="lista-comunidades">
-            <h3>
-              Comunidades Cadastradas ({comunidades.length})
-              {carregando && <span className="loading-indicator">Carregando...</span>}
-            </h3>
+            <div className="lista-comunidades-header">
+              <div className="header-titulo">
+                <Users size={20} />
+                <h3>Comunidades Cadastradas</h3>
+                <span className="contador-badge">{comunidades.length}</span>
+              </div>
+              {carregando && <span className="loading-indicator">Atualizando...</span>}
+            </div>
             
             {comunidades.length === 0 ? (
               <div className="empty-state">

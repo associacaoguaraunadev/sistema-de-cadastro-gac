@@ -3,6 +3,7 @@ import { useAuth } from '../contexto/AuthContext';
 import { useToast } from '../hooks/useToast';
 import { ToastContainer } from './Toast';
 import { ModalConfirmacao } from './ModalConfirmacao';
+import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import './GerenciadorUsuarios.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 
@@ -285,7 +286,7 @@ export const GerenciadorUsuarios = () => {
                                 title="Alterar para Funcionário"
                                 disabled={processando}
                               >
-                                ↓ Funcionário
+                                <ChevronDown size={14} /> Funcionário
                               </button>
                             ) : (
                               <button
@@ -299,7 +300,7 @@ export const GerenciadorUsuarios = () => {
                                 title="Promover para Admin"
                                 disabled={processando}
                               >
-                                ↑ Admin
+                                <ChevronUp size={14} /> Admin
                               </button>
                             )}
                             <button
@@ -313,7 +314,7 @@ export const GerenciadorUsuarios = () => {
                               title="Deletar Usuário"
                               disabled={processando}
                             >
-                              🗑️ Deletar
+                              <Trash2 size={14} /> Deletar
                             </button>
                           </div>
                         ) : (
