@@ -30,15 +30,17 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: visible;
   min-height: 200px;
   border: 2px solid #e5e7eb;
 }
 
 .tabela-container {
-  overflow-x: auto;
+  overflow: visible;
   width: 100%;
   display: block;
+  min-width: 900px;
 }
 
 .tabela-usuarios {
@@ -94,19 +96,21 @@
 
 .coluna-acoes {
   text-align: center;
-  min-width: 200px;
+  min-width: 250px;
+  width: 250px;
 }
 
 .acoes-usuario {
   display: flex;
   gap: 0.5rem;
-  justify-content: center;
+  justify-content: flex-end;
   flex-wrap: nowrap;
   align-items: center;
+  padding-right: 0.5rem;
 }
 
-.botao-acao {
-  padding: 0.5rem 1rem;
+.acoes-usuario .botao-acao {
+  padding: 0.5rem 0.75rem;
   border: none;
   border-radius: 6px;
   font-size: 0.8rem;
@@ -117,43 +121,57 @@
   align-items: center;
   gap: 0.25rem;
   white-space: nowrap;
+  min-width: 100px;
+  width: auto !important;
+  height: auto !important;
+  justify-content: center;
 }
 
-.botao-acao:disabled {
+.acoes-usuario .botao-acao:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-.botao-promover {
+.acoes-usuario .botao-promover {
   background: #3b82f6;
   color: white;
 }
 
-.botao-promover:hover:not(:disabled) {
+.acoes-usuario .botao-promover:hover:not(:disabled) {
   background: #2563eb;
   transform: translateY(-1px);
 }
 
-.botao-rebaixar {
+.acoes-usuario .botao-rebaixar {
   background: #f59e0b;
   color: white;
 }
 
-.botao-rebaixar:hover:not(:disabled) {
+.acoes-usuario .botao-rebaixar:hover:not(:disabled) {
   background: #d97706;
   transform: translateY(-1px);
 }
 
-.botao-deletar {
-  background: #ef4444 !important;
+.acoes-usuario .botao-deletar {
+  background-color: #ef4444 !important;
   color: white !important;
   border: none !important;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
+  padding: 0.5rem 0.75rem !important;
+  border-radius: 6px !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  min-width: 90px !important;
+  width: auto !important;
+  height: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.25rem !important;
+  white-space: nowrap !important;
 }
 
-.botao-deletar:hover:not(:disabled) {
-  background: #dc2626 !important;
+.acoes-usuario .botao-deletar:hover:not(:disabled) {
+  background-color: #dc2626 !important;
   transform: translateY(-1px);
 }
 
