@@ -17,6 +17,13 @@ import PaginaGerenciamentoComunidades from './pages/PaginaGerenciamentoComunidad
 import PaginaTransferencia from './pages/PaginaTransferencia';
 import PaginaUsuarios from './pages/PaginaUsuarios';
 import PaginaBeneficios from './pages/PaginaBeneficios';
+import PaginaGuarauna from './pages/PaginaGuarauna';
+import PaginaAlunosGuarauna from './pages/PaginaAlunosGuarauna';
+import PaginaProfessoresGuarauna from './pages/PaginaProfessoresGuarauna';
+import PaginaTurmasGuarauna from './pages/PaginaTurmasGuarauna';
+import PaginaMatriculasGuarauna from './pages/PaginaMatriculasGuarauna';
+import PaginaEventosGuarauna from './pages/PaginaEventosGuarauna';
+import PaginaAceiteEvento from './pages/PaginaAceiteEvento';
 import './index.css';
 
 // Limpar cache ao iniciar
@@ -131,6 +138,66 @@ function App() {
             </LayoutComNavbar>
           </RotaPrivada>
         } 
+      />
+
+      <Route 
+        path="/guarauna" 
+        element={
+          <RotaPrivada>
+            <PaginaGuarauna />
+          </RotaPrivada>
+        } 
+      />
+
+      <Route 
+        path="/guarauna/alunos" 
+        element={
+          <RotaPrivada>
+            <PaginaAlunosGuarauna />
+          </RotaPrivada>
+        } 
+      />
+
+      <Route 
+        path="/guarauna/professores" 
+        element={
+          <RotaPrivada>
+            <PaginaProfessoresGuarauna />
+          </RotaPrivada>
+        } 
+      />
+
+      <Route 
+        path="/guarauna/turmas" 
+        element={
+          <RotaPrivada>
+            <PaginaTurmasGuarauna />
+          </RotaPrivada>
+        } 
+      />
+
+      <Route 
+        path="/guarauna/matriculas" 
+        element={
+          <RotaPrivada>
+            <PaginaMatriculasGuarauna />
+          </RotaPrivada>
+        } 
+      />
+
+      <Route 
+        path="/guarauna/eventos" 
+        element={
+          <RotaPrivada>
+            <PaginaEventosGuarauna />
+          </RotaPrivada>
+        } 
+      />
+
+      {/* Rota pública para aceite de termos de eventos - não requer autenticação */}
+      <Route 
+        path="/aceite/evento/:codigo" 
+        element={<PaginaAceiteEvento />} 
       />
 
       <Route path="*" element={<Navigate to="/" />} />

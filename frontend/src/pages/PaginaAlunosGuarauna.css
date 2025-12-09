@@ -1,0 +1,433 @@
+/* ============================================ */
+/* Página Alunos Guaraúna                      */
+/* ============================================ */
+
+.pagina-alunos-guarauna {
+  min-height: 100vh;
+  background: #f5f7fa;
+}
+
+.alunos-conteudo {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Header */
+.alunos-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.botao-voltar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.botao-voltar:hover {
+  background: #f5f5f5;
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+.header-titulo {
+  flex: 1;
+}
+
+.header-titulo h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.header-titulo .contador {
+  font-size: 13px;
+  color: #666;
+}
+
+.botao-novo-aluno {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #4CAF50, #2e7d32);
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.botao-novo-aluno:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+/* Ferramentas */
+.alunos-ferramentas {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.campo-busca {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.campo-busca:focus-within {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.campo-busca svg {
+  color: #999;
+}
+
+.campo-busca input {
+  flex: 1;
+  padding: 12px 0;
+  border: none;
+  font-size: 14px;
+  outline: none;
+}
+
+.limpar-busca {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 50%;
+  color: #666;
+  cursor: pointer;
+}
+
+.limpar-busca:hover {
+  background: #e0e0e0;
+}
+
+.botao-filtros {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.botao-filtros:hover,
+.botao-filtros.ativo {
+  background: #e8f5e9;
+  border-color: #4CAF50;
+  color: #4CAF50;
+}
+
+/* Painel de Filtros */
+.painel-filtros {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filtro-grupo label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+}
+
+.filtro-grupo select {
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+}
+
+.filtro-grupo select:focus {
+  border-color: #4CAF50;
+}
+
+/* Lista de Alunos */
+.lista-alunos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-aluno {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: white;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.card-aluno:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #4CAF50;
+}
+
+.card-aluno.inativo {
+  opacity: 0.7;
+  background: #fafafa;
+}
+
+.aluno-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #4CAF50, #2e7d32);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.aluno-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.aluno-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 6px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aluno-detalhes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.aluno-detalhes .detalhe {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #666;
+}
+
+.aluno-detalhes .detalhe svg {
+  color: #999;
+}
+
+.aluno-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.aluno-tags .tag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tag.responsavel {
+  background: #e3f2fd;
+  color: #1976D2;
+}
+
+.tag.turma {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.tag.saude {
+  background: #fce4ec;
+  color: #c2185b;
+}
+
+.aluno-acoes {
+  display: flex;
+  gap: 8px;
+}
+
+.botao-acao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #f5f5f5;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.botao-acao.editar {
+  color: #1976D2;
+}
+
+.botao-acao.editar:hover {
+  background: #e3f2fd;
+}
+
+.botao-acao.deletar {
+  color: #d32f2f;
+}
+
+.botao-acao.deletar:hover {
+  background: #ffebee;
+}
+
+.badge-inativo {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  background: #f5f5f5;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+}
+
+/* Estados */
+.carregando,
+.lista-vazia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.carregando .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e8e8e8;
+  border-top-color: #4CAF50;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.carregando p {
+  color: #666;
+  margin-top: 16px;
+}
+
+.lista-vazia svg {
+  color: #ccc;
+  margin-bottom: 16px;
+}
+
+.lista-vazia h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.lista-vazia p {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .alunos-conteudo {
+    padding: 16px;
+  }
+
+  .alunos-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-titulo {
+    order: -1;
+    width: 100%;
+  }
+
+  .botao-novo-aluno {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .alunos-ferramentas {
+    flex-direction: column;
+  }
+
+  .painel-filtros {
+    flex-direction: column;
+  }
+
+  .card-aluno {
+    flex-wrap: wrap;
+  }
+
+  .aluno-acoes {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f0f0f0;
+  }
+}

@@ -460,6 +460,185 @@ async function rotear(req, res, slug) {
     return pessoasDeletar(req, res, id);
   }
 
+  // ==================== MÓDULO GUARAÚNA ====================
+  
+  // ALUNOS
+  if (rota === 'guarauna/alunos' && req.method === 'GET') {
+    return guaraunaAlunosListar(req, res);
+  }
+  if (rota === 'guarauna/alunos' && req.method === 'POST') {
+    return guaraunaAlunosCriar(req, res);
+  }
+  if (rota.match(/^guarauna\/alunos\/[^/]+$/) && req.method === 'GET') {
+    const id = slug[2];
+    return guaraunaAlunosObter(req, res, id);
+  }
+  if (rota.match(/^guarauna\/alunos\/[^/]+$/) && req.method === 'PUT') {
+    const id = slug[2];
+    return guaraunaAlunosAtualizar(req, res, id);
+  }
+  if (rota.match(/^guarauna\/alunos\/[^/]+$/) && req.method === 'DELETE') {
+    const id = slug[2];
+    return guaraunaAlunosDeletar(req, res, id);
+  }
+  
+  // RESPONSÁVEIS LEGAIS
+  if (rota === 'guarauna/responsaveis' && req.method === 'GET') {
+    return guaraunaResponsaveisListar(req, res);
+  }
+  if (rota === 'guarauna/responsaveis' && req.method === 'POST') {
+    return guaraunaResponsaveisCriar(req, res);
+  }
+  if (rota.match(/^guarauna\/responsaveis\/[^/]+$/) && req.method === 'GET') {
+    const id = slug[2];
+    return guaraunaResponsaveisObter(req, res, id);
+  }
+  if (rota.match(/^guarauna\/responsaveis\/[^/]+$/) && req.method === 'PUT') {
+    const id = slug[2];
+    return guaraunaResponsaveisAtualizar(req, res, id);
+  }
+  
+  // VINCULAR ALUNO A RESPONSÁVEL
+  if (rota === 'guarauna/alunos-responsaveis' && req.method === 'POST') {
+    return guaraunaVincularAlunoResponsavel(req, res);
+  }
+  if (rota.match(/^guarauna\/alunos-responsaveis\/[^/]+$/) && req.method === 'DELETE') {
+    const id = slug[2];
+    return guaraunaDesvincularAlunoResponsavel(req, res, id);
+  }
+  
+  // PROFESSORES
+  if (rota === 'guarauna/professores' && req.method === 'GET') {
+    return guaraunaProfessoresListar(req, res);
+  }
+  if (rota === 'guarauna/professores' && req.method === 'POST') {
+    return guaraunaProfessoresCriar(req, res);
+  }
+  if (rota.match(/^guarauna\/professores\/[^/]+$/) && req.method === 'GET') {
+    const id = slug[2];
+    return guaraunaProfessoresObter(req, res, id);
+  }
+  if (rota.match(/^guarauna\/professores\/[^/]+$/) && req.method === 'PUT') {
+    const id = slug[2];
+    return guaraunaProfessoresAtualizar(req, res, id);
+  }
+  if (rota.match(/^guarauna\/professores\/[^/]+$/) && req.method === 'DELETE') {
+    const id = slug[2];
+    return guaraunaProfessoresDeletar(req, res, id);
+  }
+  
+  // TURMAS
+  if (rota === 'guarauna/turmas' && req.method === 'GET') {
+    return guaraunaTurmasListar(req, res);
+  }
+  if (rota === 'guarauna/turmas' && req.method === 'POST') {
+    return guaraunaTurmasCriar(req, res);
+  }
+  if (rota.match(/^guarauna\/turmas\/[^/]+$/) && req.method === 'GET') {
+    const id = slug[2];
+    return guaraunaTurmasObter(req, res, id);
+  }
+  if (rota.match(/^guarauna\/turmas\/[^/]+$/) && req.method === 'PUT') {
+    const id = slug[2];
+    return guaraunaTurmasAtualizar(req, res, id);
+  }
+  if (rota.match(/^guarauna\/turmas\/[^/]+$/) && req.method === 'DELETE') {
+    const id = slug[2];
+    return guaraunaTurmasDeletar(req, res, id);
+  }
+  
+  // ALUNOS EM TURMAS
+  if (rota === 'guarauna/alunos-turmas' && req.method === 'POST') {
+    return guaraunaMatricularAlunoTurma(req, res);
+  }
+  if (rota.match(/^guarauna\/alunos-turmas\/[^/]+$/) && req.method === 'DELETE') {
+    const id = slug[2];
+    return guaraunaDesmatricularAlunoTurma(req, res, id);
+  }
+  
+  // MATRÍCULAS
+  if (rota === 'guarauna/matriculas' && req.method === 'GET') {
+    return guaraunaMatriculasListar(req, res);
+  }
+  if (rota === 'guarauna/matriculas' && req.method === 'POST') {
+    return guaraunaMatriculasCriar(req, res);
+  }
+  if (rota.match(/^guarauna\/matriculas\/[^/]+$/) && req.method === 'GET') {
+    const id = slug[2];
+    return guaraunaMatriculasObter(req, res, id);
+  }
+  if (rota.match(/^guarauna\/matriculas\/[^/]+$/) && req.method === 'PUT') {
+    const id = slug[2];
+    return guaraunaMatriculasAtualizar(req, res, id);
+  }
+  
+  // MODELOS DE TERMOS
+  if (rota === 'guarauna/modelos-termo' && req.method === 'GET') {
+    return guaraunaModelosTermoListar(req, res);
+  }
+  if (rota === 'guarauna/modelos-termo' && req.method === 'POST') {
+    return guaraunaModelosTermoCriar(req, res);
+  }
+  if (rota.match(/^guarauna\/modelos-termo\/[^/]+$/) && req.method === 'GET') {
+    const id = slug[2];
+    return guaraunaModelosTermoObter(req, res, id);
+  }
+  if (rota.match(/^guarauna\/modelos-termo\/[^/]+$/) && req.method === 'PUT') {
+    const id = slug[2];
+    return guaraunaModelosTermoAtualizar(req, res, id);
+  }
+  if (rota.match(/^guarauna\/modelos-termo\/[^/]+$/) && req.method === 'DELETE') {
+    const id = slug[2];
+    return guaraunaModelosTermoDeletar(req, res, id);
+  }
+  
+  // EVENTOS COM TERMOS
+  if (rota === 'guarauna/eventos' && req.method === 'GET') {
+    return guaraunaEventosListar(req, res);
+  }
+  if (rota === 'guarauna/eventos' && req.method === 'POST') {
+    return guaraunaEventosCriar(req, res);
+  }
+  if (rota.match(/^guarauna\/eventos\/[^/]+$/) && req.method === 'GET') {
+    const id = slug[2];
+    return guaraunaEventosObter(req, res, id);
+  }
+  if (rota.match(/^guarauna\/eventos\/[^/]+$/) && req.method === 'PUT') {
+    const id = slug[2];
+    return guaraunaEventosAtualizar(req, res, id);
+  }
+  if (rota.match(/^guarauna\/eventos\/[^/]+$/) && req.method === 'DELETE') {
+    const id = slug[2];
+    return guaraunaEventosDeletar(req, res, id);
+  }
+  if (rota.match(/^guarauna\/eventos\/[^/]+\/aceites$/) && req.method === 'GET') {
+    const id = slug[2];
+    return guaraunaEventosAceitesListar(req, res, id);
+  }
+  
+  // ROTAS PÚBLICAS - ACEITES (não requerem autenticação)
+  if (rota.match(/^aceite\/evento\/[^/]+$/) && req.method === 'GET') {
+    const codigo = slug[2];
+    return aceiteEventoObterPublico(req, res, codigo);
+  }
+  if (rota.match(/^aceite\/evento\/[^/]+$/) && req.method === 'POST') {
+    const codigo = slug[2];
+    return aceiteEventoRegistrar(req, res, codigo);
+  }
+  if (rota.match(/^aceite\/matricula\/[^/]+$/) && req.method === 'GET') {
+    const codigo = slug[2];
+    return aceiteMatriculaObterPublico(req, res, codigo);
+  }
+  if (rota.match(/^aceite\/matricula\/[^/]+$/) && req.method === 'POST') {
+    const codigo = slug[2];
+    return aceiteMatriculaRegistrar(req, res, codigo);
+  }
+  
+  // DASHBOARD GUARAÚNA
+  if (rota === 'guarauna/dashboard' && req.method === 'GET') {
+    return guaraunaDashboard(req, res);
+  }
+
   log(`❌ Rota não encontrada: "${rota}" | Método: ${req.method}`);
   return res.status(404).json({ erro: 'Rota não encontrada', rota });
 }
@@ -2409,6 +2588,1422 @@ async function pessoasDeletarEmMassa(req, res) {
   } catch (erro) {
     log(`Erro ao deletar pessoas em massa: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao deletar pessoas em massa' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - ALUNOS ====================
+
+async function guaraunaAlunosListar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { comunidade, ativo, busca, turmaId } = req.query;
+
+    const where = {};
+    if (ativo !== undefined) where.ativo = ativo === 'true';
+    if (comunidade) where.pessoa = { comunidade };
+    if (turmaId) where.turmas = { some: { turmaId, ativo: true } };
+
+    const alunos = await prisma.alunoGuarauna.findMany({
+      where,
+      include: {
+        pessoa: true,
+        responsaveis: {
+          include: {
+            responsavel: {
+              include: { pessoa: true }
+            }
+          }
+        },
+        turmas: {
+          where: { ativo: true },
+          include: { turma: true }
+        },
+        matriculas: {
+          orderBy: { ano: 'desc' },
+          take: 1
+        }
+      },
+      orderBy: { pessoa: { nome: 'asc' } }
+    });
+
+    // Filtrar por busca se fornecido
+    let resultado = alunos;
+    if (busca) {
+      const termoBusca = busca.toLowerCase();
+      resultado = alunos.filter(a => 
+        a.pessoa.nome.toLowerCase().includes(termoBusca) ||
+        a.pessoa.cpf?.includes(termoBusca)
+      );
+    }
+
+    res.json(resultado);
+  } catch (erro) {
+    log(`Erro ao listar alunos: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar alunos' });
+  }
+}
+
+async function guaraunaAlunosCriar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { pessoaId, ubs, numeroSUS, doencas, alergias, medicamentos, necessidadesEspeciais } = req.body;
+
+    // Verificar se pessoa existe
+    const pessoa = await prisma.pessoa.findUnique({ where: { id: parseInt(pessoaId) } });
+    if (!pessoa) {
+      return res.status(404).json({ erro: 'Pessoa não encontrada' });
+    }
+
+    // Verificar se já é aluno
+    const alunoExistente = await prisma.alunoGuarauna.findUnique({ where: { pessoaId: parseInt(pessoaId) } });
+    if (alunoExistente) {
+      return res.status(400).json({ erro: 'Esta pessoa já está cadastrada como aluno' });
+    }
+
+    const aluno = await prisma.alunoGuarauna.create({
+      data: {
+        pessoaId: parseInt(pessoaId),
+        ubs,
+        numeroSUS,
+        doencas,
+        alergias,
+        medicamentos,
+        necessidadesEspeciais
+      },
+      include: {
+        pessoa: true
+      }
+    });
+
+    log(`✅ Aluno criado: ${pessoa.nome} (ID: ${aluno.id})`);
+    res.status(201).json(aluno);
+  } catch (erro) {
+    log(`Erro ao criar aluno: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar aluno' });
+  }
+}
+
+async function guaraunaAlunosObter(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const aluno = await prisma.alunoGuarauna.findUnique({
+      where: { id },
+      include: {
+        pessoa: true,
+        responsaveis: {
+          include: {
+            responsavel: {
+              include: { pessoa: true }
+            }
+          }
+        },
+        turmas: {
+          include: { turma: true }
+        },
+        matriculas: {
+          orderBy: { ano: 'desc' },
+          include: { aceites: true }
+        }
+      }
+    });
+
+    if (!aluno) {
+      return res.status(404).json({ erro: 'Aluno não encontrado' });
+    }
+
+    res.json(aluno);
+  } catch (erro) {
+    log(`Erro ao obter aluno: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter aluno' });
+  }
+}
+
+async function guaraunaAlunosAtualizar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { ubs, numeroSUS, doencas, alergias, medicamentos, necessidadesEspeciais, ativo } = req.body;
+
+    const aluno = await prisma.alunoGuarauna.update({
+      where: { id },
+      data: {
+        ubs,
+        numeroSUS,
+        doencas,
+        alergias,
+        medicamentos,
+        necessidadesEspeciais,
+        ativo
+      },
+      include: { pessoa: true }
+    });
+
+    log(`✅ Aluno atualizado: ${aluno.pessoa.nome}`);
+    res.json(aluno);
+  } catch (erro) {
+    log(`Erro ao atualizar aluno: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao atualizar aluno' });
+  }
+}
+
+async function guaraunaAlunosDeletar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario || usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar alunos' });
+    }
+
+    await prisma.alunoGuarauna.delete({ where: { id } });
+    log(`✅ Aluno deletado: ${id}`);
+    res.status(204).end();
+  } catch (erro) {
+    log(`Erro ao deletar aluno: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar aluno' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - RESPONSÁVEIS ====================
+
+async function guaraunaResponsaveisListar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const responsaveis = await prisma.responsavelLegal.findMany({
+      where: { ativo: true },
+      include: {
+        pessoa: true,
+        alunos: {
+          include: {
+            aluno: {
+              include: { pessoa: true }
+            }
+          }
+        }
+      },
+      orderBy: { pessoa: { nome: 'asc' } }
+    });
+
+    res.json(responsaveis);
+  } catch (erro) {
+    log(`Erro ao listar responsáveis: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar responsáveis' });
+  }
+}
+
+async function guaraunaResponsaveisCriar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { pessoaId, profissao, localTrabalho } = req.body;
+
+    const pessoa = await prisma.pessoa.findUnique({ where: { id: parseInt(pessoaId) } });
+    if (!pessoa) {
+      return res.status(404).json({ erro: 'Pessoa não encontrada' });
+    }
+
+    const existente = await prisma.responsavelLegal.findUnique({ where: { pessoaId: parseInt(pessoaId) } });
+    if (existente) {
+      return res.status(400).json({ erro: 'Esta pessoa já está cadastrada como responsável' });
+    }
+
+    const responsavel = await prisma.responsavelLegal.create({
+      data: {
+        pessoaId: parseInt(pessoaId),
+        profissao,
+        localTrabalho
+      },
+      include: { pessoa: true }
+    });
+
+    log(`✅ Responsável criado: ${pessoa.nome}`);
+    res.status(201).json(responsavel);
+  } catch (erro) {
+    log(`Erro ao criar responsável: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar responsável' });
+  }
+}
+
+async function guaraunaResponsaveisObter(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const responsavel = await prisma.responsavelLegal.findUnique({
+      where: { id },
+      include: {
+        pessoa: true,
+        alunos: {
+          include: {
+            aluno: {
+              include: { pessoa: true }
+            }
+          }
+        }
+      }
+    });
+
+    if (!responsavel) {
+      return res.status(404).json({ erro: 'Responsável não encontrado' });
+    }
+
+    res.json(responsavel);
+  } catch (erro) {
+    log(`Erro ao obter responsável: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter responsável' });
+  }
+}
+
+async function guaraunaResponsaveisAtualizar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { profissao, localTrabalho, ativo } = req.body;
+
+    const responsavel = await prisma.responsavelLegal.update({
+      where: { id },
+      data: { profissao, localTrabalho, ativo },
+      include: { pessoa: true }
+    });
+
+    res.json(responsavel);
+  } catch (erro) {
+    log(`Erro ao atualizar responsável: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao atualizar responsável' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - VÍNCULO ALUNO-RESPONSÁVEL ====================
+
+async function guaraunaVincularAlunoResponsavel(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { alunoId, responsavelId, parentesco, principal } = req.body;
+
+    // Se for principal, remover flag de outros
+    if (principal) {
+      await prisma.alunoResponsavel.updateMany({
+        where: { alunoId, principal: true },
+        data: { principal: false }
+      });
+    }
+
+    const vinculo = await prisma.alunoResponsavel.create({
+      data: {
+        alunoId,
+        responsavelId,
+        parentesco,
+        principal: principal || false
+      },
+      include: {
+        aluno: { include: { pessoa: true } },
+        responsavel: { include: { pessoa: true } }
+      }
+    });
+
+    log(`✅ Vínculo criado: ${vinculo.responsavel.pessoa.nome} -> ${vinculo.aluno.pessoa.nome}`);
+    res.status(201).json(vinculo);
+  } catch (erro) {
+    if (erro.code === 'P2002') {
+      return res.status(400).json({ erro: 'Este vínculo já existe' });
+    }
+    log(`Erro ao vincular: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao vincular aluno e responsável' });
+  }
+}
+
+async function guaraunaDesvincularAlunoResponsavel(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    await prisma.alunoResponsavel.delete({ where: { id } });
+    res.status(204).end();
+  } catch (erro) {
+    log(`Erro ao desvincular: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao desvincular' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - PROFESSORES ====================
+
+async function guaraunaProfessoresListar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const professores = await prisma.professor.findMany({
+      where: { ativo: true },
+      include: {
+        pessoa: true,
+        comunidades: { where: { ativo: true } },
+        turmas: { where: { ativa: true } }
+      },
+      orderBy: { pessoa: { nome: 'asc' } }
+    });
+
+    res.json(professores);
+  } catch (erro) {
+    log(`Erro ao listar professores: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar professores' });
+  }
+}
+
+async function guaraunaProfessoresCriar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { pessoaId, apelido, especialidade, comunidades } = req.body;
+
+    const pessoa = await prisma.pessoa.findUnique({ where: { id: parseInt(pessoaId) } });
+    if (!pessoa) {
+      return res.status(404).json({ erro: 'Pessoa não encontrada' });
+    }
+
+    const professor = await prisma.professor.create({
+      data: {
+        pessoaId: parseInt(pessoaId),
+        apelido,
+        especialidade,
+        comunidades: comunidades ? {
+          create: comunidades.map(c => ({ comunidade: c }))
+        } : undefined
+      },
+      include: {
+        pessoa: true,
+        comunidades: true
+      }
+    });
+
+    log(`✅ Professor criado: ${pessoa.nome}`);
+    res.status(201).json(professor);
+  } catch (erro) {
+    log(`Erro ao criar professor: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar professor' });
+  }
+}
+
+async function guaraunaProfessoresObter(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const professor = await prisma.professor.findUnique({
+      where: { id },
+      include: {
+        pessoa: true,
+        comunidades: true,
+        turmas: { include: { alunos: true } },
+        termos: true
+      }
+    });
+
+    if (!professor) {
+      return res.status(404).json({ erro: 'Professor não encontrado' });
+    }
+
+    res.json(professor);
+  } catch (erro) {
+    log(`Erro ao obter professor: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter professor' });
+  }
+}
+
+async function guaraunaProfessoresAtualizar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { apelido, especialidade, ativo } = req.body;
+
+    const professor = await prisma.professor.update({
+      where: { id },
+      data: { apelido, especialidade, ativo },
+      include: { pessoa: true }
+    });
+
+    res.json(professor);
+  } catch (erro) {
+    log(`Erro ao atualizar professor: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao atualizar professor' });
+  }
+}
+
+async function guaraunaProfessoresDeletar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario || usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar professores' });
+    }
+
+    await prisma.professor.delete({ where: { id } });
+    res.status(204).end();
+  } catch (erro) {
+    log(`Erro ao deletar professor: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar professor' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - TURMAS ====================
+
+async function guaraunaTurmasListar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { comunidade, professorId, ativa } = req.query;
+
+    const where = {};
+    if (comunidade) where.comunidade = comunidade;
+    if (professorId) where.professorId = professorId;
+    if (ativa !== undefined) where.ativa = ativa === 'true';
+
+    const turmas = await prisma.turma.findMany({
+      where,
+      include: {
+        professor: { include: { pessoa: true } },
+        alunos: {
+          where: { ativo: true },
+          include: {
+            aluno: { include: { pessoa: true } }
+          }
+        }
+      },
+      orderBy: [{ comunidade: 'asc' }, { nome: 'asc' }]
+    });
+
+    res.json(turmas);
+  } catch (erro) {
+    log(`Erro ao listar turmas: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar turmas' });
+  }
+}
+
+async function guaraunaTurmasCriar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { nome, comunidade, professorId, diaSemana, horarioInicio, horarioFim, faixaEtariaMin, faixaEtariaMax, capacidade } = req.body;
+
+    const turma = await prisma.turma.create({
+      data: {
+        nome,
+        comunidade,
+        professorId,
+        diaSemana,
+        horarioInicio,
+        horarioFim,
+        faixaEtariaMin,
+        faixaEtariaMax,
+        capacidade
+      },
+      include: {
+        professor: { include: { pessoa: true } }
+      }
+    });
+
+    log(`✅ Turma criada: ${nome} (${comunidade})`);
+    res.status(201).json(turma);
+  } catch (erro) {
+    log(`Erro ao criar turma: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar turma' });
+  }
+}
+
+async function guaraunaTurmasObter(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const turma = await prisma.turma.findUnique({
+      where: { id },
+      include: {
+        professor: { include: { pessoa: true } },
+        alunos: {
+          include: {
+            aluno: {
+              include: {
+                pessoa: true,
+                responsaveis: {
+                  include: { responsavel: { include: { pessoa: true } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!turma) {
+      return res.status(404).json({ erro: 'Turma não encontrada' });
+    }
+
+    res.json(turma);
+  } catch (erro) {
+    log(`Erro ao obter turma: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter turma' });
+  }
+}
+
+async function guaraunaTurmasAtualizar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { nome, comunidade, professorId, diaSemana, horarioInicio, horarioFim, faixaEtariaMin, faixaEtariaMax, capacidade, ativa } = req.body;
+
+    const turma = await prisma.turma.update({
+      where: { id },
+      data: {
+        nome,
+        comunidade,
+        professorId,
+        diaSemana,
+        horarioInicio,
+        horarioFim,
+        faixaEtariaMin,
+        faixaEtariaMax,
+        capacidade,
+        ativa
+      }
+    });
+
+    res.json(turma);
+  } catch (erro) {
+    log(`Erro ao atualizar turma: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao atualizar turma' });
+  }
+}
+
+async function guaraunaTurmasDeletar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario || usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar turmas' });
+    }
+
+    await prisma.turma.delete({ where: { id } });
+    res.status(204).end();
+  } catch (erro) {
+    log(`Erro ao deletar turma: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar turma' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - ALUNOS EM TURMAS ====================
+
+async function guaraunaMatricularAlunoTurma(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { alunoId, turmaId } = req.body;
+
+    // Verificar capacidade da turma
+    const turma = await prisma.turma.findUnique({
+      where: { id: turmaId },
+      include: { alunos: { where: { ativo: true } } }
+    });
+
+    if (turma.capacidade && turma.alunos.length >= turma.capacidade) {
+      return res.status(400).json({ erro: 'Turma está com capacidade máxima' });
+    }
+
+    const matricula = await prisma.alunoTurma.create({
+      data: { alunoId, turmaId },
+      include: {
+        aluno: { include: { pessoa: true } },
+        turma: true
+      }
+    });
+
+    log(`✅ Aluno matriculado na turma: ${matricula.aluno.pessoa.nome} -> ${matricula.turma.nome}`);
+    res.status(201).json(matricula);
+  } catch (erro) {
+    if (erro.code === 'P2002') {
+      return res.status(400).json({ erro: 'Aluno já está matriculado nesta turma' });
+    }
+    log(`Erro ao matricular aluno: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao matricular aluno' });
+  }
+}
+
+async function guaraunaDesmatricularAlunoTurma(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    await prisma.alunoTurma.update({
+      where: { id },
+      data: { ativo: false, dataSaida: new Date() }
+    });
+
+    res.status(204).end();
+  } catch (erro) {
+    log(`Erro ao desmatricular aluno: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao desmatricular aluno' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - MATRÍCULAS ====================
+
+async function guaraunaMatriculasListar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { ano, status, alunoId } = req.query;
+
+    const where = {};
+    if (ano) where.ano = parseInt(ano);
+    if (status) where.status = status;
+    if (alunoId) where.alunoId = alunoId;
+
+    const matriculas = await prisma.matricula.findMany({
+      where,
+      include: {
+        aluno: {
+          include: {
+            pessoa: true,
+            responsaveis: {
+              where: { principal: true },
+              include: { responsavel: { include: { pessoa: true } } }
+            }
+          }
+        },
+        aceites: true
+      },
+      orderBy: [{ ano: 'desc' }, { aluno: { pessoa: { nome: 'asc' } } }]
+    });
+
+    res.json(matriculas);
+  } catch (erro) {
+    log(`Erro ao listar matrículas: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar matrículas' });
+  }
+}
+
+async function guaraunaMatriculasCriar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { alunoId, ano, tipo, tamanhoCamiseta, tamanhoBermuda, tamanhoCalcado, composicaoFamiliar } = req.body;
+
+    // Verificar se já existe matrícula para este ano
+    const existente = await prisma.matricula.findUnique({
+      where: { alunoId_ano: { alunoId, ano: parseInt(ano) } }
+    });
+
+    if (existente) {
+      return res.status(400).json({ erro: `Já existe matrícula para o ano ${ano}` });
+    }
+
+    const matricula = await prisma.matricula.create({
+      data: {
+        alunoId,
+        ano: parseInt(ano),
+        tipo: tipo || 'MATRICULA',
+        tamanhoCamiseta,
+        tamanhoBermuda,
+        tamanhoCalcado,
+        composicaoFamiliar
+      },
+      include: {
+        aluno: { include: { pessoa: true } }
+      }
+    });
+
+    log(`✅ Matrícula criada: ${matricula.aluno.pessoa.nome} - ${ano}`);
+    res.status(201).json(matricula);
+  } catch (erro) {
+    log(`Erro ao criar matrícula: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar matrícula' });
+  }
+}
+
+async function guaraunaMatriculasObter(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const matricula = await prisma.matricula.findUnique({
+      where: { id },
+      include: {
+        aluno: {
+          include: {
+            pessoa: true,
+            responsaveis: {
+              include: { responsavel: { include: { pessoa: true } } }
+            }
+          }
+        },
+        aceites: {
+          include: { responsavel: { include: { pessoa: true } } }
+        }
+      }
+    });
+
+    if (!matricula) {
+      return res.status(404).json({ erro: 'Matrícula não encontrada' });
+    }
+
+    res.json(matricula);
+  } catch (erro) {
+    log(`Erro ao obter matrícula: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter matrícula' });
+  }
+}
+
+async function guaraunaMatriculasAtualizar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { tamanhoCamiseta, tamanhoBermuda, tamanhoCalcado, composicaoFamiliar, status, motivoDesistencia } = req.body;
+
+    const matricula = await prisma.matricula.update({
+      where: { id },
+      data: {
+        tamanhoCamiseta,
+        tamanhoBermuda,
+        tamanhoCalcado,
+        composicaoFamiliar,
+        status,
+        motivoDesistencia
+      }
+    });
+
+    res.json(matricula);
+  } catch (erro) {
+    log(`Erro ao atualizar matrícula: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao atualizar matrícula' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - MODELOS DE TERMO ====================
+
+async function guaraunaModelosTermoListar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { tipo, ativo } = req.query;
+
+    const where = {};
+    if (tipo) where.tipo = tipo;
+    if (ativo !== undefined) where.ativo = ativo === 'true';
+
+    const modelos = await prisma.modeloTermo.findMany({
+      where,
+      include: { criadoPor: { select: { nome: true } } },
+      orderBy: { criadoEm: 'desc' }
+    });
+
+    res.json(modelos);
+  } catch (erro) {
+    log(`Erro ao listar modelos de termo: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar modelos de termo' });
+  }
+}
+
+async function guaraunaModelosTermoCriar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario || usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem criar modelos de termo' });
+    }
+
+    const { titulo, tipo, conteudoHTML } = req.body;
+
+    const modelo = await prisma.modeloTermo.create({
+      data: {
+        titulo,
+        tipo,
+        conteudoHTML,
+        criadoPorId: usuario.id
+      }
+    });
+
+    log(`✅ Modelo de termo criado: ${titulo}`);
+    res.status(201).json(modelo);
+  } catch (erro) {
+    log(`Erro ao criar modelo de termo: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar modelo de termo' });
+  }
+}
+
+async function guaraunaModelosTermoObter(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const modelo = await prisma.modeloTermo.findUnique({
+      where: { id },
+      include: {
+        criadoPor: { select: { nome: true } },
+        eventos: { orderBy: { criadoEm: 'desc' }, take: 10 }
+      }
+    });
+
+    if (!modelo) {
+      return res.status(404).json({ erro: 'Modelo não encontrado' });
+    }
+
+    res.json(modelo);
+  } catch (erro) {
+    log(`Erro ao obter modelo de termo: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter modelo de termo' });
+  }
+}
+
+async function guaraunaModelosTermoAtualizar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario || usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem atualizar modelos' });
+    }
+
+    const { titulo, tipo, conteudoHTML, ativo } = req.body;
+
+    const modelo = await prisma.modeloTermo.update({
+      where: { id },
+      data: { titulo, tipo, conteudoHTML, ativo }
+    });
+
+    res.json(modelo);
+  } catch (erro) {
+    log(`Erro ao atualizar modelo de termo: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao atualizar modelo de termo' });
+  }
+}
+
+async function guaraunaModelosTermoDeletar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario || usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar modelos' });
+    }
+
+    // Desativar ao invés de deletar para manter histórico
+    await prisma.modeloTermo.update({
+      where: { id },
+      data: { ativo: false }
+    });
+
+    res.status(204).end();
+  } catch (erro) {
+    log(`Erro ao deletar modelo de termo: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar modelo de termo' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - EVENTOS COM TERMOS ====================
+
+async function guaraunaEventosListar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { ativo, tipo } = req.query;
+
+    const where = {};
+    if (ativo !== undefined) where.ativo = ativo === 'true';
+    if (tipo) where.modeloTermo = { tipo };
+
+    const eventos = await prisma.eventoTermo.findMany({
+      where,
+      include: {
+        modeloTermo: true,
+        criadoPor: { select: { nome: true } },
+        aceites: {
+          include: {
+            aluno: { include: { pessoa: true } }
+          }
+        }
+      },
+      orderBy: { dataEvento: 'desc' }
+    });
+
+    // Adicionar contagem de aceites
+    const eventosComContagem = eventos.map(e => ({
+      ...e,
+      totalAceites: e.aceites.length
+    }));
+
+    res.json(eventosComContagem);
+  } catch (erro) {
+    log(`Erro ao listar eventos: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar eventos' });
+  }
+}
+
+async function guaraunaEventosCriar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario || usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem criar eventos' });
+    }
+
+    const { modeloTermoId, titulo, descricao, dataEvento, localEvento, dataLimiteAceite } = req.body;
+
+    const evento = await prisma.eventoTermo.create({
+      data: {
+        modeloTermoId,
+        titulo,
+        descricao,
+        dataEvento: new Date(dataEvento),
+        localEvento,
+        dataLimiteAceite: new Date(dataLimiteAceite),
+        criadoPorId: usuario.id
+      },
+      include: { modeloTermo: true }
+    });
+
+    log(`✅ Evento criado: ${titulo}`);
+    res.status(201).json(evento);
+  } catch (erro) {
+    log(`Erro ao criar evento: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar evento' });
+  }
+}
+
+async function guaraunaEventosObter(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const evento = await prisma.eventoTermo.findUnique({
+      where: { id },
+      include: {
+        modeloTermo: true,
+        criadoPor: { select: { nome: true } },
+        aceites: {
+          include: {
+            aluno: { include: { pessoa: true } },
+            responsavel: { include: { pessoa: true } }
+          }
+        }
+      }
+    });
+
+    if (!evento) {
+      return res.status(404).json({ erro: 'Evento não encontrado' });
+    }
+
+    res.json(evento);
+  } catch (erro) {
+    log(`Erro ao obter evento: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter evento' });
+  }
+}
+
+async function guaraunaEventosAtualizar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario || usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem atualizar eventos' });
+    }
+
+    const { titulo, descricao, dataEvento, localEvento, dataLimiteAceite, ativo } = req.body;
+
+    const evento = await prisma.eventoTermo.update({
+      where: { id },
+      data: {
+        titulo,
+        descricao,
+        dataEvento: dataEvento ? new Date(dataEvento) : undefined,
+        localEvento,
+        dataLimiteAceite: dataLimiteAceite ? new Date(dataLimiteAceite) : undefined,
+        ativo
+      }
+    });
+
+    res.json(evento);
+  } catch (erro) {
+    log(`Erro ao atualizar evento: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao atualizar evento' });
+  }
+}
+
+async function guaraunaEventosDeletar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario || usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar eventos' });
+    }
+
+    await prisma.eventoTermo.update({
+      where: { id },
+      data: { ativo: false }
+    });
+
+    res.status(204).end();
+  } catch (erro) {
+    log(`Erro ao deletar evento: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar evento' });
+  }
+}
+
+async function guaraunaEventosAceitesListar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const aceites = await prisma.aceiteEventoTermo.findMany({
+      where: { eventoTermoId: id },
+      include: {
+        aluno: { include: { pessoa: true } },
+        responsavel: { include: { pessoa: true } }
+      },
+      orderBy: { aceitoEm: 'desc' }
+    });
+
+    res.json(aceites);
+  } catch (erro) {
+    log(`Erro ao listar aceites: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar aceites' });
+  }
+}
+
+// ==================== ROTAS PÚBLICAS - ACEITES ====================
+
+async function aceiteEventoObterPublico(req, res, codigo) {
+  const prisma = getPrisma();
+  try {
+    const evento = await prisma.eventoTermo.findUnique({
+      where: { codigo },
+      include: {
+        modeloTermo: true
+      }
+    });
+
+    if (!evento) {
+      return res.status(404).json({ erro: 'Evento não encontrado' });
+    }
+
+    if (!evento.ativo) {
+      return res.status(400).json({ erro: 'Este evento não está mais ativo' });
+    }
+
+    if (new Date() > new Date(evento.dataLimiteAceite)) {
+      return res.status(400).json({ erro: 'O prazo para aceite expirou' });
+    }
+
+    // Retornar dados públicos do evento
+    res.json({
+      id: evento.id,
+      titulo: evento.titulo,
+      descricao: evento.descricao,
+      dataEvento: evento.dataEvento,
+      localEvento: evento.localEvento,
+      dataLimiteAceite: evento.dataLimiteAceite,
+      termo: {
+        titulo: evento.modeloTermo.titulo,
+        tipo: evento.modeloTermo.tipo,
+        conteudo: evento.modeloTermo.conteudoHTML
+      }
+    });
+  } catch (erro) {
+    log(`Erro ao obter evento público: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter evento' });
+  }
+}
+
+async function aceiteEventoRegistrar(req, res, codigo) {
+  const prisma = getPrisma();
+  try {
+    const { alunoId, responsavelId, aceite } = req.body;
+
+    if (!aceite) {
+      return res.status(400).json({ erro: 'É necessário aceitar o termo' });
+    }
+
+    const evento = await prisma.eventoTermo.findUnique({ where: { codigo } });
+
+    if (!evento || !evento.ativo) {
+      return res.status(404).json({ erro: 'Evento não encontrado ou inativo' });
+    }
+
+    if (new Date() > new Date(evento.dataLimiteAceite)) {
+      return res.status(400).json({ erro: 'O prazo para aceite expirou' });
+    }
+
+    // Gerar hash de verificação
+    const hashVerificacao = crypto
+      .createHash('sha256')
+      .update(`${evento.id}-${alunoId}-${responsavelId}-${Date.now()}`)
+      .digest('hex');
+
+    const aceiteRegistro = await prisma.aceiteEventoTermo.create({
+      data: {
+        eventoTermoId: evento.id,
+        alunoId,
+        responsavelId,
+        dispositivoInfo: req.headers['user-agent'],
+        ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+        hashVerificacao
+      },
+      include: {
+        aluno: { include: { pessoa: true } },
+        responsavel: { include: { pessoa: true } }
+      }
+    });
+
+    log(`✅ Aceite registrado: ${aceiteRegistro.aluno.pessoa.nome} para evento ${evento.titulo}`);
+
+    res.status(201).json({
+      mensagem: 'Aceite registrado com sucesso',
+      hash: hashVerificacao,
+      aluno: aceiteRegistro.aluno.pessoa.nome,
+      dataAceite: aceiteRegistro.aceitoEm
+    });
+  } catch (erro) {
+    if (erro.code === 'P2002') {
+      return res.status(400).json({ erro: 'Este aluno já possui aceite para este evento' });
+    }
+    log(`Erro ao registrar aceite: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao registrar aceite' });
+  }
+}
+
+async function aceiteMatriculaObterPublico(req, res, codigo) {
+  const prisma = getPrisma();
+  try {
+    const aceite = await prisma.aceiteDigital.findUnique({
+      where: { codigo },
+      include: {
+        matricula: {
+          include: {
+            aluno: { include: { pessoa: true } }
+          }
+        }
+      }
+    });
+
+    if (!aceite) {
+      return res.status(404).json({ erro: 'Link de aceite não encontrado' });
+    }
+
+    res.json({
+      matricula: aceite.matricula,
+      aluno: aceite.matricula.aluno.pessoa.nome
+    });
+  } catch (erro) {
+    log(`Erro ao obter aceite matrícula: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter aceite' });
+  }
+}
+
+async function aceiteMatriculaRegistrar(req, res, codigo) {
+  const prisma = getPrisma();
+  try {
+    const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem } = req.body;
+
+    const aceiteExistente = await prisma.aceiteDigital.findUnique({ where: { codigo } });
+
+    if (!aceiteExistente) {
+      return res.status(404).json({ erro: 'Link de aceite não encontrado' });
+    }
+
+    if (aceiteExistente.termoLGPD && aceiteExistente.termoResponsabilidade) {
+      return res.status(400).json({ erro: 'Este aceite já foi realizado' });
+    }
+
+    const hashVerificacao = crypto
+      .createHash('sha256')
+      .update(`${aceiteExistente.matriculaId}-${responsavelId}-${Date.now()}`)
+      .digest('hex');
+
+    const aceiteAtualizado = await prisma.aceiteDigital.update({
+      where: { codigo },
+      data: {
+        responsavelId,
+        termoLGPD,
+        termoResponsabilidade,
+        termoImagem,
+        dispositivoInfo: req.headers['user-agent'],
+        ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+        hashVerificacao
+      }
+    });
+
+    // Atualizar status da matrícula
+    await prisma.matricula.update({
+      where: { id: aceiteExistente.matriculaId },
+      data: { status: 'ATIVA' }
+    });
+
+    log(`✅ Aceite de matrícula registrado`);
+
+    res.json({
+      mensagem: 'Aceite registrado com sucesso',
+      hash: hashVerificacao
+    });
+  } catch (erro) {
+    log(`Erro ao registrar aceite matrícula: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao registrar aceite' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - DASHBOARD ====================
+
+async function guaraunaDashboard(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const anoAtual = new Date().getFullYear();
+
+    const [
+      totalAlunos,
+      alunosAtivos,
+      totalProfessores,
+      totalTurmas,
+      matriculasAno,
+      eventosAtivos
+    ] = await Promise.all([
+      prisma.alunoGuarauna.count(),
+      prisma.alunoGuarauna.count({ where: { ativo: true } }),
+      prisma.professor.count({ where: { ativo: true } }),
+      prisma.turma.count({ where: { ativa: true } }),
+      prisma.matricula.count({ where: { ano: anoAtual } }),
+      prisma.eventoTermo.count({ where: { ativo: true, dataEvento: { gte: new Date() } } })
+    ]);
+
+    // Alunos por comunidade
+    const alunosPorComunidade = await prisma.alunoGuarauna.groupBy({
+      by: ['pessoa'],
+      _count: true,
+      where: { ativo: true }
+    });
+
+    res.json({
+      totais: {
+        alunos: totalAlunos,
+        alunosAtivos,
+        professores: totalProfessores,
+        turmas: totalTurmas,
+        matriculasAno,
+        eventosAtivos
+      },
+      anoAtual
+    });
+  } catch (erro) {
+    log(`Erro ao obter dashboard: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter dashboard' });
   }
 }
 

@@ -23,6 +23,10 @@ model Usuario {
   expiracaoToken   DateTime? // Quando o token expira
   
   pessoas      Pessoa[]
+  
+  // Relações Módulo Guaraúna
+  modelosTermoCriados    ModeloTermo[]
+  eventosTermoCriados    EventoTermo[]
 }
 
 model Pessoa {
@@ -52,6 +56,13 @@ model Pessoa {
   numeroMembros   Int?      // Quantidade de membros da família
   dependentes     Int?      // Quantidade de dependentes
   
+  // Campos adicionais para Módulo Guaraúna
+  rg              String?   // RG para matrícula
+  cor             String?   // Cor/raça para matrícula
+  telefoneRecado  String?   // Telefone para recados
+  celular         String?   // Celular pessoal
+  nis             String?   // NIS para benefícios
+  
   observacoes     String?
   usuarioId       Int
   
@@ -60,10 +71,351 @@ model Pessoa {
   dataCriacao     DateTime @default(now())
   dataAtualizacao DateTime @updatedAt
   
+  // Relações Módulo Guaraúna
+  alunoGuarauna     AlunoGuarauna?
+  responsavelLegal  ResponsavelLegal?
+  professor         Professor?
+  
   @@index([usuarioId])
   @@index([comunidade])
-
   @@index([cpf])
+}
+
+// ============================================
+// MÓDULO GUARAÚNA - Alunos e Matrículas
+// ============================================
+
+model AlunoGuarauna {
+  id              String   @id @default(uuid())
+  pessoaId        Int      @unique
+  pessoa          Pessoa   @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+  
+  // Dados de saúde (estáticos)
+  ubs             String?  // Unidade Básica de Saúde
+  numeroSUS       String?  // Cartão SUS
+  doencas         String?  // Doenças crônicas
+  alergias        String?  // Alergias
+  medicamentos    String?  // Medicamentos de uso contínuo
+  necessidadesEspeciais String? // Necessidades especiais
+  
+  ativo           Boolean  @default(true)
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+  
+  // Relações
+  responsaveis    AlunoResponsavel[]
+  turmas          AlunoTurma[]
+  matriculas      Matricula[]
+  aceitesEventos  AceiteEventoTermo[]
+  
+  @@index([pessoaId])
+}
+
+model ResponsavelLegal {
+  id              String   @id @default(uuid())
+  pessoaId        Int      @unique
+  pessoa          Pessoa   @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+  
+  // Dados específicos do responsável
+  profissao       String?
+  localTrabalho   String?
+  
+  ativo           Boolean  @default(true)
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+  
+  // Relações
+  alunos          AlunoResponsavel[]
+  aceitesMatricula AceiteDigital[]
+  aceitesEventos  AceiteEventoTermo[]
+  
+  @@index([pessoaId])
+}
+
+// Tabela de junção Aluno <-> Responsável (N:N)
+model AlunoResponsavel {
+  id              String   @id @default(uuid())
+  alunoId         String
+  aluno           AlunoGuarauna @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  responsavelId   String
+  responsavel     ResponsavelLegal @relation(fields: [responsavelId], references: [id], onDelete: Cascade)
+  
+  parentesco      String   // mãe, pai, avó, avô, tio, tia, etc.
+  principal       Boolean  @default(false) // Responsável principal
+  
+  criadoEm        DateTime @default(now())
+  
+  @@unique([alunoId, responsavelId])
+  @@index([alunoId])
+  @@index([responsavelId])
+}
+
+// ============================================
+// MÓDULO GUARAÚNA - Professores
+// ============================================
+
+model Professor {
+  id              String   @id @default(uuid())
+  pessoaId        Int      @unique
+  pessoa          Pessoa   @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+  
+  apelido         String?  // Nome artístico/apelido
+  especialidade   String?  // Capoeira, Dança, Música, etc.
+  
+  ativo           Boolean  @default(true)
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+  
+  // Relações
+  comunidades     ProfessorComunidade[]
+  turmas          Turma[]
+  termos          TermoProfessor[]
+  
+  @@index([pessoaId])
+}
+
+model ProfessorComunidade {
+  id              String   @id @default(uuid())
+  professorId     String
+  professor       Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  comunidade      String   // Nome da comunidade
+  
+  dataInicio      DateTime @default(now())
+  dataFim         DateTime?
+  ativo           Boolean  @default(true)
+  
+  @@unique([professorId, comunidade])
+  @@index([professorId])
+  @@index([comunidade])
+}
+
+model TermoProfessor {
+  id              String   @id @default(uuid())
+  professorId     String
+  professor       Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  
+  tipoTermo       String   // "VOLUNTARIADO", "IMAGEM", "RESPONSABILIDADE"
+  conteudo        String   // Texto do termo aceito
+  aceito          Boolean  @default(true)
+  
+  dispositivoInfo String?
+  ipAddress       String?
+  hashVerificacao String   @unique
+  
+  aceitoEm        DateTime @default(now())
+  
+  @@index([professorId])
+}
+
+// ============================================
+// MÓDULO GUARAÚNA - Turmas
+// ============================================
+
+model Turma {
+  id              String   @id @default(uuid())
+  nome            String   // "Turma Infantil Manhã", "Turma Juvenil Tarde"
+  comunidade      String   // Comunidade onde a turma acontece
+  professorId     String?
+  professor       Professor? @relation(fields: [professorId], references: [id], onDelete: SetNull)
+  
+  diaSemana       String?  // "Segunda", "Terça", etc. ou "Segunda e Quarta"
+  horarioInicio   String?  // "09:00"
+  horarioFim      String?  // "11:00"
+  
+  faixaEtariaMin  Int?     // Idade mínima
+  faixaEtariaMax  Int?     // Idade máxima
+  capacidade      Int?     // Capacidade máxima de alunos
+  
+  ativa           Boolean  @default(true)
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+  
+  // Relações
+  alunos          AlunoTurma[]
+  
+  @@index([comunidade])
+  @@index([professorId])
+}
+
+model AlunoTurma {
+  id              String   @id @default(uuid())
+  alunoId         String
+  aluno           AlunoGuarauna @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  turmaId         String
+  turma           Turma @relation(fields: [turmaId], references: [id], onDelete: Cascade)
+  
+  dataEntrada     DateTime @default(now())
+  dataSaida       DateTime?
+  ativo           Boolean  @default(true)
+  
+  @@unique([alunoId, turmaId])
+  @@index([alunoId])
+  @@index([turmaId])
+}
+
+// ============================================
+// MÓDULO GUARAÚNA - Matrículas
+// ============================================
+
+model Matricula {
+  id              String   @id @default(uuid())
+  alunoId         String
+  aluno           AlunoGuarauna @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  
+  ano             Int      // Ano da matrícula (2025, 2026, etc.)
+  tipo            TipoMatricula // MATRICULA ou REMATRICULA
+  
+  // Dados que podem mudar anualmente
+  tamanhoCamiseta String?  // P, M, G, GG, etc.
+  tamanhoBermuda  String?
+  tamanhoCalcado  String?
+  
+  // Composição familiar (versionada por ano)
+  composicaoFamiliar Json? // [{nome, idade, parentesco, escolaridade, ocupacao, renda}]
+  
+  // Status
+  status          StatusMatricula @default(PENDENTE)
+  motivoDesistencia String? // Se status = DESISTENTE
+  
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+  
+  // Relações
+  aceites         AceiteDigital[]
+  
+  @@unique([alunoId, ano])
+  @@index([alunoId])
+  @@index([ano])
+  @@index([status])
+}
+
+enum TipoMatricula {
+  MATRICULA
+  REMATRICULA
+}
+
+enum StatusMatricula {
+  PENDENTE
+  ATIVA
+  DESISTENTE
+  CONCLUIDA
+}
+
+// ============================================
+// ACEITES DIGITAIS - Matrículas
+// ============================================
+
+model AceiteDigital {
+  id              String   @id @default(uuid())
+  codigo          String   @unique @default(uuid()) // Para URL pública
+  
+  matriculaId     String
+  matricula       Matricula @relation(fields: [matriculaId], references: [id], onDelete: Cascade)
+  responsavelId   String
+  responsavel     ResponsavelLegal @relation(fields: [responsavelId], references: [id], onDelete: Cascade)
+  
+  // Termos aceitos (pode haver múltiplos)
+  termoLGPD       Boolean  @default(false)
+  termoResponsabilidade Boolean @default(false)
+  termoImagem     Boolean  @default(false)
+  
+  // Dados do aceite
+  dispositivoInfo String?
+  ipAddress       String?
+  hashVerificacao String   @unique
+  
+  aceitoEm        DateTime @default(now())
+  
+  @@unique([matriculaId, responsavelId])
+  @@index([matriculaId])
+  @@index([responsavelId])
+  @@index([codigo])
+}
+
+// ============================================
+// TERMOS DE EVENTOS (Templates e Instâncias)
+// ============================================
+
+model ModeloTermo {
+  id              String   @id @default(uuid())
+  titulo          String   // "Autorização de Viagem", "Autorização de Filmagem"
+  tipo            TipoTermo
+  conteudoHTML    String   // Texto com placeholders {{nomeAluno}}, {{dataEvento}}
+  ativo           Boolean  @default(true)
+  
+  criadoPorId     Int
+  criadoPor       Usuario  @relation(fields: [criadoPorId], references: [id])
+  
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+  
+  // Relações
+  eventos         EventoTermo[]
+  
+  @@index([tipo])
+  @@index([ativo])
+}
+
+enum TipoTermo {
+  VIAGEM
+  APRESENTACAO
+  COMPETICAO
+  FILMAGEM
+  PASSEIO
+  WORKSHOP
+  OUTRO
+}
+
+model EventoTermo {
+  id                String   @id @default(uuid())
+  codigo            String   @unique @default(uuid()) // Para URL pública
+  
+  modeloTermoId     String
+  modeloTermo       ModeloTermo @relation(fields: [modeloTermoId], references: [id])
+  
+  titulo            String   // "Viagem Brasília - Dezembro 2025"
+  descricao         String?
+  dataEvento        DateTime
+  localEvento       String?
+  dataLimiteAceite  DateTime // Prazo para aceitar
+  
+  ativo             Boolean  @default(true)
+  
+  criadoPorId       Int
+  criadoPor         Usuario  @relation(fields: [criadoPorId], references: [id])
+  
+  criadoEm          DateTime @default(now())
+  
+  // Relações
+  aceites           AceiteEventoTermo[]
+  
+  @@index([codigo])
+  @@index([dataEvento])
+  @@index([ativo])
+}
+
+model AceiteEventoTermo {
+  id                String   @id @default(uuid())
+  
+  eventoTermoId     String
+  eventoTermo       EventoTermo @relation(fields: [eventoTermoId], references: [id], onDelete: Cascade)
+  
+  alunoId           String
+  aluno             AlunoGuarauna @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  
+  responsavelId     String
+  responsavel       ResponsavelLegal @relation(fields: [responsavelId], references: [id], onDelete: Cascade)
+  
+  dispositivoInfo   String?
+  ipAddress         String?
+  hashVerificacao   String   @unique
+  
+  aceitoEm          DateTime @default(now())
+  
+  @@unique([eventoTermoId, alunoId]) // Um aceite por aluno por evento
+  @@index([eventoTermoId])
+  @@index([alunoId])
+  @@index([responsavelId])
 }
 
 model BeneficioGAC {
