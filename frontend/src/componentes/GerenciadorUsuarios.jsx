@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexto/AuthContext';
-import { useToast } from '../hooks/useToast';
-import { ToastContainer } from './Toast';
+import { useGlobalToast } from '../contexto/ToastContext';
 import { ModalConfirmacao } from './ModalConfirmacao';
 import { Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import './GerenciadorUsuarios.css';
@@ -16,7 +15,7 @@ export const GerenciadorUsuarios = () => {
   const [processando, setProcessando] = useState(false);
   
   const { usuario: usuarioLogado } = useAuth();
-  const { toasts, removerToast, sucesso, erro: erroToast } = useToast();
+  const { sucesso, erro: erroToast } = useGlobalToast();
 
   // Debug: Monitorar mudanças no modalConfirmacao
   useEffect(() => {
@@ -221,8 +220,6 @@ export const GerenciadorUsuarios = () => {
 
   return (
     <div className="gerenciador-usuarios">
-      <ToastContainer toasts={toasts} onClose={removerToast} />
-
       <div className="header-gerenciador">
         <div className="info-header">
           <h2>Gerenciamento de Usuários</h2>

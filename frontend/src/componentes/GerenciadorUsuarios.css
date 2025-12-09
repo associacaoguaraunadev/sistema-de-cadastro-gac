@@ -145,12 +145,15 @@
 }
 
 .botao-deletar {
-  background: #ef4444;
-  color: white;
+  background: #ef4444 !important;
+  color: white !important;
+  border: none !important;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
 }
 
 .botao-deletar:hover:not(:disabled) {
-  background: #dc2626;
+  background: #dc2626 !important;
   transform: translateY(-1px);
 }
 
