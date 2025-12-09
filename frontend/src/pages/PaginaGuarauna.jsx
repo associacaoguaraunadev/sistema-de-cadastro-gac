@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import Navbar from '../componentes/Navbar';
-import Toast from '../componentes/Toast';
 import { 
   Music, 
   Users, 
@@ -25,7 +24,6 @@ const PaginaGuarauna = () => {
   const navegar = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [carregando, setCarregando] = useState(true);
-  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     carregarDashboard();
@@ -213,14 +211,6 @@ const PaginaGuarauna = () => {
           </>
         )}
       </main>
-
-      {toast && (
-        <Toast 
-          mensagem={toast.mensagem} 
-          tipo={toast.tipo} 
-          onClose={() => setToast(null)} 
-        />
-      )}
     </div>
   );
 };
