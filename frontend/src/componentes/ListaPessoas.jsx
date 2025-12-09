@@ -391,25 +391,29 @@ export const ListaPessoas = () => {
 
 
 
-  // Calcular idade baseado em dataBeneficio (ou usar dataCriacao como fallback)
-  // Se houver idade no banco, usar ela. Caso contrário, calcular.
+  // Calcular idade baseado em dataNascimento
+  // A idade já vem calculada do backend, mas mantemos a função para fallback
   const calcularIdade = (pessoa) => {
-    // Se já tem idade no banco de dados, usar essa
+    // Se já tem idade calculada pelo backend, usar essa
     if (pessoa.idade !== null && pessoa.idade !== undefined) {
       return pessoa.idade;
     }
     
-    // Senão, calcular pela data de benefício ou data de criação
-    const data = pessoa.dataBeneficio ? new Date(pessoa.dataBeneficio) : new Date(pessoa.dataCriacao);
-    const hoje = new Date();
-    let idade = hoje.getFullYear() - data.getFullYear();
-    const mes = hoje.getMonth() - data.getMonth();
-    
-    if (mes < 0 || (mes === 0 && hoje.getDate() < data.getDate())) {
-      idade--;
+    // Fallback: calcular pela dataNascimento
+    if (pessoa.dataNascimento) {
+      const nascimento = new Date(pessoa.dataNascimento);
+      const hoje = new Date();
+      let idade = hoje.getFullYear() - nascimento.getFullYear();
+      const mes = hoje.getMonth() - nascimento.getMonth();
+      
+      if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+        idade--;
+      }
+      
+      return Math.max(0, idade);
     }
     
-    return Math.max(0, idade);
+    return null;
   };
 
   const obterFaixaEtaria = (idade) => {

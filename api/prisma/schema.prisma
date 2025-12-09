@@ -36,7 +36,7 @@ model Pessoa {
   cidade          String?
   estado          String?
   cep             String?
-  idade           Int?
+  dataNascimento  DateTime? // Data de nascimento para cálculo automático de idade
   comunidade      String?  // Vila Cheba, Morro da Vila, Barragem, Parque Centenario, Jardim Apura
   
   // Benefícios GAC armazenados como JSON array

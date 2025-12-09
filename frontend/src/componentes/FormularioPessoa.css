@@ -216,6 +216,26 @@
   font-weight: 600;
 }
 
+.erro-campo {
+  display: block;
+  color: #f44336;
+  font-size: 12px;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.idade-calculada {
+  display: inline-block;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  color: #2e7d32;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 12px;
+  margin-top: 8px;
+  border-radius: 20px;
+  border: 1px solid #a5d6a7;
+}
+
 .campo-duplo {
   display: grid;
   grid-template-columns: 1fr 1fr;

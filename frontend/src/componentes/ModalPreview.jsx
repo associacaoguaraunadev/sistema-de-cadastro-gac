@@ -74,12 +74,19 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
             // Atualizar dados
             setPessoaAtualizada(dadosAtualizados);
             
-            // Recalcular idade
+            // Recalcular idade corretamente (considerando mês/dia)
             if (dadosAtualizados.dataNascimento) {
               const hoje = new Date();
               const nascimento = new Date(dadosAtualizados.dataNascimento);
-              const novaIdade = hoje.getFullYear() - nascimento.getFullYear();
-              setIdadeAtualizada(novaIdade);
+              let novaIdade = hoje.getFullYear() - nascimento.getFullYear();
+              const mes = hoje.getMonth() - nascimento.getMonth();
+              if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                novaIdade--;
+              }
+              setIdadeAtualizada(Math.max(0, novaIdade));
+            } else if (dadosAtualizados.idade !== undefined) {
+              // Fallback: usar idade calculada pelo backend
+              setIdadeAtualizada(dadosAtualizados.idade);
             }
             
             // Mostrar feedback visual apenas se não for o autor
@@ -253,8 +260,13 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
                     <Calendar size={16} />
                     Data de Nascimento
                   </div>
-                  <div className="campo-valor">
+                  <div className="campo-valor campo-nascimento">
                     {calcularDataNascimento() || 'Não informado'}
+                    {pessoaAtualizada.dataNascimento && (
+                      <span className="badge-idade-preview">
+                        {idadeAtualizada} anos
+                      </span>
+                    )}
                   </div>
                 </div>
 

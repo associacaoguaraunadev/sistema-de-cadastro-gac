@@ -985,6 +985,19 @@
   letter-spacing: 0.3px;
 }
 
+/* Idade calculada automaticamente */
+.idade-calculada-modal {
+  display: inline-block;
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  color: #2e7d32;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  margin-top: 6px;
+  border-radius: 16px;
+  border: 1px solid #a5d6a7;
+}
+
 @keyframes slideInError {
   from {
     opacity: 0;

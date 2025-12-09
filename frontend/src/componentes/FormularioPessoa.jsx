@@ -24,7 +24,7 @@ export const FormularioPessoa = () => {
     cidade: '',
     estado: '',
     cep: '',
-    idade: '',
+    dataNascimento: '',
     comunidade: '',
     rendaFamiliar: '',
     numeroMembros: '',
@@ -156,7 +156,7 @@ export const FormularioPessoa = () => {
         cidade: (pessoa.cidade || '').toString(),
         estado: (pessoa.estado || '').toString(),
         cep: (pessoa.cep || '').toString(),
-        idade: pessoa.idade ? pessoa.idade.toString() : '',
+        dataNascimento: pessoa.dataNascimento ? pessoa.dataNascimento.split('T')[0] : '',
         comunidade: (pessoa.comunidade || '').toString(),
         rendaFamiliar: pessoa.rendaFamiliar || '',
         numeroMembros: pessoa.numeroMembros ? pessoa.numeroMembros.toString() : '',
@@ -454,13 +454,19 @@ export const FormularioPessoa = () => {
       mensagensErro.push('Comunidade é obrigatória');
     }
     
-    // Validar Idade
-    if (!formulario.idade || formulario.idade === '') {
-      novosErros.idade = '⚠️ Idade é obrigatória';
-      mensagensErro.push('Idade é obrigatória');
-    } else if (isNaN(formulario.idade) || formulario.idade < 0 || formulario.idade > 150) {
-      novosErros.idade = '⚠️ Idade inválida (0-150 anos)';
-      mensagensErro.push('Idade deve ser um número entre 0 e 150');
+    // Validar Data de Nascimento
+    if (!formulario.dataNascimento) {
+      novosErros.dataNascimento = '⚠️ Data de nascimento é obrigatória';
+      mensagensErro.push('Data de nascimento é obrigatória');
+    } else {
+      const dataNasc = new Date(formulario.dataNascimento);
+      if (isNaN(dataNasc.getTime())) {
+        novosErros.dataNascimento = '⚠️ Data de nascimento inválida';
+        mensagensErro.push('Data de nascimento inválida');
+      } else if (dataNasc > new Date()) {
+        novosErros.dataNascimento = '⚠️ Data não pode ser no futuro';
+        mensagensErro.push('Data de nascimento não pode ser no futuro');
+      }
     }
 
     // Validar Telefone: deve ter pelo menos 10 dígitos (padrão brasileiro)
@@ -510,7 +516,7 @@ export const FormularioPessoa = () => {
         cidade: formulario.cidade?.trim() || null,
         estado: formulario.estado?.trim() || null,
         cep: (formulario.cep || '').toString().trim() || null,
-        idade: formulario.idade ? parseInt(formulario.idade) : null,
+        dataNascimento: formulario.dataNascimento || null,
         comunidade: formulario.comunidade?.trim() || null,
         rendaFamiliar: formulario.rendaFamiliar ? extrairValorMoeda(formulario.rendaFamiliar) : null,
         numeroMembros: formulario.numeroMembros ? parseInt(formulario.numeroMembros) : null,
@@ -645,21 +651,33 @@ export const FormularioPessoa = () => {
             </div>
 
             <div className="campo-duplo">
-              <div className={`campo ${errosValidacao.idade ? 'campo-erro' : ''}`}>
-                <label htmlFor="idade">Idade *</label>
+              <div className={`campo ${errosValidacao.dataNascimento ? 'campo-erro' : ''}`}>
+                <label htmlFor="dataNascimento">Data de Nascimento *</label>
                 <input
-                  id="idade"
-                  name="idade"
-                  type="number"
-                  min="0"
-                  max="150"
-                  value={formulario.idade}
+                  id="dataNascimento"
+                  name="dataNascimento"
+                  type="date"
+                  value={formulario.dataNascimento}
                   onChange={handleMudar}
-                  placeholder="Digite a idade"
+                  max={new Date().toISOString().split('T')[0]}
                   disabled={salvando}
                 />
-                {errosValidacao.idade && (
-                  <span className="erro-campo">{errosValidacao.idade}</span>
+                {errosValidacao.dataNascimento && (
+                  <span className="erro-campo">{errosValidacao.dataNascimento}</span>
+                )}
+                {formulario.dataNascimento && (
+                  <span className="idade-calculada">
+                    Idade: {(() => {
+                      const nascimento = new Date(formulario.dataNascimento);
+                      const hoje = new Date();
+                      let idade = hoje.getFullYear() - nascimento.getFullYear();
+                      const mes = hoje.getMonth() - nascimento.getMonth();
+                      if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                        idade--;
+                      }
+                      return Math.max(0, idade);
+                    })()} anos
+                  </span>
                 )}
               </div>
             </div>

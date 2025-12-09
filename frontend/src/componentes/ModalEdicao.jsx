@@ -278,11 +278,11 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
         if (!cpfLimpo) return 'CPF é obrigatório';
         if (cpfLimpo.length !== 11) return `CPF incompleto (${cpfLimpo.length}/11 dígitos)`;
         return null;
-      case 'idade':
-        if (!valor && valor !== 0) return 'Idade é obrigatória';
-        const idadeNum = parseInt(valor);
-        if (isNaN(idadeNum)) return 'Idade deve ser um número';
-        if (idadeNum < 0 || idadeNum > 150) return 'Idade deve estar entre 0 e 150';
+      case 'dataNascimento':
+        if (!valor) return 'Data de nascimento é obrigatória';
+        const dataNasc = new Date(valor);
+        if (isNaN(dataNasc.getTime())) return 'Data de nascimento inválida';
+        if (dataNasc > new Date()) return 'Data não pode ser no futuro';
         return null;
       case 'telefone':
         const telefoneLimpo = (valor || '').replace(/\D/g, '');
@@ -470,7 +470,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
     setCamposTocados({
       nome: true,
       cpf: true,
-      idade: true,
+      dataNascimento: true,
       telefone: true,
       endereco: true,
       bairro: true,
@@ -480,7 +480,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
     });
     
     // VALIDAÇÃO RIGOROSA DE TODOS OS CAMPOS OBRIGATÓRIOS
-    const camposObrigatorios = ['nome', 'cpf', 'idade', 'telefone', 'endereco', 'bairro', 'cidade', 'estado', 'comunidade'];
+    const camposObrigatorios = ['nome', 'cpf', 'dataNascimento', 'telefone', 'endereco', 'bairro', 'cidade', 'estado', 'comunidade'];
     const erros = [];
     
     for (const campo of camposObrigatorios) {
@@ -524,7 +524,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       cpf: (formData.cpf || '').replace(/\D/g, ''),
       telefone: (formData.telefone || '').replace(/\D/g, ''),
       cep: (formData.cep || '').replace(/\D/g, ''),
-      idade: parseInt(formData.idade),
+      dataNascimento: formData.dataNascimento || null,
       rendaFamiliar: formData.rendaFamiliar ? extrairValorMoeda(formData.rendaFamiliar) : null,
       numeroMembros: formData.numeroMembros ? parseInt(formData.numeroMembros) : null,
       dependentes: formData.dependentes ? parseInt(formData.dependentes) : null
@@ -658,19 +658,32 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
 
               <div className="form-grid-3">
                 <div className="form-group">
-                  <label htmlFor="idade">Idade *</label>
+                  <label htmlFor="dataNascimento">Data de Nascimento *</label>
                   <input
-                    id="idade"
-                    type="number"
-                    name="idade"
-                    min="0"
-                    max="150"
-                    value={formData.idade || ''}
+                    id="dataNascimento"
+                    type="date"
+                    name="dataNascimento"
+                    max={new Date().toISOString().split('T')[0]}
+                    value={formData.dataNascimento ? formData.dataNascimento.split('T')[0] : ''}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
-                    className={`form-input ${obterErrosCampo('idade') ? 'form-input-erro' : ''}`}
+                    className={`form-input ${obterErrosCampo('dataNascimento') ? 'form-input-erro' : ''}`}
                   />
-                  {obterErrosCampo('idade') && <span className="form-erro-msg">{obterErrosCampo('idade')}</span>}
+                  {obterErrosCampo('dataNascimento') && <span className="form-erro-msg">{obterErrosCampo('dataNascimento')}</span>}
+                  {formData.dataNascimento && (
+                    <span className="idade-calculada-modal">
+                      Idade: {(() => {
+                        const nascimento = new Date(formData.dataNascimento);
+                        const hoje = new Date();
+                        let idade = hoje.getFullYear() - nascimento.getFullYear();
+                        const mes = hoje.getMonth() - nascimento.getMonth();
+                        if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                          idade--;
+                        }
+                        return Math.max(0, idade);
+                      })()} anos
+                    </span>
+                  )}
                 </div>
                 <div className="form-group">
                   <CampoComunidade

@@ -226,18 +226,37 @@ function converterDataParaIso(data) {
   return data; // Retorna como está se não conseguir converter
 }
 
+// Calcular idade a partir da data de nascimento
+function calcularIdade(dataNascimento) {
+  if (!dataNascimento) return null;
+  
+  const nascimento = new Date(dataNascimento);
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - nascimento.getFullYear();
+  const mes = hoje.getMonth() - nascimento.getMonth();
+  
+  if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+    idade--;
+  }
+  
+  return Math.max(0, idade);
+}
+
 // Sanitizar dados de pessoa, convertendo datas
 function sanitizarPessoa(data) {
   const dataSanitizada = { ...data };
   
   // Campos que podem ser datas no schema
-  const camposDatas = ['dataBeneficio', 'dataCriacao', 'dataAtualizacao'];
+  const camposDatas = ['dataBeneficio', 'dataCriacao', 'dataAtualizacao', 'dataNascimento'];
   
   camposDatas.forEach(campo => {
     if (dataSanitizada[campo]) {
       dataSanitizada[campo] = converterDataParaIso(dataSanitizada[campo]);
     }
   });
+  
+  // Remover campo idade se existir (será calculado dinamicamente)
+  delete dataSanitizada.idade;
   
   return dataSanitizada;
 }
@@ -1830,10 +1849,16 @@ async function pessoasListar(req, res) {
       skip
     });
 
+    // Adicionar idade calculada dinamicamente a cada pessoa
+    const pessoasComIdade = pessoas.map(pessoa => ({
+      ...pessoa,
+      idade: calcularIdade(pessoa.dataNascimento)
+    }));
+
     log(`✅ Retornando ${pessoas.length} de ${total} pessoas`);
 
     res.status(200).json({
-      pessoas,
+      pessoas: pessoasComIdade,
       total,
       pagina: paginaNum,
       limite: limiteNum,
@@ -1962,7 +1987,7 @@ async function pessoasCriar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { nome, cpf, idade } = req.body;
+    const { nome, cpf, dataNascimento } = req.body;
     
     // Validação: nome e CPF obrigatórios
     if (!nome || !cpf) {
@@ -1986,23 +2011,32 @@ async function pessoasCriar(req, res) {
       });
     }
 
-    // Validação: idade obrigatória
-    if (idade === null || idade === undefined || idade === '') {
+    // Validação: data de nascimento obrigatória
+    if (!dataNascimento) {
       return res.status(400).json({ 
-        erro: 'Idade é obrigatória',
+        erro: 'Data de nascimento é obrigatória',
         campos: {
-          idade: 'Campo obrigatório'
+          dataNascimento: 'Campo obrigatório'
         }
       });
     }
 
-    // Validação: idade deve ser um número válido
-    const idadeNum = parseInt(idade);
-    if (isNaN(idadeNum) || idadeNum < 0 || idadeNum > 150) {
+    // Validação: data de nascimento deve ser válida e não futura
+    const dataNasc = new Date(dataNascimento);
+    if (isNaN(dataNasc.getTime())) {
       return res.status(400).json({ 
-        erro: 'Idade deve ser um número entre 0 e 150',
+        erro: 'Data de nascimento inválida',
         campos: {
-          idade: 'Valor inválido'
+          dataNascimento: 'Data inválida'
+        }
+      });
+    }
+    
+    if (dataNasc > new Date()) {
+      return res.status(400).json({ 
+        erro: 'Data de nascimento não pode ser no futuro',
+        campos: {
+          dataNascimento: 'Data futura não permitida'
         }
       });
     }
@@ -2016,7 +2050,8 @@ async function pessoasCriar(req, res) {
       }
     });
 
-    log(`✅ Pessoa criada com sucesso: ${pessoa.nome} (ID: ${pessoa.id}, Idade: ${pessoa.idade})`);
+    const idadeCalculada = calcularIdade(pessoa.dataNascimento);
+    log(`✅ Pessoa criada com sucesso: ${pessoa.nome} (ID: ${pessoa.id}, Idade: ${idadeCalculada} anos)`);
     
     // 🚀 Enviar evento Pusher em tempo real para TODOS os clientes
     await enviarEventoPusher('pessoaCadastrada', {
@@ -2059,7 +2094,13 @@ async function pessoasObter(req, res, id) {
       return res.status(404).json({ erro: 'Pessoa não encontrada' });
     }
 
-    res.status(200).json(pessoa);
+    // Adicionar idade calculada dinamicamente
+    const pessoaComIdade = {
+      ...pessoa,
+      idade: calcularIdade(pessoa.dataNascimento)
+    };
+
+    res.status(200).json(pessoaComIdade);
   } catch (erro) {
     log(`Erro ao obter pessoa: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao obter pessoa' });
@@ -2088,24 +2129,33 @@ async function pessoasAtualizar(req, res, id) {
       }
     }
 
-    // Validação: Idade obrigatória
-    if (req.body.idade === null || req.body.idade === undefined || req.body.idade === '') {
+    // Validação: Data de nascimento obrigatória
+    if (!req.body.dataNascimento) {
       return res.status(400).json({ 
-        erro: 'Idade é obrigatória',
+        erro: 'Data de nascimento é obrigatória',
         campos: {
-          idade: 'Campo obrigatório'
+          dataNascimento: 'Campo obrigatório'
         }
       });
     }
 
-    // Validação: Idade deve ser um número válido
-    if (req.body.idade) {
-      const idadeNum = parseInt(req.body.idade);
-      if (isNaN(idadeNum) || idadeNum < 0 || idadeNum > 150) {
+    // Validação: Data de nascimento deve ser válida e não futura
+    if (req.body.dataNascimento) {
+      const dataNasc = new Date(req.body.dataNascimento);
+      if (isNaN(dataNasc.getTime())) {
         return res.status(400).json({ 
-          erro: 'Idade deve ser um número entre 0 e 150',
+          erro: 'Data de nascimento inválida',
           campos: {
-            idade: 'Valor inválido'
+            dataNascimento: 'Data inválida'
+          }
+        });
+      }
+      
+      if (dataNasc > new Date()) {
+        return res.status(400).json({ 
+          erro: 'Data de nascimento não pode ser no futuro',
+          campos: {
+            dataNascimento: 'Data futura não permitida'
           }
         });
       }
