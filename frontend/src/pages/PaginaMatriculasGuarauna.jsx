@@ -82,8 +82,8 @@ const PaginaMatriculasGuarauna = () => {
   const carregarDadosAuxiliares = useCallback(async () => {
     try {
       const [resComunidades, resAlunos] = await Promise.all([
-        fetch(`${API_URL}/api/comunidades`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/guarauna/alunos?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_URL}/comunidades`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/guarauna/alunos?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       if (resComunidades.ok) {
@@ -115,7 +115,7 @@ const PaginaMatriculasGuarauna = () => {
       if (anoFiltro) params.append('ano', anoFiltro);
       if (statusFiltro) params.append('status', statusFiltro);
 
-      const response = await fetch(`${API_URL}/api/guarauna/matriculas?${params}`, {
+      const response = await fetch(`${API_URL}/guarauna/matriculas?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -192,8 +192,8 @@ const PaginaMatriculasGuarauna = () => {
     setSalvando(true);
     try {
       const url = matriculaEditando 
-        ? `${API_URL}/api/guarauna/matriculas/${matriculaEditando.id}`
-        : `${API_URL}/api/guarauna/matriculas`;
+        ? `${API_URL}/guarauna/matriculas/${matriculaEditando.id}`
+        : `${API_URL}/guarauna/matriculas`;
 
       const response = await fetch(url, {
         method: matriculaEditando ? 'PUT' : 'POST',
@@ -227,7 +227,7 @@ const PaginaMatriculasGuarauna = () => {
   const excluirMatricula = async () => {
     const { matricula } = modalConfirmacao;
     try {
-      const response = await fetch(`${API_URL}/api/guarauna/matriculas/${matricula.id}`, {
+      const response = await fetch(`${API_URL}/guarauna/matriculas/${matricula.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -250,7 +250,7 @@ const PaginaMatriculasGuarauna = () => {
   // Alterar status rapidamente
   const alterarStatus = async (matricula, novoStatus) => {
     try {
-      const response = await fetch(`${API_URL}/api/guarauna/matriculas/${matricula.id}`, {
+      const response = await fetch(`${API_URL}/guarauna/matriculas/${matricula.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
