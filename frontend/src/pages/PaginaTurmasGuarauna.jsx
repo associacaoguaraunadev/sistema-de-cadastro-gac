@@ -102,9 +102,9 @@ const PaginaTurmasGuarauna = () => {
   const carregarDadosAuxiliares = useCallback(async () => {
     try {
       const [resComunidades, resEducadores, resAlunos] = await Promise.all([
-        fetch(`${API_URL}/api/comunidades`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/guarauna/educadores?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/guarauna/alunos?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_URL}/comunidades`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/guarauna/educadores?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/guarauna/alunos?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       if (resComunidades.ok) {
@@ -140,7 +140,7 @@ const PaginaTurmasGuarauna = () => {
       if (comunidadeFiltro) params.append('comunidadeId', comunidadeFiltro);
       if (anoFiltro) params.append('ano', anoFiltro);
 
-      const response = await fetch(`${API_URL}/api/guarauna/turmas?${params}`, {
+      const response = await fetch(`${API_URL}/guarauna/turmas?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -239,8 +239,8 @@ const PaginaTurmasGuarauna = () => {
     setSalvando(true);
     try {
       const url = turmaEditando 
-        ? `${API_URL}/api/guarauna/turmas/${turmaEditando.id}`
-        : `${API_URL}/api/guarauna/turmas`;
+        ? `${API_URL}/guarauna/turmas/${turmaEditando.id}`
+        : `${API_URL}/guarauna/turmas`;
 
       const response = await fetch(url, {
         method: turmaEditando ? 'PUT' : 'POST',
@@ -274,7 +274,7 @@ const PaginaTurmasGuarauna = () => {
   const excluirTurma = async () => {
     const { turma } = modalConfirmacao;
     try {
-      const response = await fetch(`${API_URL}/api/guarauna/turmas/${turma.id}`, {
+      const response = await fetch(`${API_URL}/guarauna/turmas/${turma.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

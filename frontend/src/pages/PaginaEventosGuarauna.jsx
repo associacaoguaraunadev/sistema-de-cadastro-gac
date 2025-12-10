@@ -102,9 +102,9 @@ const PaginaEventosGuarauna = () => {
   const carregarDadosAuxiliares = useCallback(async () => {
     try {
       const [resComunidades, resModelos, resTurmas] = await Promise.all([
-        fetch(`${API_URL}/api/comunidades`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/guarauna/modelos-termo`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/guarauna/turmas?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`${API_URL}/comunidades`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/guarauna/modelos-termo`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/guarauna/turmas?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       if (resComunidades.ok) {
@@ -139,7 +139,7 @@ const PaginaEventosGuarauna = () => {
       if (comunidadeFiltro) params.append('comunidadeId', comunidadeFiltro);
       if (statusFiltro) params.append('status', statusFiltro);
 
-      const response = await fetch(`${API_URL}/api/guarauna/eventos?${params}`, {
+      const response = await fetch(`${API_URL}/guarauna/eventos?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -256,8 +256,8 @@ const PaginaEventosGuarauna = () => {
     setSalvando(true);
     try {
       const url = eventoEditando 
-        ? `${API_URL}/api/guarauna/eventos/${eventoEditando.id}`
-        : `${API_URL}/api/guarauna/eventos`;
+        ? `${API_URL}/guarauna/eventos/${eventoEditando.id}`
+        : `${API_URL}/guarauna/eventos`;
 
       const response = await fetch(url, {
         method: eventoEditando ? 'PUT' : 'POST',
@@ -308,8 +308,8 @@ const PaginaEventosGuarauna = () => {
     setSalvando(true);
     try {
       const url = modeloEditando 
-        ? `${API_URL}/api/guarauna/modelos-termo/${modeloEditando.id}`
-        : `${API_URL}/api/guarauna/modelos-termo`;
+        ? `${API_URL}/guarauna/modelos-termo/${modeloEditando.id}`
+        : `${API_URL}/guarauna/modelos-termo`;
 
       const response = await fetch(url, {
         method: modeloEditando ? 'PUT' : 'POST',
@@ -345,8 +345,8 @@ const PaginaEventosGuarauna = () => {
     const { evento, tipo } = modalConfirmacao;
     try {
       const url = tipo === 'modelo' 
-        ? `${API_URL}/api/guarauna/modelos-termo/${evento.id}`
-        : `${API_URL}/api/guarauna/eventos/${evento.id}`;
+        ? `${API_URL}/guarauna/modelos-termo/${evento.id}`
+        : `${API_URL}/guarauna/eventos/${evento.id}`;
 
       const response = await fetch(url, {
         method: 'DELETE',

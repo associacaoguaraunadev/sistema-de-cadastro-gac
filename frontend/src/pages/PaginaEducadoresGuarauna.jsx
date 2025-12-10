@@ -109,7 +109,7 @@ const PaginaEducadoresGuarauna = () => {
   // Carregar comunidades
   const carregarComunidades = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/comunidades`, {
+      const response = await fetch(`${API_URL}/comunidades`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -134,7 +134,7 @@ const PaginaEducadoresGuarauna = () => {
       if (comunidadeFiltro) params.append('comunidadeId', comunidadeFiltro);
       if (graduacaoFiltro) params.append('graduacao', graduacaoFiltro);
 
-      const response = await fetch(`${API_URL}/api/guarauna/educadores?${params}`, {
+      const response = await fetch(`${API_URL}/guarauna/educadores?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -179,7 +179,7 @@ const PaginaEducadoresGuarauna = () => {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/pessoas?busca=${encodeURIComponent(buscaPessoa)}&limite=10`, {
+        const response = await fetch(`${API_URL}/pessoas?busca=${encodeURIComponent(buscaPessoa)}&limite=10`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -296,8 +296,8 @@ const PaginaEducadoresGuarauna = () => {
     setSalvando(true);
     try {
       const url = educadorEditando 
-        ? `${API_URL}/api/guarauna/educadores/${educadorEditando.id}`
-        : `${API_URL}/api/guarauna/educadores`;
+        ? `${API_URL}/guarauna/educadores/${educadorEditando.id}`
+        : `${API_URL}/guarauna/educadores`;
 
       const response = await fetch(url, {
         method: educadorEditando ? 'PUT' : 'POST',
@@ -331,7 +331,7 @@ const PaginaEducadoresGuarauna = () => {
   const excluirEducador = async () => {
     const { educador } = modalConfirmacao;
     try {
-      const response = await fetch(`${API_URL}/api/guarauna/educadores/${educador.id}`, {
+      const response = await fetch(`${API_URL}/guarauna/educadores/${educador.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

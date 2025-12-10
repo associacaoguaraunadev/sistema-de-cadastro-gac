@@ -125,7 +125,7 @@ const PaginaAlunosGuarauna = () => {
   // Carregar comunidades
   const carregarComunidades = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/comunidades`, {
+      const response = await fetch(`${API_URL}/comunidades`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -167,7 +167,7 @@ const PaginaAlunosGuarauna = () => {
       if (filtros.ativo) params.append('ativo', filtros.ativo);
       if (busca) params.append('busca', busca);
 
-      const resposta = await fetch(`${API_URL}/api/guarauna/alunos?${params}`, {
+      const resposta = await fetch(`${API_URL}/guarauna/alunos?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -228,7 +228,7 @@ const PaginaAlunosGuarauna = () => {
 
       setBuscandoPessoas(true);
       try {
-        const response = await fetch(`${API_URL}/api/pessoas?busca=${encodeURIComponent(buscaPessoa)}&limite=10`, {
+        const response = await fetch(`${API_URL}/pessoas?busca=${encodeURIComponent(buscaPessoa)}&limite=10`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -321,7 +321,7 @@ const PaginaAlunosGuarauna = () => {
     
     // Carregar todas as pessoas para o dropdown
     try {
-      const response = await fetch(`${API_URL}/api/pessoas?limite=1000`, {
+      const response = await fetch(`${API_URL}/pessoas?limite=1000`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -382,8 +382,8 @@ const PaginaAlunosGuarauna = () => {
     setSalvando(true);
     try {
       const url = alunoEditando 
-        ? `${API_URL}/api/guarauna/alunos/${alunoEditando.id}`
-        : `${API_URL}/api/guarauna/alunos`;
+        ? `${API_URL}/guarauna/alunos/${alunoEditando.id}`
+        : `${API_URL}/guarauna/alunos`;
 
       const response = await fetch(url, {
         method: alunoEditando ? 'PUT' : 'POST',
@@ -417,7 +417,7 @@ const PaginaAlunosGuarauna = () => {
     if (!alunoSelecionado) return;
 
     try {
-      const resposta = await fetch(`${API_URL}/api/guarauna/alunos/${alunoSelecionado.id}`, {
+      const resposta = await fetch(`${API_URL}/guarauna/alunos/${alunoSelecionado.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
