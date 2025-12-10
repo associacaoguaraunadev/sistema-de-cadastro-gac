@@ -52,7 +52,7 @@ const PaginaGuarauna = () => {
 
   const carregarDashboard = async () => {
     try {
-      const resposta = await fetch(`${API_URL}/api/guarauna/dashboard`, {
+      const resposta = await fetch(`${API_URL}/guarauna/dashboard`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (resposta.ok) {
