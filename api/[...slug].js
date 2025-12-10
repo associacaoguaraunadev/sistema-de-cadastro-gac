@@ -3298,10 +3298,17 @@ async function guaraunaResponsaveisCriar(req, res) {
       // Dados da pessoa (se não tiver pessoaId)
       nome, cpf, rg, telefone, email, endereco,
       // Dados do responsável
-      profissao, localTrabalho,
+      profissao, localTrabalho, estaEmpregado,
       // Parentesco e alunos a vincular
       parentesco, alunoIds
     } = req.body;
+
+    // Garantir que estaEmpregado seja booleano
+    let valorEmpregado = estaEmpregado;
+    if (typeof valorEmpregado === 'string') {
+      valorEmpregado = valorEmpregado === 'true' || valorEmpregado === 'sim' || valorEmpregado === '1';
+    }
+    console.log('[DEBUG] Valor de estaEmpregado recebido (criar):', estaEmpregado, '->', valorEmpregado, typeof valorEmpregado);
 
     // Função para limpar CPF (remover formatação)
     const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
@@ -3384,7 +3391,8 @@ async function guaraunaResponsaveisCriar(req, res) {
       data: {
         pessoaId: pessoaFinalId,
         profissao,
-        localTrabalho
+        localTrabalho,
+        estaEmpregado: valorEmpregado
       },
       include: { pessoa: true, alunos: { include: { aluno: { include: { pessoa: true } } } } }
     });
@@ -3452,6 +3460,14 @@ async function guaraunaResponsaveisObter(req, res, id) {
       return res.status(404).json({ erro: 'Responsável não encontrado' });
     }
 
+    // Log detalhado do objeto retornado
+    console.log('[DEBUG] Objeto responsavel retornado ao frontend:', JSON.stringify(responsavel, null, 2));
+
+    // Garantir que o campo estaEmpregado está presente (mesmo que null)
+    if (!('estaEmpregado' in responsavel)) {
+      responsavel.estaEmpregado = null;
+    }
+
     res.json(responsavel);
   } catch (erro) {
     log(`Erro ao obter responsável: ${erro.message}`, 'error');
@@ -3471,10 +3487,17 @@ async function guaraunaResponsaveisAtualizar(req, res, id) {
       // Dados da pessoa
       nome, cpf, rg, telefone, email, endereco,
       // Dados do responsável
-      profissao, localTrabalho, ativo,
+      profissao, localTrabalho, estaEmpregado, ativo,
       // Parentesco e alunos a vincular
       parentesco, alunoIds, pessoaId
     } = req.body;
+
+    // Garantir que estaEmpregado seja booleano
+    let valorEmpregado = estaEmpregado;
+    if (typeof valorEmpregado === 'string') {
+      valorEmpregado = valorEmpregado === 'true' || valorEmpregado === 'sim' || valorEmpregado === '1';
+    }
+    console.log('[DEBUG] Valor de estaEmpregado recebido (atualizar):', estaEmpregado, '->', valorEmpregado, typeof valorEmpregado);
 
     // Função para limpar CPF (remover formatação)
     const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
@@ -3514,6 +3537,7 @@ async function guaraunaResponsaveisAtualizar(req, res, id) {
       data: { 
         ...(profissao !== undefined && { profissao }),
         ...(localTrabalho !== undefined && { localTrabalho }),
+        ...(estaEmpregado !== undefined && { estaEmpregado: valorEmpregado }),
         ...(ativo !== undefined && { ativo })
       },
       include: { pessoa: true }

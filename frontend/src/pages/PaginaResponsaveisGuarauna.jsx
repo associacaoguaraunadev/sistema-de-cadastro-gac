@@ -57,6 +57,16 @@ const formatarTelefone = (valor) => {
   return `(${valor.slice(0, 2)}) ${valor.slice(2, 7)}-${valor.slice(7)}`;
 };
 
+// Máscara para RG: 00.000.000-0
+const formatarRG = (valor) => {
+  if (!valor) return '';
+  valor = valor.toString().replace(/\D/g, '').slice(0, 9);
+  if (valor.length <= 2) return valor;
+  if (valor.length <= 5) return `${valor.slice(0, 2)}.${valor.slice(2)}`;
+  if (valor.length <= 8) return `${valor.slice(0, 2)}.${valor.slice(2, 5)}.${valor.slice(5)}`;
+  return `${valor.slice(0, 2)}.${valor.slice(2, 5)}.${valor.slice(5, 8)}-${valor.slice(8)}`;
+};
+
 const PaginaResponsaveisGuarauna = () => {
   const { usuario, token } = useAuth();
   const { adicionarToast } = useGlobalToast();
@@ -89,7 +99,7 @@ const PaginaResponsaveisGuarauna = () => {
     parentesco: '',
     profissao: '',
     localTrabalho: '',
-    estaEmpregado: null,
+    estaEmpregado: false, // Inicializar com false em vez de null
     alunoIds: []
   });
 
@@ -299,7 +309,8 @@ const PaginaResponsaveisGuarauna = () => {
       telefone: pessoa.telefone || '',
       email: pessoa.email || '',
       endereco: pessoa.endereco || '',
-      pessoaId: pessoa.id
+      pessoaId: pessoa.id,
+      estaEmpregado: false // Inicializar com valor padrão
     });
   };
 
@@ -330,7 +341,7 @@ const PaginaResponsaveisGuarauna = () => {
       parentesco: '',
       profissao: '',
       localTrabalho: '',
-      estaEmpregado: null,
+      estaEmpregado: false, // Inicializar com false em vez de null
       alunoIds: [],
       pessoaId: null
     });
@@ -406,27 +417,28 @@ const PaginaResponsaveisGuarauna = () => {
       const telefoneBruto = responsavelParaEditar.pessoa?.telefone || responsavelParaEditar.telefone || '';
       const rgBruto = responsavelParaEditar.pessoa?.rg || responsavelParaEditar.rg || '';
       
-      // Normalizar o valor booleano do estaEmpregado para garantir que seja true, false ou null
+      // Normalizar o valor booleano do estaEmpregado para garantir que seja true ou false
       // Pegando o valor diretamente do objeto para diagnóstico
       console.log("Valor bruto de estaEmpregado:", responsavelParaEditar.estaEmpregado);
       console.log("Tipo de estaEmpregado:", typeof responsavelParaEditar.estaEmpregado);
       
       // Processamento explícito para garantir tipo correto
-      let estaEmpregado = null;
+      let estaEmpregado = false; // Valor padrão para evitar nulo
       const valorBruto = responsavelParaEditar.estaEmpregado;
       
       if (valorBruto === true || valorBruto === 1 || valorBruto === "1" || valorBruto === "true" || valorBruto === "sim") {
         estaEmpregado = true;
-      } else if (valorBruto === false || valorBruto === 0 || valorBruto === "0" || valorBruto === "false" || valorBruto === "nao" || valorBruto === "não") {
+      } else {
         estaEmpregado = false;
       }
       
-      console.log("estaEmpregado normalizado:", estaEmpregado);
+      console.log("estaEmpregado original:", valorBruto);
+      console.log("estaEmpregado convertido para:", estaEmpregado);
       
       setFormData({
         nome: responsavelParaEditar.pessoa?.nome || responsavelParaEditar.nome || '',
         cpf: formatarCPF(cpfBruto),
-        rg: rgBruto,
+        rg: formatarRG(rgBruto), // Usando formatarRG em vez de rgBruto diretamente
         telefone: formatarTelefone(telefoneBruto),
         email: responsavelParaEditar.pessoa?.email || responsavelParaEditar.email || '',
         endereco: responsavelParaEditar.pessoa?.endereco || responsavelParaEditar.endereco || '',
@@ -435,7 +447,7 @@ const PaginaResponsaveisGuarauna = () => {
         localTrabalho: responsavelParaEditar.localTrabalho || '',
         alunoIds: alunosIds,
         pessoaId: responsavelParaEditar.pessoa?.id || responsavelParaEditar.pessoaId,
-        estaEmpregado: estaEmpregado
+        estaEmpregado: estaEmpregado // Usando o valor já normalizado
       });
     } else {
       resetForm();
@@ -453,6 +465,7 @@ const PaginaResponsaveisGuarauna = () => {
 
   // Salvar responsável
   const salvarResponsavel = async () => {
+    // Validações básicas
     if (!formData.nome.trim()) {
       adicionarToast('Nome é obrigatório', 'erro');
       return;
@@ -463,10 +476,20 @@ const PaginaResponsaveisGuarauna = () => {
       return;
     }
 
+    // Não validamos estaEmpregado aqui, pois agora sempre tem um valor booleano definido
+
     setSalvando(true);
     
+    // Preparar os dados para envio
+    const dadosParaEnvio = {
+      ...formData,
+      // Garantir que estaEmpregado seja enviado explicitamente como boolean
+      estaEmpregado: formData.estaEmpregado === true
+    };
+    
     // Log dos dados que estamos enviando para diagnóstico
-    console.log("Dados sendo salvos:", formData);
+    console.log("Dados sendo salvos:", dadosParaEnvio);
+    console.log("estaEmpregado enviado como:", dadosParaEnvio.estaEmpregado, "tipo:", typeof dadosParaEnvio.estaEmpregado);
     
     try {
       const url = responsavelEditando 
@@ -479,9 +502,12 @@ const PaginaResponsaveisGuarauna = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dadosParaEnvio)
       });
 
+      // Verificar o que foi recebido pelo servidor (se possível)
+      console.log("Status da resposta:", response.status);
+      
       if (response.ok) {
         adicionarToast(
           responsavelEditando ? 'Responsável atualizado com sucesso!' : 'Responsável cadastrado com sucesso!',
@@ -491,6 +517,7 @@ const PaginaResponsaveisGuarauna = () => {
         carregarResponsaveis();
       } else {
         const erro = await response.json();
+        console.error("Erro retornado pelo servidor:", erro);
         adicionarToast(erro.erro || 'Erro ao salvar responsável', 'erro');
       }
     } catch (error) {
@@ -859,8 +886,9 @@ const PaginaResponsaveisGuarauna = () => {
                   <input
                     type="text"
                     value={formData.rg}
-                    onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
-                    placeholder="RG"
+                    onChange={(e) => setFormData({ ...formData, rg: formatarRG(e.target.value) })}
+                    placeholder="00.000.000-0"
+                    maxLength={12}
                   />
                 </div>
               </div>
@@ -898,18 +926,21 @@ const PaginaResponsaveisGuarauna = () => {
               </div>
 
               <div className="form-grupo">
-                <label>Está empregado?</label>
+                <label>Está empregado? *</label>
                 <select
-                  value={formData.estaEmpregado === true ? 'sim' : formData.estaEmpregado === false ? 'nao' : ''}
+                  value={formData.estaEmpregado === true ? 'sim' : 'nao'}
                   onChange={e => {
-                    console.log("Valor selecionado:", e.target.value);
+                    // Converter diretamente para booleano
+                    const novoValor = e.target.value === 'sim';
+                    console.log("Alterando estaEmpregado para:", e.target.value, "convertido para:", novoValor);
+                    
                     setFormData({ 
                       ...formData, 
-                      estaEmpregado: e.target.value === 'sim' ? true : e.target.value === 'nao' ? false : null 
+                      estaEmpregado: novoValor
                     });
                   }}
+                  required
                 >
-                  <option value="">Selecione</option>
                   <option value="sim">Sim</option>
                   <option value="nao">Não</option>
                 </select>
