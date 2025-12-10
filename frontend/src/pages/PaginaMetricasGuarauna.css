@@ -1,0 +1,228 @@
+/* ============================================ */
+/* Página Métricas Guaraúna                    */
+/* Estilo: Leve, Clean e Minimalista           */
+/* ============================================ */
+
+.pagina-metricas {
+  min-height: 100vh;
+  background: #fafbfc;
+}
+
+.metricas-conteudo {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+/* Header - Clean e espaçado */
+.metricas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.metricas-header .header-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.metricas-header .header-icone {
+  width: 48px;
+  height: 48px;
+  background: #667eea;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.metricas-header h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.3px;
+}
+
+.metricas-header p {
+  font-size: 14px;
+  color: #888;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* Grid de Métricas - Arejado */
+.metricas-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 40px;
+}
+
+.metrica-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #eef0f2;
+  transition: all 0.15s ease;
+}
+
+.metrica-card:hover {
+  border-color: #d0d5dd;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.metrica-card.destaque {
+  background: #4CAF50;
+  border-color: #4CAF50;
+}
+
+.metrica-card.destaque .metrica-valor,
+.metrica-card.destaque .metrica-label {
+  color: white;
+}
+
+.metrica-card.destaque .metrica-icone {
+  background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.metrica-icone {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metrica-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metrica-valor {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a2e;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+
+.metrica-label {
+  font-size: 12px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-weight: 500;
+}
+
+/* Seção de Gráficos (placeholder) */
+.metricas-graficos {
+  margin-top: 40px;
+}
+
+.grafico-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 40px;
+  background: white;
+  border-radius: 12px;
+  border: 1px dashed #d0d5dd;
+  color: #aaa;
+}
+
+.grafico-placeholder p {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Carregando */
+.carregando-dashboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px;
+  gap: 16px;
+}
+
+.carregando-dashboard .spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid #e8e8e8;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.carregando-dashboard p {
+  color: #888;
+  font-size: 14px;
+}
+
+/* Responsivo */
+@media (max-width: 1024px) {
+  .metricas-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .metricas-conteudo {
+    padding: 20px 16px 32px;
+  }
+
+  .metricas-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .metricas-header .header-icone {
+    width: 42px;
+    height: 42px;
+  }
+
+  .metricas-header h1 {
+    font-size: 20px;
+  }
+
+  .metricas-grid {
+    gap: 12px;
+  }
+
+  .metrica-card {
+    padding: 16px;
+  }
+
+  .metrica-valor {
+    font-size: 26px;
+  }
+
+  .metrica-icone {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .metricas-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

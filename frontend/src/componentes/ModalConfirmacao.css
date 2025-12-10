@@ -89,6 +89,11 @@
   color: #dc3545;
 }
 
+.modal-icone-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
 /* Título */
 .modal-titulo {
   margin: 0 0 12px 0;
@@ -197,6 +202,15 @@
 .botao-confirmar-deletar:hover:not(:disabled),
 .botao-confirmar-delete:hover:not(:disabled) {
   background: #c82333 !important;
+  transform: translateY(-1px);
+}
+
+.botao-confirmar-warning {
+  background: #d97706 !important;
+}
+
+.botao-confirmar-warning:hover:not(:disabled) {
+  background: #b45309 !important;
   transform: translateY(-1px);
 }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, LogOut, Trash2 } from 'lucide-react';
+import { AlertCircle, LogOut, Trash2, AlertTriangle } from 'lucide-react';
 import './ModalConfirmacao.css';
 
 export const ModalConfirmacao = ({ 
@@ -19,7 +19,8 @@ export const ModalConfirmacao = ({
     alerta: <AlertCircle size={32} />,
     logout: <LogOut size={32} />,
     deletar: <Trash2 size={32} />,
-    delete: <Trash2 size={32} />
+    delete: <Trash2 size={32} />,
+    warning: <AlertTriangle size={32} />
   };
 
   return (
@@ -27,19 +28,21 @@ export const ModalConfirmacao = ({
       <div className="modal-backdrop" onClick={onCancelar}></div>
       <div className={`modal-confirmacao modal-${tipo}`}>
         <div className={`modal-icone modal-icone-${tipo}`}>
-          {icones[tipo]}
+          {icones[tipo] || icones.alerta}
         </div>
         <h2 className="modal-titulo">{titulo}</h2>
-        <p className="modal-mensagem">{mensagem}</p>
+        <div className="modal-mensagem">{mensagem}</div>
         
         <div className="modal-botoes">
-          <button
-            className="botao-modal botao-cancelar"
-            onClick={onCancelar}
-            disabled={carregando}
-          >
-            {botaoCancelarTexto}
-          </button>
+          {botaoCancelarTexto && (
+            <button
+              className="botao-modal botao-cancelar"
+              onClick={onCancelar}
+              disabled={carregando}
+            >
+              {botaoCancelarTexto}
+            </button>
+          )}
           <button
             className={`botao-modal botao-confirmar botao-confirmar-${tipo}`}
             onClick={onConfirmar}
@@ -56,7 +59,7 @@ export const ModalConfirmacao = ({
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite'
                 }}></span>
-                Deletando...
+                Processando...
               </span>
             ) : botaoPrincipalTexto}
           </button>

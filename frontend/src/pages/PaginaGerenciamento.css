@@ -1,0 +1,140 @@
+/* Página de Gerenciamento */
+.pagina-gerenciamento {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.gerenciamento-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+/* Header */
+.gerenciamento-header {
+  margin-bottom: 32px;
+}
+
+.gerenciamento-titulo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gerenciamento-titulo .icone-titulo {
+  color: #2e7d32;
+  flex-shrink: 0;
+}
+
+.gerenciamento-titulo h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.gerenciamento-titulo p {
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Grid de Cards */
+.gerenciamento-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* Cards */
+.gerenciamento-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gerenciamento-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(46, 125, 50, 0.15);
+  border-color: rgba(46, 125, 50, 0.2);
+}
+
+.gerenciamento-card:active {
+  transform: translateY(-2px);
+}
+
+.card-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+
+.card-conteudo {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-conteudo h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.card-conteudo p {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.card-seta {
+  color: #ccc;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.gerenciamento-card:hover .card-seta {
+  color: #2e7d32;
+  transform: translateX(4px);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .gerenciamento-container {
+    padding: 20px 16px;
+  }
+
+  .gerenciamento-titulo h1 {
+    font-size: 24px;
+  }
+
+  .gerenciamento-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gerenciamento-card {
+    padding: 20px;
+  }
+
+  .card-icone {
+    width: 48px;
+    height: 48px;
+  }
+
+  .card-icone svg {
+    width: 24px;
+    height: 24px;
+  }
+}

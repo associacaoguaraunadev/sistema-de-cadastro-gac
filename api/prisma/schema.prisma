@@ -74,7 +74,7 @@ model Pessoa {
   // Relações Módulo Guaraúna
   alunoGuarauna     AlunoGuarauna?
   responsavelLegal  ResponsavelLegal?
-  professor         Professor?
+  educador          Educador?
   
   @@index([usuarioId])
   @@index([comunidade])
@@ -89,6 +89,9 @@ model AlunoGuarauna {
   id              String   @id @default(uuid())
   pessoaId        Int      @unique
   pessoa          Pessoa   @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
+  
+  // Graduação de capoeira
+  graduacaoAtual  String?  // Iniciante, Batizado, Intermediário, Avançado, etc.
   
   // Dados de saúde (estáticos)
   ubs             String?  // Unidade Básica de Saúde
@@ -151,10 +154,10 @@ model AlunoResponsavel {
 }
 
 // ============================================
-// MÓDULO GUARAÚNA - Professores
+// MÓDULO GUARAÚNA - Educadores
 // ============================================
 
-model Professor {
+model Educador {
   id              String   @id @default(uuid())
   pessoaId        Int      @unique
   pessoa          Pessoa   @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
@@ -167,32 +170,32 @@ model Professor {
   atualizadoEm    DateTime @updatedAt
   
   // Relações
-  comunidades     ProfessorComunidade[]
+  comunidades     EducadorComunidade[]
   turmas          Turma[]
-  termos          TermoProfessor[]
+  termos          TermoEducador[]
   
   @@index([pessoaId])
 }
 
-model ProfessorComunidade {
+model EducadorComunidade {
   id              String   @id @default(uuid())
-  professorId     String
-  professor       Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  educadorId      String
+  educador        Educador @relation(fields: [educadorId], references: [id], onDelete: Cascade)
   comunidade      String   // Nome da comunidade
   
   dataInicio      DateTime @default(now())
   dataFim         DateTime?
   ativo           Boolean  @default(true)
   
-  @@unique([professorId, comunidade])
-  @@index([professorId])
+  @@unique([educadorId, comunidade])
+  @@index([educadorId])
   @@index([comunidade])
 }
 
-model TermoProfessor {
+model TermoEducador {
   id              String   @id @default(uuid())
-  professorId     String
-  professor       Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  educadorId      String
+  educador        Educador @relation(fields: [educadorId], references: [id], onDelete: Cascade)
   
   tipoTermo       String   // "VOLUNTARIADO", "IMAGEM", "RESPONSABILIDADE"
   conteudo        String   // Texto do termo aceito
@@ -204,7 +207,7 @@ model TermoProfessor {
   
   aceitoEm        DateTime @default(now())
   
-  @@index([professorId])
+  @@index([educadorId])
 }
 
 // ============================================
@@ -215,9 +218,10 @@ model Turma {
   id              String   @id @default(uuid())
   nome            String   // "Turma Infantil Manhã", "Turma Juvenil Tarde"
   comunidade      String   // Comunidade onde a turma acontece
-  professorId     String?
-  professor       Professor? @relation(fields: [professorId], references: [id], onDelete: SetNull)
+  educadorId      String?
+  educador        Educador? @relation(fields: [educadorId], references: [id], onDelete: SetNull)
   
+  ano             Int?     // Ano letivo da turma (2024, 2025, etc.)
   diaSemana       String?  // "Segunda", "Terça", etc. ou "Segunda e Quarta"
   horarioInicio   String?  // "09:00"
   horarioFim      String?  // "11:00"
@@ -234,7 +238,7 @@ model Turma {
   alunos          AlunoTurma[]
   
   @@index([comunidade])
-  @@index([professorId])
+  @@index([educadorId])
 }
 
 model AlunoTurma {

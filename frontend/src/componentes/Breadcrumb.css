@@ -7,20 +7,52 @@
 }
 
 .breadcrumb-container {
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 40px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+/* Ícone Home */
+.breadcrumb-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  transition: all 0.2s ease;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.breadcrumb-home:hover {
+  color: #2e7d32;
+  background: rgba(46, 125, 50, 0.1);
+}
+
+/* Items do breadcrumb */
 .breadcrumb-item {
   font-size: 14px;
   color: #666;
   font-weight: 500;
 }
 
+/* Links clicáveis */
+.breadcrumb-link {
+  text-decoration: none;
+  color: #666;
+  transition: all 0.2s ease;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.breadcrumb-link:hover {
+  color: #2e7d32;
+  background: rgba(46, 125, 50, 0.1);
+}
+
+/* Item atual (não clicável) */
 .breadcrumb-item.current {
   color: #2e7d32;
   font-weight: 600;
@@ -28,6 +60,7 @@
 
 .breadcrumb-separator {
   color: #bbb;
+  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
@@ -37,5 +70,9 @@
   
   .breadcrumb-item {
     font-size: 13px;
+  }
+  
+  .breadcrumb-link {
+    padding: 4px 6px;
   }
 }

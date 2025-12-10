@@ -17,9 +17,12 @@ import PaginaGerenciamentoComunidades from './pages/PaginaGerenciamentoComunidad
 import PaginaTransferencia from './pages/PaginaTransferencia';
 import PaginaUsuarios from './pages/PaginaUsuarios';
 import PaginaBeneficios from './pages/PaginaBeneficios';
+import PaginaGerenciamento from './pages/PaginaGerenciamento';
 import PaginaGuarauna from './pages/PaginaGuarauna';
+import PaginaMetricasGuarauna from './pages/PaginaMetricasGuarauna';
 import PaginaAlunosGuarauna from './pages/PaginaAlunosGuarauna';
-import PaginaProfessoresGuarauna from './pages/PaginaProfessoresGuarauna';
+import PaginaResponsaveisGuarauna from './pages/PaginaResponsaveisGuarauna';
+import PaginaEducadoresGuarauna from './pages/PaginaEducadoresGuarauna';
 import PaginaTurmasGuarauna from './pages/PaginaTurmasGuarauna';
 import PaginaMatriculasGuarauna from './pages/PaginaMatriculasGuarauna';
 import PaginaEventosGuarauna from './pages/PaginaEventosGuarauna';
@@ -89,6 +92,14 @@ function App() {
         } 
       />
       <Route 
+        path="/gerenciamento" 
+        element={
+          <RotaPrivada>
+            <PaginaGerenciamento />
+          </RotaPrivada>
+        } 
+      />
+      <Route 
         path="/gerenciamento/comunidades" 
         element={
           <RotaPrivada>
@@ -150,6 +161,15 @@ function App() {
       />
 
       <Route 
+        path="/guarauna/metricas" 
+        element={
+          <RotaPrivada>
+            <PaginaMetricasGuarauna />
+          </RotaPrivada>
+        } 
+      />
+
+      <Route 
         path="/guarauna/alunos" 
         element={
           <RotaPrivada>
@@ -159,10 +179,19 @@ function App() {
       />
 
       <Route 
-        path="/guarauna/professores" 
+        path="/guarauna/responsaveis" 
         element={
           <RotaPrivada>
-            <PaginaProfessoresGuarauna />
+            <PaginaResponsaveisGuarauna />
+          </RotaPrivada>
+        } 
+      />
+
+      <Route 
+        path="/guarauna/educadores" 
+        element={
+          <RotaPrivada>
+            <PaginaEducadoresGuarauna />
           </RotaPrivada>
         } 
       />

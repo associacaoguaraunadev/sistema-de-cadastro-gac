@@ -5,15 +5,31 @@ const ToastContext = createContext();
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
 
-  const adicionarToast = useCallback((config) => {
+  const adicionarToast = useCallback((configOuMensagem, tipoParam) => {
     const id = Math.random().toString(36).substr(2, 9);
-    const novoToast = {
-      id,
-      tipo: 'info',
-      duracao: 6000,
-      ...config
-    };
-
+    
+    // Suportar chamadas no formato antigo: adicionarToast('mensagem', 'tipo')
+    // E no formato novo: adicionarToast({ titulo, mensagem, tipo })
+    let novoToast;
+    
+    if (typeof configOuMensagem === 'string') {
+      // Formato antigo: adicionarToast('mensagem', 'tipo')
+      novoToast = {
+        id,
+        tipo: tipoParam || 'info',
+        titulo: configOuMensagem,
+        mensagem: '',
+        duracao: tipoParam === 'erro' ? 7000 : 6000
+      };
+    } else {
+      // Formato novo: objeto de configuração
+      novoToast = {
+        id,
+        tipo: 'info',
+        duracao: 6000,
+        ...configOuMensagem
+      };
+    }
 
     setToasts(prevToasts => [...prevToasts, novoToast]);
     return id;

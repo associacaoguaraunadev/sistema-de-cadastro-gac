@@ -79,15 +79,22 @@ export const atualizarPessoa = async (token, id, dados) => {
   return resposta.data;
 };
 
+// 🔍 Verificar dependências antes de excluir pessoa
+export const verificarExclusaoPessoa = async (token, id) => {
+  const cliente = criarClienteAPI(token);
+  const resposta = await cliente.get(`/pessoas/${id}/verificar-exclusao`);
+  return resposta.data;
+};
+
 export const deletarPessoa = async (token, id) => {
   const cliente = criarClienteAPI(token);
   await cliente.delete(`/pessoas/${id}`);
 };
 
 // 🗑️ Deleção em massa de pessoas (apenas admin)
-export const deletarPessoasEmMassa = async (token, ids) => {
+export const deletarPessoasEmMassa = async (token, ids, forcarExclusao = false) => {
   const cliente = criarClienteAPI(token);
-  const resposta = await cliente.post('/pessoas/deletar-em-massa', { ids });
+  const resposta = await cliente.post('/pessoas/deletar-em-massa', { ids, forcarExclusao });
   return resposta.data;
 };
 

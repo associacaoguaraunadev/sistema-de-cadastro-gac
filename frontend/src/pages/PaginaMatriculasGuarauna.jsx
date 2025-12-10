@@ -67,7 +67,7 @@ const PaginaMatriculasGuarauna = () => {
 
   const anosDisponiveis = [];
   const anoAtual = new Date().getFullYear();
-  for (let i = anoAtual - 2; i <= anoAtual + 1; i++) {
+  for (let i = anoAtual - 2; i <= 2045; i++) {
     anosDisponiveis.push(i);
   }
 
@@ -93,7 +93,8 @@ const PaginaMatriculasGuarauna = () => {
 
       if (resAlunos.ok) {
         const data = await resAlunos.json();
-        setAlunos(data.alunos || []);
+        // API retorna array diretamente, não { alunos: [...] }
+        setAlunos(Array.isArray(data) ? data : (data.alunos || []));
       }
     } catch (error) {
       console.error('Erro ao carregar dados auxiliares:', error);

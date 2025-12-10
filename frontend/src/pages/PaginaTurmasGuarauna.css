@@ -306,7 +306,8 @@
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
@@ -320,6 +321,7 @@
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
@@ -378,6 +380,9 @@
 
 .modal-body {
   padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .form-grupo {
@@ -459,6 +464,173 @@
   font-size: 0.9rem;
 }
 
+/* Busca de alunos */
+.alunos-busca-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.alunos-busca-container input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+}
+
+.alunos-busca-container svg {
+  color: #94a3b8;
+}
+
+/* Tags de alunos selecionados */
+.alunos-selecionados-tags {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+}
+
+.tags-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #166534;
+  margin-bottom: 10px;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.aluno-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #86efac;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #166534;
+  font-weight: 500;
+}
+
+.aluno-tag .remover-aluno {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #ef4444;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.aluno-tag .remover-aluno:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Chips de alunos */
+.alunos-chips-container {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.alunos-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.aluno-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 20px;
+  background: white;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aluno-chip:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f0f0ff;
+}
+
+.aluno-chip.selecionado {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+}
+
+.aluno-chip.selecionado:hover {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+
+/* Chips de dias da semana */
+.dias-semana-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dia-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 25px;
+  background: white;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dia-chip:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f0f0ff;
+}
+
+.dia-chip.selecionado {
+  border-color: #6366f1;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+}
+
+.dia-chip.selecionado:hover {
+  background: linear-gradient(135deg, #5558e3 0%, #7c4fe0 100%);
+}
+
+.form-row.duas-colunas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Lista antiga (mantida para compatibilidade) */
 .alunos-lista {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -516,6 +688,7 @@
   padding: 16px 24px;
   border-top: 1px solid #e2e8f0;
   background: #f8fafc;
+  flex-shrink: 0;
 }
 
 .btn-cancelar {
@@ -653,6 +826,15 @@
 
   .alunos-lista {
     grid-template-columns: 1fr;
+  }
+
+  .alunos-chips {
+    gap: 8px;
+  }
+
+  .aluno-chip {
+    padding: 6px 12px;
+    font-size: 0.85rem;
   }
 
   .modal-abas .aba {

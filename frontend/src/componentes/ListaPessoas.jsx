@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { usePusher } from '../contexto/PusherContext';
-import { obterPessoas, deletarPessoa, deletarPessoasEmMassa, obterTotaisPorComunidade } from '../servicos/api';
-import { Plus, Edit2, Trash2, Search, Users, Baby, User, Heart, CheckSquare, Square, X } from 'lucide-react';
+import { obterPessoas, deletarPessoa, deletarPessoasEmMassa, obterTotaisPorComunidade, verificarExclusaoPessoa } from '../servicos/api';
+import { Plus, Edit2, Trash2, Search, Users, Baby, User, Heart, CheckSquare, Square, X, AlertTriangle } from 'lucide-react';
 import { FiltroAvancado } from './FiltroAvancado';
 
 
@@ -16,7 +16,7 @@ import './ListaPessoas.css';
 
 // Função helper para converter hex para RGB
 const hexToRgb = (hex) => {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '255, 255, 255';
 };
 
@@ -44,10 +44,15 @@ export const ListaPessoas = () => {
   const [deletandoPessoa, setDeletandoPessoa] = useState(false);
   const [modalCadastroAberto, setModalCadastroAberto] = useState(false);
   
+  // 🛡️ Estados para verificação de dependências
+  const [verificandoDependencias, setVerificandoDependencias] = useState(false);
+  const [dependenciasPessoa, setDependenciasPessoa] = useState(null);
+  
   // 🗑️ ESTADOS PARA SELEÇÃO E DELEÇÃO EM MASSA
   const [modoSelecao, setModoSelecao] = useState(false);
   const [pessoasSelecionadas, setPessoasSelecionadas] = useState(new Set());
   const [deletandoEmMassa, setDeletandoEmMassa] = useState(false);
+  const [resultadoVerificacaoMassa, setResultadoVerificacaoMassa] = useState(null);
   const [modalDeleteMassaAberto, setModalDeleteMassaAberto] = useState(false);
   
   // ✨ ESTADOS PARA AUTO-REFRESH E ALERTAS
@@ -358,13 +363,42 @@ export const ListaPessoas = () => {
     }
   };
 
+  // 🛡️ VERIFICAR DEPENDÊNCIAS ANTES DE DELETAR
   const handleDeletar = async (id) => {
     setPessoaParaDeleter(id);
-    setModalDeleteAberto(true);
+    setVerificandoDependencias(true);
+    setDependenciasPessoa(null);
+    
+    try {
+      const verificacao = await verificarExclusaoPessoa(token, id);
+      setDependenciasPessoa(verificacao);
+      setModalDeleteAberto(true);
+    } catch (erro) {
+      console.error('Erro ao verificar dependências:', erro);
+      
+      // Se o erro for 409 (conflito), significa que tem dependências bloqueantes
+      if (erro.response?.status === 409) {
+        setDependenciasPessoa(erro.response.data);
+        setModalDeleteAberto(true);
+      } else {
+        erroToast('Erro', 'Não foi possível verificar as dependências');
+      }
+    } finally {
+      setVerificandoDependencias(false);
+    }
   };
 
   const confirmarDeletar = async () => {
     if (!pessoaParaDeleter || deletandoPessoa) return;
+    
+    // Verificar se a exclusão está bloqueada
+    if (dependenciasPessoa && !dependenciasPessoa.podeExcluir) {
+      erroToast('Exclusão Bloqueada', dependenciasPessoa.motivoBloqueio || 'Esta pessoa possui dependências que impedem a exclusão');
+      setModalDeleteAberto(false);
+      setPessoaParaDeleter(null);
+      setDependenciasPessoa(null);
+      return;
+    }
     
     const pessoaParaDeletar = pessoas.find(p => p.id === pessoaParaDeleter);
     setDeletandoPessoa(true);
@@ -388,11 +422,17 @@ export const ListaPessoas = () => {
         return;
       }
       
-      erroToast('Erro ao Deletar', 'Não foi possível deletar o beneficiário');
+      // Erro de dependências (409 Conflict)
+      if (erro.response?.status === 409) {
+        erroToast('Exclusão Bloqueada', erro.response.data?.motivo || 'Esta pessoa possui dependências');
+      } else {
+        erroToast('Erro ao Deletar', 'Não foi possível deletar o beneficiário');
+      }
     } finally {
       setDeletandoPessoa(false);
       setModalDeleteAberto(false);
       setPessoaParaDeleter(null);
+      setDependenciasPessoa(null);
     }
   };
 
@@ -429,13 +469,19 @@ export const ListaPessoas = () => {
     
     try {
       const ids = Array.from(pessoasSelecionadas);
-      await deletarPessoasEmMassa(token, ids);
+      const resultado = await deletarPessoasEmMassa(token, ids);
       
       // Atualizar lista local removendo as pessoas deletadas
+      const quantidadeDeletada = resultado.quantidade || pessoasSelecionadas.size;
       setPessoas(pessoas.filter(p => !pessoasSelecionadas.has(p.id)));
-      setTotal(total - pessoasSelecionadas.size);
+      setTotal(total - quantidadeDeletada);
       
-      sucesso('Sucesso', `${pessoasSelecionadas.size} beneficiário(s) deletado(s) com sucesso!`);
+      // Verificar se houve pessoas bloqueadas
+      if (resultado.bloqueadas && resultado.bloqueadas.length > 0) {
+        sucesso('Exclusão Parcial', `${quantidadeDeletada} deletado(s). ${resultado.bloqueadas.length} não puderam ser excluídos devido a dependências.`);
+      } else {
+        sucesso('Sucesso', `${quantidadeDeletada} beneficiário(s) deletado(s) com sucesso!`);
+      }
       
       // Limpar seleção e sair do modo seleção
       setPessoasSelecionadas(new Set());
@@ -456,6 +502,20 @@ export const ListaPessoas = () => {
       
       if (erro.response?.status === 403) {
         erroToast('Acesso Negado', 'Apenas administradores podem deletar em massa');
+      } else if (erro.response?.status === 409) {
+        // Algumas pessoas têm dependências
+        const data = erro.response.data;
+        setResultadoVerificacaoMassa(data);
+        
+        if (data.liberadas && data.liberadas.length > 0) {
+          // Mostrar mensagem informando quantas podem ser deletadas
+          erroToast(
+            'Exclusão Parcial Disponível', 
+            `${data.totalBloqueadas} pessoa(s) possuem dependências. ${data.totalLiberadas} podem ser excluídas.`
+          );
+        } else {
+          erroToast('Exclusão Bloqueada', data.mensagem || 'Nenhuma pessoa pode ser excluída');
+        }
       } else {
         erroToast('Erro ao Deletar', erro.response?.data?.erro || 'Não foi possível deletar os beneficiários');
       }
@@ -836,6 +896,7 @@ export const ListaPessoas = () => {
                             }}
                             deletandoPessoa={deletandoPessoa}
                             pessoaParaDeleter={pessoaParaDeleter}
+                            verificandoDependencias={verificandoDependencias}
                             modoSelecao={modoSelecao}
                             selecionada={pessoasSelecionadas.has(pessoa.id)}
                             onToggleSelecao={() => toggleSelecaoPessoa(pessoa.id)}
@@ -870,6 +931,7 @@ export const ListaPessoas = () => {
                             }}
                             deletandoPessoa={deletandoPessoa}
                             pessoaParaDeleter={pessoaParaDeleter}
+                            verificandoDependencias={verificandoDependencias}
                             modoSelecao={modoSelecao}
                             selecionada={pessoasSelecionadas.has(pessoa.id)}
                             onToggleSelecao={() => toggleSelecaoPessoa(pessoa.id)}
@@ -904,6 +966,7 @@ export const ListaPessoas = () => {
                             }}
                             deletandoPessoa={deletandoPessoa}
                             pessoaParaDeleter={pessoaParaDeleter}
+                            verificandoDependencias={verificandoDependencias}
                             modoSelecao={modoSelecao}
                             selecionada={pessoasSelecionadas.has(pessoa.id)}
                             onToggleSelecao={() => toggleSelecaoPessoa(pessoa.id)}
@@ -950,19 +1013,59 @@ export const ListaPessoas = () => {
 
       <ModalConfirmacao
         aberto={modalDeleteAberto}
-        tipo="delete"
-        titulo="Deletar Beneficiário"
-        mensagem="Tem certeza que deseja deletar este beneficiário? Esta ação não pode ser desfeita."
-        botaoPrincipalTexto="Deletar"
-        botaoCancelarTexto="Cancelar"
-        onConfirmar={confirmarDeletar}
+        tipo={dependenciasPessoa?.podeExcluir === false ? "warning" : "delete"}
+        titulo={dependenciasPessoa?.podeExcluir === false ? "Exclusão Bloqueada" : "Deletar Beneficiário"}
+        mensagem={
+          verificandoDependencias 
+            ? "Verificando dependências..." 
+            : dependenciasPessoa?.podeExcluir === false 
+              ? (
+                  <>
+                    <div style={{ marginBottom: '12px' }}>
+                      <strong style={{ color: '#dc2626' }}>⚠️ Esta pessoa não pode ser excluída</strong>
+                    </div>
+                    <div style={{ marginBottom: '8px' }}>{dependenciasPessoa.motivoBloqueio}</div>
+                    {dependenciasPessoa.sugestao && (
+                      <div style={{ fontSize: '13px', color: '#666', marginTop: '8px' }}>
+                        💡 {dependenciasPessoa.sugestao}
+                      </div>
+                    )}
+                  </>
+                )
+              : dependenciasPessoa?.temDependencias 
+                ? (
+                    <>
+                      <div style={{ marginBottom: '12px' }}>
+                        Tem certeza que deseja deletar <strong>{dependenciasPessoa?.pessoa?.nome}</strong>?
+                      </div>
+                      {dependenciasPessoa?.dependencias?.detalhes?.length > 0 && (
+                        <div style={{ fontSize: '13px', color: '#f59e0b', marginBottom: '8px' }}>
+                          ⚠️ Atenção: {dependenciasPessoa.dependencias.detalhes.join(' • ')}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '12px', color: '#888' }}>Esta ação não pode ser desfeita.</div>
+                    </>
+                  )
+                : "Tem certeza que deseja deletar este beneficiário? Esta ação não pode ser desfeita."
+        }
+        botaoPrincipalTexto={dependenciasPessoa?.podeExcluir === false ? "Entendi" : "Deletar"}
+        botaoCancelarTexto={dependenciasPessoa?.podeExcluir === false ? null : "Cancelar"}
+        onConfirmar={dependenciasPessoa?.podeExcluir === false 
+          ? () => {
+              setModalDeleteAberto(false);
+              setPessoaParaDeleter(null);
+              setDependenciasPessoa(null);
+            }
+          : confirmarDeletar
+        }
         onCancelar={() => {
           if (!deletandoPessoa) {
             setModalDeleteAberto(false);
             setPessoaParaDeleter(null);
+            setDependenciasPessoa(null);
           }
         }}
-        carregando={deletandoPessoa}
+        carregando={deletandoPessoa || verificandoDependencias}
       />
 
       {pessoaSelecionada && (
@@ -1027,7 +1130,7 @@ const formatarCPF = (cpf) => {
   return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 };
 
-const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar, onPreview, deletandoPessoa, pessoaParaDeleter, modoSelecao, selecionada, onToggleSelecao }) => {
+const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar, onPreview, deletandoPessoa, pessoaParaDeleter, verificandoDependencias, modoSelecao, selecionada, onToggleSelecao }) => {
   const hoverTimeoutRef = useRef(null);
 
   const handleMouseEnter = () => {
@@ -1152,36 +1255,23 @@ const CartaoPessoa = ({ pessoa, idade, onEditar, onDeletar, onPreview, deletando
           <Edit2 size={16} /> Editar
         </button>
         <button
-          className={`botao-cartao botao-deletar ${deletandoPessoa && pessoaParaDeleter === pessoa.id ? 'carregando' : ''}`}
+          className="botao-cartao botao-deletar"
           onClick={(e) => {
             e.stopPropagation();
-            if (!deletandoPessoa) {
+            if (!deletandoPessoa && !verificandoDependencias) {
               onDeletar();
             }
           }}
           onMouseEnter={handleBotaoMouseEnter}
-          disabled={deletandoPessoa && pessoaParaDeleter === pessoa.id}
-          title={deletandoPessoa && pessoaParaDeleter === pessoa.id ? "Deletando..." : "Deletar"}
+          disabled={(deletandoPessoa || verificandoDependencias) && pessoaParaDeleter === pessoa.id}
+          title={(deletandoPessoa || verificandoDependencias) && pessoaParaDeleter === pessoa.id ? "Aguarde..." : "Deletar"}
         >
-          {deletandoPessoa && pessoaParaDeleter === pessoa.id ? (
-            <>
-              <span style={{ 
-                display: 'inline-block', 
-                width: '14px', 
-                height: '14px', 
-                border: '2px solid transparent',
-                borderTop: '2px solid currentColor',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
-                marginRight: '6px'
-              }}></span>
-              Deletando...
-            </>
+          {(deletandoPessoa || verificandoDependencias) && pessoaParaDeleter === pessoa.id ? (
+            <span className="spinner-inline"></span>
           ) : (
-            <>
-              <Trash2 size={16} /> Deletar
-            </>
+            <Trash2 size={16} />
           )}
+          Deletar
         </button>
       </div>
     </div>

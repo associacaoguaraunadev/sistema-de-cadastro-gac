@@ -70,9 +70,9 @@ const PaginaEventosGuarauna = () => {
   const [modalModelosAberto, setModalModelosAberto] = useState(false);
   const [modeloEditando, setModeloEditando] = useState(null);
   const [modeloFormData, setModeloFormData] = useState({
-    nome: '',
+    titulo: '',
     tipo: '',
-    textoTermo: '',
+    conteudoHTML: '',
     ativo: true
   });
 
@@ -83,14 +83,20 @@ const PaginaEventosGuarauna = () => {
   const [modalConfirmacao, setModalConfirmacao] = useState({ aberto: false, evento: null, tipo: 'evento' });
 
   const tiposEvento = [
-    'Viagem',
-    'Apresentação',
-    'Ensaio Externo',
-    'Competição',
-    'Workshop',
-    'Intercâmbio',
-    'Outro'
+    { valor: 'VIAGEM', label: 'Viagem' },
+    { valor: 'APRESENTACAO', label: 'Apresentação' },
+    { valor: 'COMPETICAO', label: 'Competição' },
+    { valor: 'FILMAGEM', label: 'Filmagem' },
+    { valor: 'PASSEIO', label: 'Passeio' },
+    { valor: 'WORKSHOP', label: 'Workshop' },
+    { valor: 'OUTRO', label: 'Outro' }
   ];
+
+  // Helper para obter label do tipo
+  const getTipoLabel = (valor) => {
+    const tipo = tiposEvento.find(t => t.valor === valor);
+    return tipo ? tipo.label : valor;
+  };
 
   // Carregar dados auxiliares
   const carregarDadosAuxiliares = useCallback(async () => {
@@ -186,9 +192,9 @@ const PaginaEventosGuarauna = () => {
   // Reset form modelo
   const resetFormModelo = () => {
     setModeloFormData({
-      nome: '',
+      titulo: '',
       tipo: '',
-      textoTermo: '',
+      conteudoHTML: '',
       ativo: true
     });
     setModeloEditando(null);
@@ -219,9 +225,9 @@ const PaginaEventosGuarauna = () => {
     if (modelo) {
       setModeloEditando(modelo);
       setModeloFormData({
-        nome: modelo.nome || '',
+        titulo: modelo.titulo || '',
         tipo: modelo.tipo || '',
-        textoTermo: modelo.textoTermo || '',
+        conteudoHTML: modelo.conteudoHTML || '',
         ativo: modelo.ativo !== false
       });
     } else {
@@ -284,8 +290,8 @@ const PaginaEventosGuarauna = () => {
 
   // Salvar modelo
   const salvarModelo = async () => {
-    if (!modeloFormData.nome.trim()) {
-      adicionarToast('Nome do modelo é obrigatório', 'erro');
+    if (!modeloFormData.titulo.trim()) {
+      adicionarToast('Título do modelo é obrigatório', 'erro');
       return;
     }
 
@@ -294,7 +300,7 @@ const PaginaEventosGuarauna = () => {
       return;
     }
 
-    if (!modeloFormData.textoTermo.trim()) {
+    if (!modeloFormData.conteudoHTML.trim()) {
       adicionarToast('Texto do termo é obrigatório', 'erro');
       return;
     }
@@ -436,13 +442,13 @@ const PaginaEventosGuarauna = () => {
               <div className="modelo-vazio">
                 <FileText size={20} />
                 <span>Nenhum modelo criado</span>
-                <button onClick={() => abrirModalModelo()}>Criar primeiro</button>
+                <button onClick={() => abrirModalModelo()}>Criar</button>
               </div>
             ) : (
               modelos.filter(m => m.ativo !== false).map(modelo => (
                 <div key={modelo.id} className="modelo-card">
-                  <span className="modelo-tipo">{modelo.tipo}</span>
-                  <span className="modelo-nome">{modelo.nome}</span>
+                  <span className="modelo-tipo">{getTipoLabel(modelo.tipo)}</span>
+                  <span className="modelo-nome">{modelo.titulo}</span>
                   <button 
                     className="btn-modelo-editar"
                     onClick={() => abrirModalModelo(modelo)}
@@ -506,7 +512,7 @@ const PaginaEventosGuarauna = () => {
               <p>Nenhum evento encontrado</p>
               <button className="btn-novo" onClick={() => abrirModalEvento()}>
                 <Plus size={18} />
-                Criar primeiro evento
+                Criar evento
               </button>
             </div>
           ) : (
@@ -631,7 +637,7 @@ const PaginaEventosGuarauna = () => {
                 >
                   <option value="">Selecione um modelo</option>
                   {modelos.filter(m => m.ativo !== false).map(m => (
-                    <option key={m.id} value={m.id}>{m.nome} ({m.tipo})</option>
+                    <option key={m.id} value={m.id}>{m.titulo} ({getTipoLabel(m.tipo)})</option>
                   ))}
                 </select>
               </div>
@@ -756,11 +762,11 @@ const PaginaEventosGuarauna = () => {
             <div className="modal-body">
               <div className="form-row">
                 <div className="form-grupo">
-                  <label>Nome do Modelo *</label>
+                  <label>Título do Modelo *</label>
                   <input
                     type="text"
-                    value={modeloFormData.nome}
-                    onChange={(e) => setModeloFormData({ ...modeloFormData, nome: e.target.value })}
+                    value={modeloFormData.titulo}
+                    onChange={(e) => setModeloFormData({ ...modeloFormData, titulo: e.target.value })}
                     placeholder="Ex: Autorização de Viagem Padrão"
                   />
                 </div>
@@ -773,7 +779,7 @@ const PaginaEventosGuarauna = () => {
                   >
                     <option value="">Selecione</option>
                     {tiposEvento.map(t => (
-                      <option key={t} value={t}>{t}</option>
+                      <option key={t.valor} value={t.valor}>{t.label}</option>
                     ))}
                   </select>
                 </div>
@@ -782,14 +788,22 @@ const PaginaEventosGuarauna = () => {
               <div className="form-grupo">
                 <label>Texto do Termo *</label>
                 <textarea
-                  value={modeloFormData.textoTermo}
-                  onChange={(e) => setModeloFormData({ ...modeloFormData, textoTermo: e.target.value })}
+                  value={modeloFormData.conteudoHTML}
+                  onChange={(e) => setModeloFormData({ ...modeloFormData, conteudoHTML: e.target.value })}
                   placeholder="Digite o texto completo do termo de autorização..."
                   rows={10}
                 />
-                <small className="form-hint">
-                  Você pode usar: {'{NOME_ALUNO}'}, {'{DATA_EVENTO}'}, {'{LOCAL_EVENTO}'} como placeholders
-                </small>
+                <div className="variaveis-info">
+                  <strong>Variáveis disponíveis:</strong>
+                  <p>Use estas variáveis no texto e elas serão substituídas automaticamente:</p>
+                  <ul>
+                    <li><code>{'{NOME_ALUNO}'}</code> - Nome completo do aluno</li>
+                    <li><code>{'{DATA_EVENTO}'}</code> - Data do evento formatada</li>
+                    <li><code>{'{LOCAL_EVENTO}'}</code> - Local onde acontecerá o evento</li>
+                    <li><code>{'{NOME_RESPONSAVEL}'}</code> - Nome do responsável</li>
+                    <li><code>{'{NOME_EVENTO}'}</code> - Nome/título do evento</li>
+                  </ul>
+                </div>
               </div>
 
               <div className="form-grupo checkbox-grupo">
@@ -811,8 +825,8 @@ const PaginaEventosGuarauna = () => {
                     {modelos.map(m => (
                       <div key={m.id} className="modelo-item">
                         <div className="modelo-item-info">
-                          <span className="modelo-item-nome">{m.nome}</span>
-                          <span className="modelo-item-tipo">{m.tipo}</span>
+                          <span className="modelo-item-nome">{m.titulo}</span>
+                          <span className="modelo-item-tipo">{getTipoLabel(m.tipo)}</span>
                         </div>
                         <div className="modelo-item-acoes">
                           <button onClick={() => abrirModalModelo(m)}><Edit2 size={14} /></button>

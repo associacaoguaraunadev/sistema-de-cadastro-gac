@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexto/AuthContext';
 import { useGlobalToast } from '../contexto/ToastContext';
 import Navbar from '../componentes/Navbar';
+import Breadcrumb from '../componentes/Breadcrumb';
 import { ModalConfirmacao } from '../componentes/ModalConfirmacao';
+import { GraduacaoSelectOptions, getGraduacaoLabel, getCategoria } from '../utils/graduacoesCapoeira';
 import { 
   ArrowLeft,
   Search,
   Plus,
-  Edit,
+  Edit2,
   Trash2,
   User,
   Phone,
@@ -17,43 +19,165 @@ import {
   UserCheck,
   BookOpen,
   Filter,
-  X
+  X,
+  Save,
+  Calendar,
+  Award,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react';
 import './PaginaAlunosGuarauna.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+// Funções de formatação
+const formatarCPF = (valor) => {
+  if (!valor) return '';
+  valor = valor.toString().replace(/\D/g, '').slice(0, 11);
+  if (valor.length <= 3) return valor;
+  if (valor.length <= 6) return `${valor.slice(0, 3)}.${valor.slice(3)}`;
+  if (valor.length <= 9) return `${valor.slice(0, 3)}.${valor.slice(3, 6)}.${valor.slice(6)}`;
+  return `${valor.slice(0, 3)}.${valor.slice(3, 6)}.${valor.slice(6, 9)}-${valor.slice(9)}`;
+};
+
+const formatarTelefone = (valor) => {
+  if (!valor) return '';
+  valor = valor.toString().replace(/\D/g, '').slice(0, 11);
+  if (valor.length <= 2) return valor;
+  if (valor.length <= 7) return `(${valor.slice(0, 2)}) ${valor.slice(2)}`;
+  return `(${valor.slice(0, 2)}) ${valor.slice(2, 7)}-${valor.slice(7)}`;
+};
 
 const PaginaAlunosGuarauna = () => {
   const { usuario, token } = useAuth();
   const { adicionarToast } = useGlobalToast();
   const navegar = useNavigate();
+  
+  // Estados principais
   const [alunos, setAlunos] = useState([]);
+  const [comunidades, setComunidades] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState('');
   const [filtros, setFiltros] = useState({ comunidade: '', ativo: 'true' });
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  const [alunoSelecionado, setAlunoSelecionado] = useState(null);
+  
+  // Paginação
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [totalPaginas, setTotalPaginas] = useState(1);
+  const [totalItens, setTotalItens] = useState(0);
+  const itensPorPagina = 15;
+  
+  // Modal
+  const [modalAberto, setModalAberto] = useState(false);
+  const [alunoEditando, setAlunoEditando] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+  const [formData, setFormData] = useState({
+    nome: '',
+    dataNascimento: '',
+    cpf: '',
+    rg: '',
+    telefone: '',
+    email: '',
+    comunidade: '',
+    endereco: '',
+    graduacaoAtual: '',
+    // Campos de saúde
+    ubs: '',
+    numeroSUS: '',
+    doencas: '',
+    alergias: '',
+    medicamentos: '',
+    necessidadesEspeciais: '',
+    observacoes: ''
+  });
+  
+  // Modal de confirmação
   const [modalDeletar, setModalDeletar] = useState(false);
+  const [alunoSelecionado, setAlunoSelecionado] = useState(null);
 
+  // Busca de pessoa existente
+  const [buscaPessoa, setBuscaPessoa] = useState('');
+  const [pessoasSugeridas, setPessoasSugeridas] = useState([]);
+  const [todasPessoas, setTodasPessoas] = useState([]);
+  const [pessoaSelecionada, setPessoaSelecionada] = useState(null);
+  const [buscandoPessoas, setBuscandoPessoas] = useState(false);
+  const [dropdownAberto, setDropdownAberto] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Fechar dropdown ao clicar fora
   useEffect(() => {
-    carregarAlunos();
-  }, [filtros]);
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownAberto(false);
+      }
+    };
 
-  const carregarAlunos = async () => {
+    if (dropdownAberto) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownAberto]);
+
+  // Carregar comunidades
+  const carregarComunidades = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/comunidades`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Comunidades carregadas:', data);
+        // Garantir que data seja um array
+        if (Array.isArray(data)) {
+          setComunidades(data);
+        } else if (data.comunidades) {
+          setComunidades(data.comunidades);
+        } else {
+          setComunidades([]);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar comunidades:', error);
+    }
+  }, [token]);
+
+  // Ordenar alunos alfabeticamente
+  const ordenarAlunosAlfabeticamente = (listaAlunos) => {
+    return [...listaAlunos].sort((a, b) => {
+      const nomeA = (a.pessoa?.nome || a.nome || '').toLowerCase();
+      const nomeB = (b.pessoa?.nome || b.nome || '').toLowerCase();
+      return nomeA.localeCompare(nomeB, 'pt-BR');
+    });
+  };
+
+  // Carregar alunos
+  const carregarAlunos = useCallback(async () => {
     setCarregando(true);
     try {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({
+        pagina: paginaAtual.toString(),
+        limite: itensPorPagina.toString()
+      });
+      
       if (filtros.comunidade) params.append('comunidade', filtros.comunidade);
       if (filtros.ativo) params.append('ativo', filtros.ativo);
       if (busca) params.append('busca', busca);
 
-      const resposta = await fetch(`${API_URL}/guarauna/alunos?${params}`, {
+      const resposta = await fetch(`${API_URL}/api/guarauna/alunos?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (resposta.ok) {
         const dados = await resposta.json();
-        setAlunos(dados);
+        const alunosCarregados = dados.alunos || dados || [];
+        const alunosOrdenados = ordenarAlunosAlfabeticamente(alunosCarregados);
+        setAlunos(alunosOrdenados);
+        setTotalPaginas(dados.totalPaginas || 1);
+        setTotalItens(dados.total || alunosCarregados.length);
       }
     } catch (erro) {
       console.error('Erro ao carregar alunos:', erro);
@@ -61,13 +185,239 @@ const PaginaAlunosGuarauna = () => {
     } finally {
       setCarregando(false);
     }
+  }, [token, paginaAtual, filtros, busca, adicionarToast]);
+
+  useEffect(() => {
+    carregarComunidades();
+  }, [carregarComunidades]);
+
+  useEffect(() => {
+    carregarAlunos();
+  }, [carregarAlunos]);
+
+  // Debounce da busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPaginaAtual(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [busca]);
+
+  // Buscar pessoas quando digitar
+  useEffect(() => {
+    const buscarPessoas = async () => {
+      if (buscaPessoa.length < 2) {
+        // Se dropdown está aberto e tem todas as pessoas, filtra localmente
+        if (dropdownAberto && todasPessoas.length > 0) {
+          setPessoasSugeridas(todasPessoas);
+        } else {
+          setPessoasSugeridas([]);
+        }
+        return;
+      }
+
+      // Filtrar localmente se já temos todas as pessoas
+      if (todasPessoas.length > 0) {
+        const filtradas = todasPessoas.filter(p => 
+          p.nome?.toLowerCase().includes(buscaPessoa.toLowerCase()) ||
+          p.cpf?.includes(buscaPessoa)
+        );
+        setPessoasSugeridas(filtradas);
+        return;
+      }
+
+      setBuscandoPessoas(true);
+      try {
+        const response = await fetch(`${API_URL}/api/pessoas?busca=${encodeURIComponent(buscaPessoa)}&limite=10`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setPessoasSugeridas(data.pessoas || data || []);
+        }
+      } catch (error) {
+        console.error('Erro ao buscar pessoas:', error);
+      } finally {
+        setBuscandoPessoas(false);
+      }
+    };
+
+    const timer = setTimeout(buscarPessoas, 300);
+    return () => clearTimeout(timer);
+  }, [buscaPessoa, token]);
+
+  // Selecionar pessoa existente
+  const selecionarPessoa = (pessoa) => {
+    setPessoaSelecionada(pessoa);
+    setBuscaPessoa('');
+    setPessoasSugeridas([]);
+    setDropdownAberto(false);
+    
+    // Preencher o formulário com os dados da pessoa
+    setFormData({
+      ...formData,
+      nome: pessoa.nome || '',
+      dataNascimento: pessoa.dataNascimento?.split('T')[0] || '',
+      cpf: pessoa.cpf || '',
+      rg: pessoa.rg || '',
+      telefone: pessoa.telefone || '',
+      email: pessoa.email || '',
+      comunidade: pessoa.comunidade || '',
+      endereco: pessoa.endereco || '',
+      pessoaId: pessoa.id
+    });
+  };
+
+  // Limpar pessoa selecionada
+  const limparPessoaSelecionada = () => {
+    setPessoaSelecionada(null);
+    setFormData({
+      ...formData,
+      nome: '',
+      dataNascimento: '',
+      cpf: '',
+      rg: '',
+      telefone: '',
+      email: '',
+      comunidade: '',
+      endereco: '',
+      pessoaId: null
+    });
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      nome: '',
+      dataNascimento: '',
+      cpf: '',
+      rg: '',
+      telefone: '',
+      email: '',
+      comunidade: '',
+      endereco: '',
+      graduacaoAtual: '',
+      ubs: '',
+      numeroSUS: '',
+      doencas: '',
+      alergias: '',
+      medicamentos: '',
+      necessidadesEspeciais: '',
+      observacoes: '',
+      pessoaId: null
+    });
+    setAlunoEditando(null);
+    setPessoaSelecionada(null);
+    setBuscaPessoa('');
+    setPessoasSugeridas([]);
+    setDropdownAberto(false);
+  };
+
+  // Abrir modal
+  const abrirModal = async (aluno = null) => {
+    // Mostrar feedback visual que está carregando
+    setModalAberto(true);
+    setSalvando(true);
+    
+    // Carregar todas as pessoas para o dropdown
+    try {
+      const response = await fetch(`${API_URL}/api/pessoas?limite=1000`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        const pessoas = data.pessoas || data || [];
+        setTodasPessoas(pessoas);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar pessoas:', error);
+    }
+
+    if (aluno) {
+      setAlunoEditando(aluno);
+      setFormData({
+        nome: aluno.pessoa?.nome || aluno.nome || '',
+        dataNascimento: aluno.pessoa?.dataNascimento?.split('T')[0] || aluno.dataNascimento?.split('T')[0] || '',
+        cpf: aluno.pessoa?.cpf || aluno.cpf || '',
+        rg: aluno.pessoa?.rg || aluno.rg || '',
+        telefone: aluno.pessoa?.telefone || aluno.telefone || '',
+        email: aluno.pessoa?.email || aluno.email || '',
+        comunidade: aluno.pessoa?.comunidade || aluno.comunidade || '',
+        endereco: aluno.pessoa?.endereco || aluno.endereco || '',
+        graduacaoAtual: aluno.graduacaoAtual || '',
+        ubs: aluno.ubs || '',
+        numeroSUS: aluno.numeroSUS || '',
+        doencas: aluno.doencas || '',
+        alergias: aluno.alergias || '',
+        medicamentos: aluno.medicamentos || '',
+        necessidadesEspeciais: aluno.necessidadesEspeciais || '',
+        observacoes: aluno.pessoa?.observacoes || aluno.observacoes || ''
+      });
+    } else {
+      resetForm();
+    }
+    
+    // Remover feedback visual após carregar
+    setSalvando(false);
+  };
+
+  // Fechar modal
+  const fecharModal = () => {
+    setModalAberto(false);
+    resetForm();
+  };
+
+  // Salvar aluno
+  const salvarAluno = async () => {
+    if (!formData.nome.trim()) {
+      adicionarToast('Nome é obrigatório', 'erro');
+      return;
+    }
+
+    if (!formData.comunidade) {
+      adicionarToast('Comunidade é obrigatória', 'erro');
+      return;
+    }
+
+    setSalvando(true);
+    try {
+      const url = alunoEditando 
+        ? `${API_URL}/api/guarauna/alunos/${alunoEditando.id}`
+        : `${API_URL}/api/guarauna/alunos`;
+
+      const response = await fetch(url, {
+        method: alunoEditando ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        adicionarToast(
+          alunoEditando ? 'Aluno atualizado com sucesso!' : 'Aluno cadastrado com sucesso!',
+          'sucesso'
+        );
+        fecharModal();
+        carregarAlunos();
+      } else {
+        const erro = await response.json();
+        adicionarToast(erro.erro || 'Erro ao salvar aluno', 'erro');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar aluno:', error);
+      adicionarToast('Erro ao salvar aluno', 'erro');
+    } finally {
+      setSalvando(false);
+    }
   };
 
   const deletarAluno = async () => {
     if (!alunoSelecionado) return;
 
     try {
-      const resposta = await fetch(`${API_URL}/guarauna/alunos/${alunoSelecionado.id}`, {
+      const resposta = await fetch(`${API_URL}/api/guarauna/alunos/${alunoSelecionado.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -99,42 +449,34 @@ const PaginaAlunosGuarauna = () => {
     return idade;
   };
 
-  const alunosFiltrados = alunos.filter(aluno =>
-    aluno.pessoa.nome.toLowerCase().includes(busca.toLowerCase()) ||
-    aluno.pessoa.cpf?.includes(busca)
-  );
-
-  const comunidades = [...new Set(alunos.map(a => a.pessoa.comunidade).filter(Boolean))];
+  const breadcrumbItems = [
+    { label: 'Guaraúna', path: '/guarauna' },
+    { label: 'Alunos', path: '/guarauna/alunos' }
+  ];
 
   return (
     <div className="pagina-alunos-guarauna">
       <Navbar />
+      <Breadcrumb items={breadcrumbItems} />
       
-      <main className="alunos-conteudo">
-        <header className="alunos-header">
-          <button className="botao-voltar" onClick={() => navegar('/guarauna')}>
-            <ArrowLeft size={20} />
-            <span>Voltar</span>
-          </button>
-          
-          <div className="header-titulo">
-            <h1>Alunos do Guaraúna</h1>
-            <span className="contador">{alunosFiltrados.length} aluno(s)</span>
+      <div className="alunos-container">
+        <div className="alunos-header">
+          <div className="header-info">
+            <h1><User size={28} /> Alunos</h1>
+            <p>{totalItens} aluno{totalItens !== 1 ? 's' : ''} cadastrado{totalItens !== 1 ? 's' : ''}</p>
           </div>
 
           {usuario?.funcao === 'admin' && (
-            <button 
-              className="botao-novo-aluno"
-              onClick={() => navegar('/guarauna/alunos/novo')}
-            >
+            <button className="btn-novo" onClick={() => abrirModal()}>
               <Plus size={18} />
               <span>Novo Aluno</span>
             </button>
           )}
-        </header>
+        </div>
 
-        <div className="alunos-ferramentas">
-          <div className="campo-busca">
+        {/* Filtros */}
+        <div className="alunos-filtros">
+          <div className="filtro-busca">
             <Search size={18} />
             <input
               type="text"
@@ -142,150 +484,466 @@ const PaginaAlunosGuarauna = () => {
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
-            {busca && (
-              <button className="limpar-busca" onClick={() => setBusca('')}>
-                <X size={16} />
-              </button>
-            )}
           </div>
 
-          <button 
-            className={`botao-filtros ${mostrarFiltros ? 'ativo' : ''}`}
-            onClick={() => setMostrarFiltros(!mostrarFiltros)}
+          <select
+            value={filtros.comunidade}
+            onChange={(e) => {
+              setFiltros({ ...filtros, comunidade: e.target.value });
+              setPaginaAtual(1);
+            }}
           >
-            <Filter size={18} />
-            <span>Filtros</span>
-          </button>
+            <option value="">Todas as comunidades</option>
+            {comunidades.map(c => (
+              <option key={c.id} value={c.id}>{c.nome}</option>
+            ))}
+          </select>
+
+          <select
+            value={filtros.ativo}
+            onChange={(e) => {
+              setFiltros({ ...filtros, ativo: e.target.value });
+              setPaginaAtual(1);
+            }}
+          >
+            <option value="true">Ativos</option>
+            <option value="false">Inativos</option>
+            <option value="">Todos</option>
+          </select>
         </div>
 
-        {mostrarFiltros && (
-          <div className="painel-filtros">
-            <div className="filtro-grupo">
-              <label>Comunidade</label>
-              <select
-                value={filtros.comunidade}
-                onChange={(e) => setFiltros({ ...filtros, comunidade: e.target.value })}
-              >
-                <option value="">Todas</option>
-                {comunidades.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-            <div className="filtro-grupo">
-              <label>Status</label>
-              <select
-                value={filtros.ativo}
-                onChange={(e) => setFiltros({ ...filtros, ativo: e.target.value })}
-              >
-                <option value="true">Ativos</option>
-                <option value="false">Inativos</option>
-                <option value="">Todos</option>
-              </select>
-            </div>
-          </div>
-        )}
-
+        {/* Lista de Alunos */}
         {carregando ? (
-          <div className="carregando">
+          <div className="carregando-container">
             <div className="spinner"></div>
             <p>Carregando alunos...</p>
           </div>
-        ) : alunosFiltrados.length === 0 ? (
-          <div className="lista-vazia">
+        ) : alunos.length === 0 ? (
+          <div className="sem-dados">
             <User size={48} />
-            <h3>Nenhum aluno encontrado</h3>
-            <p>Cadastre um novo aluno ou ajuste os filtros</p>
-          </div>
-        ) : (
-          <div className="lista-alunos">
-            {alunosFiltrados.map(aluno => (
-              <div key={aluno.id} className={`card-aluno ${!aluno.ativo ? 'inativo' : ''}`}>
-                <div className="aluno-avatar">
-                  <User size={24} />
-                </div>
+            <p>Nenhum aluno encontrado</p>
+            {usuario?.funcao === 'admin' && (
+              <button className="btn-novo" onClick={() => abrirModal()}>
+                <Plus size={18} />
+                Cadastrar primeiro aluno
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid-alunos">
+              {alunos.map(aluno => {
+                const nome = aluno.pessoa?.nome || aluno.nome;
+                const idade = calcularIdade(aluno.pessoa?.dataNascimento || aluno.dataNascimento);
+                const comunidadeNome = aluno.pessoa?.comunidade || aluno.comunidade;
+                const telefone = aluno.pessoa?.telefone || aluno.telefone;
+                const temAlerta = aluno.doencas || aluno.alergias || aluno.necessidadesEspeciais;
+                const dadosSaude = [];
                 
-                <div className="aluno-info">
-                  <h3>{aluno.pessoa.nome}</h3>
-                  <div className="aluno-detalhes">
-                    {aluno.pessoa.dataNascimento && (
-                      <span className="detalhe">
-                        <User size={14} />
-                        {calcularIdade(aluno.pessoa.dataNascimento)} anos
-                      </span>
-                    )}
-                    {aluno.pessoa.comunidade && (
-                      <span className="detalhe">
-                        <MapPin size={14} />
-                        {aluno.pessoa.comunidade}
-                      </span>
-                    )}
-                    {aluno.pessoa.telefone && (
-                      <span className="detalhe">
-                        <Phone size={14} />
-                        {aluno.pessoa.telefone}
-                      </span>
-                    )}
+                if (aluno.doencas) dadosSaude.push(`Doenças: ${aluno.doencas}`);
+                if (aluno.alergias) dadosSaude.push(`Alergias: ${aluno.alergias}`);
+                if (aluno.necessidadesEspeciais) dadosSaude.push(`Necessidades especiais: ${aluno.necessidadesEspeciais}`);
+                
+                return (
+                  <div key={aluno.id} className={`card-aluno ${!aluno.ativo ? 'inativo' : ''}`}>
+                    <div className="card-aluno-header">
+                      <div className="card-aluno-avatar">
+                        {nome.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="card-aluno-info-principal">
+                        <h3 className="card-aluno-nome">{nome}</h3>
+                        <span className="card-aluno-idade">{idade ? `${idade} anos` : '-'}</span>
+                      </div>
+                    </div>
+                    
+                    <span className={`card-aluno-status ${aluno.ativo ? 'ativo' : 'inativo'}`}>
+                      {aluno.ativo ? 'ATIVO' : 'INATIVO'}
+                    </span>
+                    
+                    <div className="card-aluno-body">
+                      <div className="card-aluno-detalhes">
+                        <div className="card-aluno-detalhe">
+                          <MapPin size={14} />
+                          <span>{comunidadeNome || '-'}</span>
+                        </div>
+                        <div className="card-aluno-detalhe">
+                          <Phone size={14} />
+                          <span>{telefone || '-'}</span>
+                        </div>
+                        {aluno.graduacaoAtual && (
+                          <div className="card-aluno-detalhe">
+                            <Award size={14} />
+                            <span className="badge-graduacao-card">{aluno.graduacaoAtual}</span>
+                          </div>
+                        )}
+                        {aluno.responsaveis?.length > 0 && (
+                          <div className="card-aluno-detalhe">
+                            <UserCheck size={14} />
+                            <span>{aluno.responsaveis.find(r => r.principal)?.nome || aluno.responsaveis[0]?.nome}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="card-aluno-footer">
+                      {temAlerta && (
+                        <div className="saude-tooltip">
+                          <Heart size={16} className="saude-tooltip-icon" />
+                          <div className="saude-tooltip-content">
+                            {dadosSaude.join(' • ')}
+                          </div>
+                        </div>
+                      )}
+                      <button 
+                        className="btn-card-acao editar"
+                        onClick={() => abrirModal(aluno)}
+                        title="Editar"
+                      >
+                        <Edit2 size={14} />
+                        Editar
+                      </button>
+                      {usuario?.funcao === 'admin' && (
+                        <button 
+                          className="btn-card-acao excluir"
+                          onClick={() => {
+                            setAlunoSelecionado(aluno);
+                            setModalDeletar(true);
+                          }}
+                          title="Remover"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  
-                  <div className="aluno-tags">
-                    {aluno.responsaveis?.length > 0 && (
-                      <span className="tag responsavel">
-                        <UserCheck size={12} />
-                        {aluno.responsaveis.length} responsável(is)
-                      </span>
-                    )}
-                    {aluno.turmas?.length > 0 && (
-                      <span className="tag turma">
-                        <BookOpen size={12} />
-                        {aluno.turmas.map(t => t.turma.nome).join(', ')}
-                      </span>
-                    )}
-                    {(aluno.doencas || aluno.alergias || aluno.necessidadesEspeciais) && (
-                      <span className="tag saude">
-                        <Heart size={12} />
-                        Atenção à saúde
-                      </span>
-                    )}
-                  </div>
-                </div>
+                );
+              })}
+            </div>
+          )}
 
-                <div className="aluno-acoes">
-                  <button 
-                    className="botao-acao editar"
-                    onClick={() => navegar(`/guarauna/alunos/${aluno.id}`)}
-                    title="Editar"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  {usuario?.funcao === 'admin' && (
-                    <button 
-                      className="botao-acao deletar"
-                      onClick={() => {
-                        setAlunoSelecionado(aluno);
-                        setModalDeletar(true);
-                      }}
-                      title="Remover"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-
-                {!aluno.ativo && (
-                  <div className="badge-inativo">Inativo</div>
-                )}
-              </div>
-            ))}
+        {/* Paginação */}
+        {totalPaginas > 1 && (
+          <div className="paginacao">
+            <button 
+              disabled={paginaAtual === 1}
+              onClick={() => setPaginaAtual(p => p - 1)}
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <span>Página {paginaAtual} de {totalPaginas}</span>
+            <button 
+              disabled={paginaAtual === totalPaginas}
+              onClick={() => setPaginaAtual(p => p + 1)}
+            >
+              <ChevronRight size={18} />
+            </button>
           </div>
         )}
-      </main>
+      </div>
 
+      {/* Modal de Formulário */}
+      {modalAberto && (
+        <div className="modal-overlay" onClick={fecharModal}>
+          <div className="modal-conteudo modal-grande" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>{alunoEditando ? 'Editar Aluno' : 'Novo Aluno'}</h2>
+              <button className="btn-fechar" onClick={fecharModal}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* Busca de Pessoa Existente */}
+              {!alunoEditando && (
+                <div className="pessoa-busca-container">
+                  <label><UserCheck size={16} /> Selecionar pessoa cadastrada</label>
+                  
+                  {pessoaSelecionada ? (
+                    <div className="pessoa-selecionada">
+                      <User size={24} />
+                      <div className="pessoa-selecionada-info">
+                        <div className="pessoa-selecionada-nome">{pessoaSelecionada.nome}</div>
+                        <div className="pessoa-selecionada-detalhes">
+                          {pessoaSelecionada.comunidade && `${pessoaSelecionada.comunidade}`}
+                          {pessoaSelecionada.cpf && ` • CPF: ${pessoaSelecionada.cpf}`}
+                        </div>
+                      </div>
+                      <button type="button" className="btn-limpar-pessoa" onClick={limparPessoaSelecionada}>
+                        Limpar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="pessoa-dropdown-container" ref={dropdownRef}>
+                      <div 
+                        className={`pessoa-dropdown-trigger ${dropdownAberto ? 'aberto' : ''}`}
+                        onClick={() => {
+                          setDropdownAberto(!dropdownAberto);
+                          if (!dropdownAberto) {
+                            setPessoasSugeridas(todasPessoas);
+                          }
+                        }}
+                      >
+                        <Search size={18} />
+                        <span>Clique para selecionar uma pessoa...</span>
+                        <ChevronDown size={18} className={`chevron ${dropdownAberto ? 'rotacionado' : ''}`} />
+                      </div>
+                      
+                      {dropdownAberto && (
+                        <div className="pessoa-dropdown-menu">
+                          <div className="pessoa-dropdown-busca">
+                            <Search size={16} />
+                            <input
+                              type="text"
+                              value={buscaPessoa}
+                              onChange={(e) => setBuscaPessoa(e.target.value)}
+                              placeholder="Filtrar por nome ou CPF..."
+                              autoFocus
+                            />
+                          </div>
+                          
+                          <div className="pessoa-dropdown-lista">
+                            {(buscaPessoa.length >= 2 ? pessoasSugeridas : todasPessoas).length === 0 ? (
+                              <div className="pessoa-dropdown-vazio">
+                                {buscandoPessoas ? 'Buscando...' : 'Nenhuma pessoa encontrada'}
+                              </div>
+                            ) : (
+                              (buscaPessoa.length >= 2 ? pessoasSugeridas : todasPessoas).map(pessoa => (
+                                <div 
+                                  key={pessoa.id} 
+                                  className="pessoa-dropdown-item"
+                                  onClick={() => selecionarPessoa(pessoa)}
+                                >
+                                  <User size={16} />
+                                  <div className="pessoa-dropdown-item-info">
+                                    <div className="pessoa-dropdown-item-nome">{pessoa.nome}</div>
+                                    <div className="pessoa-dropdown-item-detalhes">
+                                      {pessoa.comunidade || 'Sem comunidade'}
+                                      {pessoa.cpf && ` • CPF: ${pessoa.cpf}`}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="form-row">
+                <div className="form-grupo flex-2">
+                  <label>Nome Completo *</label>
+                  <input
+                    type="text"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    placeholder="Nome completo do aluno"
+                  />
+                </div>
+
+                <div className="form-grupo">
+                  <label>Data de Nascimento</label>
+                  <input
+                    type="date"
+                    value={formData.dataNascimento}
+                    onChange={(e) => setFormData({ ...formData, dataNascimento: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-grupo">
+                  <label>CPF</label>
+                  <input
+                    type="text"
+                    value={formData.cpf}
+                    onChange={(e) => setFormData({ ...formData, cpf: formatarCPF(e.target.value) })}
+                    placeholder="000.000.000-00"
+                  />
+                </div>
+
+                <div className="form-grupo">
+                  <label>RG</label>
+                  <input
+                    type="text"
+                    value={formData.rg}
+                    onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
+                    placeholder="RG do aluno"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-grupo">
+                  <label>Telefone</label>
+                  <input
+                    type="text"
+                    value={formData.telefone}
+                    onChange={(e) => setFormData({ ...formData, telefone: formatarTelefone(e.target.value) })}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+
+                <div className="form-grupo">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="email@exemplo.com"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-grupo">
+                  <label>Comunidade *</label>
+                  <select
+                    value={formData.comunidade}
+                    onChange={(e) => setFormData({ ...formData, comunidade: e.target.value })}
+                  >
+                    <option value="">Selecione</option>
+                    {comunidades.map(c => (
+                      <option key={c.id} value={c.nome}>{c.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-grupo">
+                  <label>Graduação Atual</label>
+                  <select
+                    value={formData.graduacaoAtual}
+                    onChange={(e) => setFormData({ ...formData, graduacaoAtual: e.target.value })}
+                  >
+                    <GraduacaoSelectOptions />
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-grupo">
+                <label>Endereço</label>
+                <input
+                  type="text"
+                  value={formData.endereco}
+                  onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                  placeholder="Endereço completo"
+                />
+              </div>
+
+              <div className="form-secao">
+                <h4><Heart size={16} /> Informações de Saúde</h4>
+              </div>
+
+              <div className="form-row">
+                <div className="form-grupo">
+                  <label>UBS (Unidade Básica de Saúde)</label>
+                  <input
+                    type="text"
+                    value={formData.ubs}
+                    onChange={(e) => setFormData({ ...formData, ubs: e.target.value })}
+                    placeholder="Nome da UBS"
+                  />
+                </div>
+
+                <div className="form-grupo">
+                  <label>Número do Cartão SUS</label>
+                  <input
+                    type="text"
+                    value={formData.numeroSUS}
+                    onChange={(e) => setFormData({ ...formData, numeroSUS: e.target.value })}
+                    placeholder="Número do cartão SUS"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-grupo">
+                  <label>Doenças</label>
+                  <textarea
+                    value={formData.doencas}
+                    onChange={(e) => setFormData({ ...formData, doencas: e.target.value })}
+                    placeholder="Descreva doenças ou condições médicas..."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="form-grupo">
+                  <label>Alergias</label>
+                  <textarea
+                    value={formData.alergias}
+                    onChange={(e) => setFormData({ ...formData, alergias: e.target.value })}
+                    placeholder="Descreva alergias conhecidas..."
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-grupo">
+                  <label>Medicamentos de Uso Contínuo</label>
+                  <textarea
+                    value={formData.medicamentos}
+                    onChange={(e) => setFormData({ ...formData, medicamentos: e.target.value })}
+                    placeholder="Medicamentos em uso..."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="form-grupo">
+                  <label>Necessidades Especiais</label>
+                  <textarea
+                    value={formData.necessidadesEspeciais}
+                    onChange={(e) => setFormData({ ...formData, necessidadesEspeciais: e.target.value })}
+                    placeholder="Descreva necessidades especiais de atenção..."
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              <div className="form-grupo">
+                <label>Observações</label>
+                <textarea
+                  value={formData.observacoes}
+                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                  placeholder="Observações adicionais..."
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-cancelar" onClick={fecharModal}>
+                Cancelar
+              </button>
+              <button 
+                className="btn-salvar" 
+                onClick={salvarAluno}
+                disabled={salvando}
+              >
+                {salvando ? (
+                  <>
+                    <div className="spinner-pequeno"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    Salvar
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação de Exclusão */}
       {modalDeletar && (
         <ModalConfirmacao
           aberto={modalDeletar}
           titulo="Remover Aluno"
-          mensagem={`Tem certeza que deseja remover ${alunoSelecionado?.pessoa?.nome} do Guaraúna?`}
+          mensagem={`Tem certeza que deseja remover ${alunoSelecionado?.pessoa?.nome || alunoSelecionado?.nome} do Guaraúna?`}
           botaoPrincipalTexto="Remover"
           botaoCancelarTexto="Cancelar"
           tipo="deletar"

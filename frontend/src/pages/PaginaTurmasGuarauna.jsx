@@ -4,6 +4,7 @@ import { useAuth } from '../contexto/AuthContext';
 import { useGlobalToast } from '../contexto/ToastContext';
 import Navbar from '../componentes/Navbar';
 import Breadcrumb from '../componentes/Breadcrumb';
+import { ModalConfirmacao } from '../componentes/ModalConfirmacao';
 import { 
   Users, 
   Plus, 
@@ -13,14 +14,15 @@ import {
   MapPin,
   Clock,
   Calendar,
-  Music,
   ChevronLeft,
   ChevronRight,
   X,
   Save,
   User,
-  GraduationCap
+  GraduationCap,
+  Check
 } from 'lucide-react';
+import { getGraduacaoNome } from '../utils/graduacoesCapoeira';
 import './PaginaTurmasGuarauna.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -33,7 +35,7 @@ const PaginaTurmasGuarauna = () => {
   // Estados principais
   const [turmas, setTurmas] = useState([]);
   const [comunidades, setComunidades] = useState([]);
-  const [professores, setProfessores] = useState([]);
+  const [educadores, setEducadores] = useState([]);
   const [alunos, setAlunos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState('');
@@ -53,11 +55,10 @@ const PaginaTurmasGuarauna = () => {
   const [abaAtiva, setAbaAtiva] = useState('dados');
   const [formData, setFormData] = useState({
     nome: '',
-    instrumento: '',
     comunidadeId: '',
-    professorId: '',
+    educadorId: '',
     ano: new Date().getFullYear(),
-    diaSemana: '',
+    diasSemana: [],
     horarioInicio: '',
     horarioFim: '',
     alunoIds: []
@@ -66,11 +67,8 @@ const PaginaTurmasGuarauna = () => {
   // Modal de confirmação
   const [modalConfirmacao, setModalConfirmacao] = useState({ aberto: false, turma: null });
 
-  const instrumentos = [
-    'Violino', 'Viola', 'Violoncelo', 'Contrabaixo', 'Flauta', 'Clarinete',
-    'Oboé', 'Fagote', 'Trompete', 'Trombone', 'Trompa', 'Tuba',
-    'Piano', 'Percussão', 'Violão', 'Canto', 'Teoria Musical', 'Musicalização', 'Orquestra', 'Coral', 'Outro'
-  ];
+  // Busca de alunos na aba
+  const [buscaAluno, setBuscaAluno] = useState('');
 
   const diasSemana = [
     { valor: 'segunda', label: 'Segunda-feira' },
@@ -83,16 +81,29 @@ const PaginaTurmasGuarauna = () => {
 
   const anosDisponiveis = [];
   const anoAtual = new Date().getFullYear();
-  for (let i = anoAtual - 2; i <= anoAtual + 1; i++) {
+  for (let i = anoAtual - 2; i <= 2045; i++) {
     anosDisponiveis.push(i);
+  }
+
+  // Opções de horário com intervalos de 30 minutos (06:00 até 22:30)
+  const horasDisponiveis = [];
+  for (let hora = 6; hora <= 22; hora++) {
+    horasDisponiveis.push({ 
+      valor: `${hora.toString().padStart(2, '0')}:00`, 
+      label: `${hora.toString().padStart(2, '0')}:00` 
+    });
+    horasDisponiveis.push({ 
+      valor: `${hora.toString().padStart(2, '0')}:30`, 
+      label: `${hora.toString().padStart(2, '0')}:30` 
+    });
   }
 
   // Carregar dados auxiliares
   const carregarDadosAuxiliares = useCallback(async () => {
     try {
-      const [resComunidades, resProfessores, resAlunos] = await Promise.all([
+      const [resComunidades, resEducadores, resAlunos] = await Promise.all([
         fetch(`${API_URL}/api/comunidades`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/guarauna/professores?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/guarauna/educadores?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`${API_URL}/api/guarauna/alunos?limite=1000`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
@@ -101,9 +112,10 @@ const PaginaTurmasGuarauna = () => {
         setComunidades(data);
       }
 
-      if (resProfessores.ok) {
-        const data = await resProfessores.json();
-        setProfessores(data.professores || []);
+      if (resEducadores.ok) {
+        const data = await resEducadores.json();
+        // A API retorna array direto, não { educadores: [...] }
+        setEducadores(Array.isArray(data) ? data : (data.educadores || []));
       }
 
       if (resAlunos.ok) {
@@ -166,30 +178,36 @@ const PaginaTurmasGuarauna = () => {
   const resetForm = () => {
     setFormData({
       nome: '',
-      instrumento: '',
       comunidadeId: '',
-      professorId: '',
+      educadorId: '',
       ano: new Date().getFullYear(),
-      diaSemana: '',
+      diasSemana: [],
       horarioInicio: '',
       horarioFim: '',
       alunoIds: []
     });
     setTurmaEditando(null);
     setAbaAtiva('dados');
+    setBuscaAluno('');
   };
 
   // Abrir modal
   const abrirModal = (turma = null) => {
     if (turma) {
       setTurmaEditando(turma);
+      // Suporte para diaSemana antigo (string) ou novo diasSemana (array)
+      let diasArray = [];
+      if (turma.diasSemana && Array.isArray(turma.diasSemana)) {
+        diasArray = turma.diasSemana;
+      } else if (turma.diaSemana) {
+        diasArray = [turma.diaSemana];
+      }
       setFormData({
         nome: turma.nome || '',
-        instrumento: turma.instrumento || '',
-        comunidadeId: turma.comunidadeId || '',
-        professorId: turma.professorId || '',
+        comunidadeId: turma.comunidade || '', // O campo é 'comunidade', não 'comunidadeId'
+        educadorId: turma.educadorId || '',
         ano: turma.ano || new Date().getFullYear(),
-        diaSemana: turma.diaSemana || '',
+        diasSemana: diasArray,
         horarioInicio: turma.horarioInicio || '',
         horarioFim: turma.horarioFim || '',
         alunoIds: turma.alunos?.map(at => at.alunoId) || []
@@ -286,15 +304,29 @@ const PaginaTurmasGuarauna = () => {
     }));
   };
 
-  // Filtrar alunos da mesma comunidade
-  const alunosFiltrados = alunos.filter(a => 
-    !formData.comunidadeId || a.comunidadeId === formData.comunidadeId
-  );
+  // O comunidadeId JÁ É o nome da comunidade (a API retorna id=nome para comunidades)
+  const nomeComunidadeSelecionada = formData.comunidadeId || '';
 
-  // Professores da comunidade selecionada
-  const professoresFiltrados = professores.filter(p =>
-    !formData.comunidadeId || p.comunidades?.some(pc => pc.comunidadeId === formData.comunidadeId)
-  );
+  // Filtrar alunos da mesma comunidade (por nome da comunidade) E por busca
+  const alunosFiltrados = alunos
+    .filter(a => {
+      if (!nomeComunidadeSelecionada) return false;
+      // Comparar pelo nome da comunidade (pessoa.comunidade ou comunidade direta)
+      const comunidadeAluno = a.pessoa?.comunidade || a.comunidade || '';
+      return comunidadeAluno === nomeComunidadeSelecionada;
+    })
+    .filter(a => {
+      if (!buscaAluno) return true;
+      const nome = (a.pessoa?.nome || a.nome || '').toLowerCase();
+      return nome.includes(buscaAluno.toLowerCase());
+    });
+
+  // Educadores da comunidade selecionada (eles têm comunidades[].comunidade = nome)
+  const educadoresFiltrados = educadores.filter(p => {
+    if (!nomeComunidadeSelecionada) return true; // Mostra todos se não tiver comunidade selecionada
+    // Filtrar pelo nome da comunidade (o campo é 'comunidade', não 'comunidadeId')
+    return p.comunidades?.some(pc => pc.comunidade === nomeComunidadeSelecionada);
+  });
 
   const breadcrumbItems = [
     { label: 'Guaraúna', path: '/guarauna' },
@@ -383,30 +415,29 @@ const PaginaTurmasGuarauna = () => {
                 </div>
 
                 <div className="turma-card-body">
-                  {turma.instrumento && (
-                    <div className="turma-info">
-                      <Music size={16} />
-                      <span>{turma.instrumento}</span>
-                    </div>
-                  )}
-
                   <div className="turma-info">
                     <MapPin size={16} />
-                    <span>{turma.comunidade?.nome || 'Sem comunidade'}</span>
+                    <span>{turma.comunidade || 'Sem comunidade'}</span>
                   </div>
 
-                  {turma.professor && (
+                  {turma.educador && (
                     <div className="turma-info">
                       <GraduationCap size={16} />
-                      <span>{turma.professor.nome}</span>
+                      <span>{turma.educador.pessoa?.nome || turma.educador.nome}</span>
                     </div>
                   )}
 
-                  {turma.diaSemana && (
+                  {/* Suporte para diasSemana (array) ou diaSemana (string legado) */}
+                  {(turma.diasSemana?.length > 0 || turma.diaSemana) && (
                     <div className="turma-info">
                       <Calendar size={16} />
                       <span>
-                        {diasSemana.find(d => d.valor === turma.diaSemana)?.label || turma.diaSemana}
+                        {turma.diasSemana?.length > 0
+                          ? turma.diasSemana.map(d => 
+                              diasSemana.find(ds => ds.valor === d)?.label.replace('-feira', '') || d
+                            ).join(', ')
+                          : diasSemana.find(d => d.valor === turma.diaSemana)?.label || turma.diaSemana
+                        }
                       </span>
                     </div>
                   )}
@@ -503,7 +534,7 @@ const PaginaTurmasGuarauna = () => {
                         type="text"
                         value={formData.nome}
                         onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                        placeholder="Ex: Violino Iniciante A"
+                        placeholder="Ex: Alunos Infantil Vila Cheba"
                       />
                     </div>
 
@@ -528,7 +559,7 @@ const PaginaTurmasGuarauna = () => {
                         onChange={(e) => setFormData({ 
                           ...formData, 
                           comunidadeId: e.target.value,
-                          professorId: '' // Reset professor ao mudar comunidade
+                          educadorId: '' // Reset educador ao mudar comunidade
                         })}
                       >
                         <option value="">Selecione</option>
@@ -537,31 +568,20 @@ const PaginaTurmasGuarauna = () => {
                         ))}
                       </select>
                     </div>
-
-                    <div className="form-grupo">
-                      <label>Instrumento</label>
-                      <select
-                        value={formData.instrumento}
-                        onChange={(e) => setFormData({ ...formData, instrumento: e.target.value })}
-                      >
-                        <option value="">Selecione</option>
-                        {instrumentos.map(i => (
-                          <option key={i} value={i}>{i}</option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
 
                   <div className="form-grupo">
-                    <label>Professor</label>
+                    <label>Educador</label>
                     <select
-                      value={formData.professorId}
-                      onChange={(e) => setFormData({ ...formData, professorId: e.target.value })}
+                      value={formData.educadorId}
+                      onChange={(e) => setFormData({ ...formData, educadorId: e.target.value })}
                       disabled={!formData.comunidadeId}
                     >
-                      <option value="">Selecione um professor</option>
-                      {professoresFiltrados.map(p => (
-                        <option key={p.id} value={p.id}>{p.nome} - {p.instrumento}</option>
+                      <option value="">Selecione um educador</option>
+                      {educadoresFiltrados.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.pessoa?.nome || p.nome} - {getGraduacaoNome(p.graduacao || p.instrumento)}
+                        </option>
                       ))}
                     </select>
                     {!formData.comunidadeId && (
@@ -569,36 +589,58 @@ const PaginaTurmasGuarauna = () => {
                     )}
                   </div>
 
-                  <div className="form-row tres-colunas">
+                  <div className="form-grupo">
+                    <label>Dias da Semana</label>
+                    <div className="dias-semana-chips">
+                      {diasSemana.map(d => {
+                        const selecionado = formData.diasSemana.includes(d.valor);
+                        return (
+                          <button
+                            key={d.valor}
+                            type="button"
+                            className={`dia-chip ${selecionado ? 'selecionado' : ''}`}
+                            onClick={() => {
+                              setFormData(prev => ({
+                                ...prev,
+                                diasSemana: selecionado
+                                  ? prev.diasSemana.filter(dia => dia !== d.valor)
+                                  : [...prev.diasSemana, d.valor]
+                              }));
+                            }}
+                          >
+                            {selecionado && <Check size={14} />}
+                            {d.label.replace('-feira', '')}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="form-row duas-colunas">
                     <div className="form-grupo">
-                      <label>Dia da Semana</label>
+                      <label>Horário Início</label>
                       <select
-                        value={formData.diaSemana}
-                        onChange={(e) => setFormData({ ...formData, diaSemana: e.target.value })}
+                        value={formData.horarioInicio}
+                        onChange={(e) => setFormData({ ...formData, horarioInicio: e.target.value })}
                       >
                         <option value="">Selecione</option>
-                        {diasSemana.map(d => (
-                          <option key={d.valor} value={d.valor}>{d.label}</option>
+                        {horasDisponiveis.map(h => (
+                          <option key={h.valor} value={h.valor}>{h.label}</option>
                         ))}
                       </select>
                     </div>
 
                     <div className="form-grupo">
-                      <label>Horário Início</label>
-                      <input
-                        type="time"
-                        value={formData.horarioInicio}
-                        onChange={(e) => setFormData({ ...formData, horarioInicio: e.target.value })}
-                      />
-                    </div>
-
-                    <div className="form-grupo">
                       <label>Horário Fim</label>
-                      <input
-                        type="time"
+                      <select
                         value={formData.horarioFim}
                         onChange={(e) => setFormData({ ...formData, horarioFim: e.target.value })}
-                      />
+                      >
+                        <option value="">Selecione</option>
+                        {horasDisponiveis.map(h => (
+                          <option key={h.valor} value={h.valor}>{h.label}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </>
@@ -611,33 +653,75 @@ const PaginaTurmasGuarauna = () => {
                       <MapPin size={24} />
                       <p>Selecione uma comunidade na aba "Dados da Turma" para ver os alunos disponíveis.</p>
                     </div>
-                  ) : alunosFiltrados.length === 0 ? (
-                    <div className="sem-alunos">
-                      <User size={24} />
-                      <p>Nenhum aluno cadastrado nesta comunidade.</p>
-                    </div>
                   ) : (
                     <>
-                      <p className="alunos-instrucao">
-                        Selecione os alunos que farão parte desta turma:
-                      </p>
-                      <div className="alunos-lista">
-                        {alunosFiltrados.map(aluno => (
-                          <label key={aluno.id} className="aluno-item">
-                            <input
-                              type="checkbox"
-                              checked={formData.alunoIds.includes(aluno.id)}
-                              onChange={() => toggleAluno(aluno.id)}
-                            />
-                            <div className="aluno-info">
-                              <span className="aluno-nome">{aluno.pessoa?.nome || aluno.nome}</span>
-                              {aluno.instrumento && (
-                                <span className="aluno-instrumento">{aluno.instrumento}</span>
-                              )}
-                            </div>
-                          </label>
-                        ))}
+                      {/* Busca de alunos */}
+                      <div className="alunos-busca-container">
+                        <Search size={18} />
+                        <input
+                          type="text"
+                          placeholder="Buscar aluno por nome..."
+                          value={buscaAluno}
+                          onChange={(e) => setBuscaAluno(e.target.value)}
+                        />
                       </div>
+
+                      {/* Tags dos alunos selecionados */}
+                      {formData.alunoIds.length > 0 && (
+                        <div className="alunos-selecionados-tags">
+                          <span className="tags-label">
+                            {formData.alunoIds.length} aluno{formData.alunoIds.length > 1 ? 's' : ''} selecionado{formData.alunoIds.length > 1 ? 's' : ''}:
+                          </span>
+                          <div className="tags-container">
+                            {formData.alunoIds.map(alunoId => {
+                              const aluno = alunos.find(a => a.id === alunoId);
+                              const nome = aluno?.pessoa?.nome || aluno?.nome || 'Aluno';
+                              return (
+                                <span key={alunoId} className="aluno-tag">
+                                  {nome}
+                                  <button 
+                                    type="button"
+                                    onClick={() => toggleAluno(alunoId)}
+                                    className="remover-aluno"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Lista de alunos como chips */}
+                      {alunosFiltrados.length === 0 ? (
+                        <div className="sem-alunos">
+                          <User size={24} />
+                          <p>{buscaAluno ? 'Nenhum aluno encontrado com este nome.' : 'Nenhum aluno cadastrado nesta comunidade.'}</p>
+                        </div>
+                      ) : (
+                        <div className="alunos-chips-container">
+                          <p className="alunos-instrucao">
+                            Clique para selecionar os alunos da turma:
+                          </p>
+                          <div className="alunos-chips">
+                            {alunosFiltrados.map(aluno => {
+                              const selecionado = formData.alunoIds.includes(aluno.id);
+                              return (
+                                <button
+                                  key={aluno.id}
+                                  type="button"
+                                  className={`aluno-chip ${selecionado ? 'selecionado' : ''}`}
+                                  onClick={() => toggleAluno(aluno.id)}
+                                >
+                                  {selecionado && <Check size={14} />}
+                                  <span>{aluno.pessoa?.nome || aluno.nome}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -671,29 +755,16 @@ const PaginaTurmasGuarauna = () => {
       )}
 
       {/* Modal de Confirmação */}
-      {modalConfirmacao.aberto && (
-        <div className="modal-overlay" onClick={() => setModalConfirmacao({ aberto: false, turma: null })}>
-          <div className="modal-confirmacao" onClick={e => e.stopPropagation()}>
-            <h3>Confirmar Exclusão</h3>
-            <p>
-              Deseja realmente excluir a turma <strong>{modalConfirmacao.turma?.nome}</strong>?
-            </p>
-            <p className="aviso">Esta ação não pode ser desfeita.</p>
-            <div className="modal-footer">
-              <button 
-                className="btn-cancelar" 
-                onClick={() => setModalConfirmacao({ aberto: false, turma: null })}
-              >
-                Cancelar
-              </button>
-              <button className="btn-excluir" onClick={excluirTurma}>
-                <Trash2 size={16} />
-                Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ModalConfirmacao
+        aberto={modalConfirmacao.aberto}
+        onCancelar={() => setModalConfirmacao({ aberto: false, turma: null })}
+        onConfirmar={excluirTurma}
+        titulo="Confirmar Exclusão"
+        mensagem={`Deseja realmente excluir a turma ${modalConfirmacao.turma?.nome || ''}?`}
+        tipo="deletar"
+        botaoPrincipalTexto="Excluir"
+        botaoCancelarTexto="Cancelar"
+      />
     </div>
   );
 };

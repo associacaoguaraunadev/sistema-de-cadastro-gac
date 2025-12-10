@@ -377,6 +377,11 @@ async function rotear(req, res, slug) {
     return iniciarSSE(req, res);
   }
 
+  // COMUNIDADES - Lista todas as comunidades únicas
+  if (rota === 'comunidades' && req.method === 'GET') {
+    return comunidadesListar(req, res);
+  }
+
   // PESSOAS
   // Rotas específicas devem vir ANTES das genéricas
   if (rota === 'pessoas/validar-cpf' && req.method === 'GET') {
@@ -441,6 +446,13 @@ async function rotear(req, res, slug) {
     return pessoasCriar(req, res);
   }
 
+  // Rota de verificação de dependências antes de deletar (DEVE VIR ANTES da rota genérica)
+  if (rota.match(/^pessoas\/\d+\/verificar-exclusao$/) && req.method === 'GET') {
+    const id = slug[1];
+    console.log(`🎯 ROTEAMENTO: Chamando pessoasVerificarExclusao com ID ${id}`);
+    return pessoasVerificarExclusao(req, res, id);
+  }
+
   // Rota genérica com ID (deve vir por último)
   if (rota.startsWith('pessoas/') && req.method === 'GET') {
     const id = slug[1];
@@ -497,6 +509,10 @@ async function rotear(req, res, slug) {
     const id = slug[2];
     return guaraunaResponsaveisAtualizar(req, res, id);
   }
+  if (rota.match(/^guarauna\/responsaveis\/[^/]+$/) && req.method === 'DELETE') {
+    const id = slug[2];
+    return guaraunaResponsaveisDeletar(req, res, id);
+  }
   
   // VINCULAR ALUNO A RESPONSÁVEL
   if (rota === 'guarauna/alunos-responsaveis' && req.method === 'POST') {
@@ -507,24 +523,24 @@ async function rotear(req, res, slug) {
     return guaraunaDesvincularAlunoResponsavel(req, res, id);
   }
   
-  // PROFESSORES
-  if (rota === 'guarauna/professores' && req.method === 'GET') {
-    return guaraunaProfessoresListar(req, res);
+  // EDUCADORES
+  if (rota === 'guarauna/educadores' && req.method === 'GET') {
+    return guaraunaEducadoresListar(req, res);
   }
-  if (rota === 'guarauna/professores' && req.method === 'POST') {
-    return guaraunaProfessoresCriar(req, res);
+  if (rota === 'guarauna/educadores' && req.method === 'POST') {
+    return guaraunaEducadoresCriar(req, res);
   }
-  if (rota.match(/^guarauna\/professores\/[^/]+$/) && req.method === 'GET') {
+  if (rota.match(/^guarauna\/educadores\/[^/]+$/) && req.method === 'GET') {
     const id = slug[2];
-    return guaraunaProfessoresObter(req, res, id);
+    return guaraunaEducadoresObter(req, res, id);
   }
-  if (rota.match(/^guarauna\/professores\/[^/]+$/) && req.method === 'PUT') {
+  if (rota.match(/^guarauna\/educadores\/[^/]+$/) && req.method === 'PUT') {
     const id = slug[2];
-    return guaraunaProfessoresAtualizar(req, res, id);
+    return guaraunaEducadoresAtualizar(req, res, id);
   }
-  if (rota.match(/^guarauna\/professores\/[^/]+$/) && req.method === 'DELETE') {
+  if (rota.match(/^guarauna\/educadores\/[^/]+$/) && req.method === 'DELETE') {
     const id = slug[2];
-    return guaraunaProfessoresDeletar(req, res, id);
+    return guaraunaEducadoresDeletar(req, res, id);
   }
   
   // TURMAS
@@ -1495,6 +1511,48 @@ async function pessoasTotaisPorComunidade(req, res) {
     res.status(500).json({ 
       erro: 'Erro ao obter totais por comunidade',
       codigo: 'TOTAIS_COMUNIDADE_ERROR'
+    });
+  }
+}
+
+// ==================== COMUNIDADES - LISTAR ====================
+async function comunidadesListar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Obter todas as comunidades únicas do banco de dados
+    const pessoas = await prisma.pessoa.findMany({
+      where: {
+        comunidade: { not: null }
+      },
+      select: { comunidade: true },
+      distinct: ['comunidade']
+    });
+
+    // Extrair comunidades únicas, filtrar vazias e ordenar
+    const comunidadesUnicas = pessoas
+      .map(p => p.comunidade)
+      .filter(c => c && c.trim() !== '')
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+    log(`✅ Listadas ${comunidadesUnicas.length} comunidades únicas`);
+
+    // Retornar como array de objetos - usando nome como ID (comunidade é campo texto)
+    const resultado = comunidadesUnicas.map((nome) => ({
+      id: nome,
+      nome: nome
+    }));
+
+    res.status(200).json(resultado);
+  } catch (erro) {
+    log(`Erro ao listar comunidades: ${erro.message}`, 'error');
+    res.status(500).json({ 
+      erro: 'Erro ao listar comunidades',
+      codigo: 'LISTAR_COMUNIDADES_ERROR'
     });
   }
 }
@@ -2502,28 +2560,213 @@ async function pessoasDeletar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
+    const pessoaId = parseInt(id);
+
+    // 🛡️ VERIFICAR DEPENDÊNCIAS ANTES DE DELETAR
+    const verificacao = await verificarDependenciasPessoa(prisma, pessoaId);
+    
+    if (!verificacao.podeExcluir) {
+      return res.status(409).json({
+        erro: 'Não é possível excluir esta pessoa',
+        motivo: verificacao.motivoBloqueio,
+        dependencias: verificacao.dependencias,
+        sugestao: verificacao.sugestao
+      });
+    }
+
     // Obter dados da pessoa antes de deletar para o evento
     const pessoaParaDeletar = await prisma.pessoa.findUnique({ 
-      where: { id: parseInt(id) },
+      where: { id: pessoaId },
       select: { id: true, nome: true, cpf: true }
     });
     
-    await prisma.pessoa.delete({ where: { id: parseInt(id) } });
+    if (!pessoaParaDeletar) {
+      return res.status(404).json({ erro: 'Pessoa não encontrada' });
+    }
+    
+    // Deletar pessoa (cascata cuida do resto)
+    await prisma.pessoa.delete({ where: { id: pessoaId } });
     
     // 🚀 Enviar evento Pusher em tempo real
-    if (pessoaParaDeletar) {
-      await enviarEventoPusher('pessoaDeletada', {
-        pessoa: pessoaParaDeletar,
-        autorId: usuario.id,
-        autorFuncao: usuario.funcao,
-        tipo: 'delecao'
-      });
-    }
+    await enviarEventoPusher('pessoaDeletada', {
+      pessoa: pessoaParaDeletar,
+      autorId: usuario.id,
+      autorFuncao: usuario.funcao,
+      tipo: 'delecao',
+      dependenciasRemovidas: verificacao.dependencias
+    });
 
     res.status(204).end();
   } catch (erro) {
     log(`Erro ao deletar pessoa: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao deletar pessoa' });
+  }
+}
+
+// 🛡️ VERIFICAR DEPENDÊNCIAS DE UMA PESSOA ANTES DE EXCLUIR
+async function verificarDependenciasPessoa(prisma, pessoaId) {
+  const dependencias = {
+    aluno: null,
+    responsavel: null,
+    educador: null,
+    detalhes: []
+  };
+
+  let podeExcluir = true;
+  let motivoBloqueio = null;
+  let sugestao = null;
+
+  // Verificar se é Aluno Guaraúna
+  const aluno = await prisma.alunoGuarauna.findUnique({
+    where: { pessoaId },
+    include: {
+      turmas: { where: { ativo: true }, include: { turma: true } },
+      matriculas: true,
+      aceitesEventos: { include: { eventoTermo: true } },
+      responsaveis: { include: { responsavel: { include: { pessoa: true } } } }
+    }
+  });
+
+  if (aluno) {
+    dependencias.aluno = {
+      id: aluno.id,
+      ativo: aluno.ativo,
+      turmas: aluno.turmas.length,
+      matriculas: aluno.matriculas.length,
+      termosAceitos: aluno.aceitesEventos.length,
+      responsaveisVinculados: aluno.responsaveis.length
+    };
+
+    // Se tem matrículas ou termos aceitos, bloquear exclusão
+    if (aluno.matriculas.length > 0) {
+      podeExcluir = false;
+      motivoBloqueio = `Este aluno possui ${aluno.matriculas.length} matrícula(s) registrada(s)`;
+      sugestao = 'Desative o aluno em vez de excluir, ou remova as matrículas primeiro';
+    }
+
+    if (aluno.aceitesEventos.length > 0 && podeExcluir) {
+      podeExcluir = false;
+      motivoBloqueio = `Este aluno possui ${aluno.aceitesEventos.length} termo(s) aceito(s)`;
+      sugestao = 'Termos assinados são documentos legais e não podem ser removidos';
+    }
+
+    if (aluno.turmas.length > 0) {
+      dependencias.detalhes.push(`Vinculado a ${aluno.turmas.length} turma(s): ${aluno.turmas.map(t => t.turma.nome).join(', ')}`);
+    }
+  }
+
+  // Verificar se é Responsável Legal
+  const responsavel = await prisma.responsavelLegal.findUnique({
+    where: { pessoaId },
+    include: {
+      alunos: { include: { aluno: { include: { pessoa: true } } } },
+      aceitesMatricula: true,
+      aceitesEventos: true
+    }
+  });
+
+  if (responsavel) {
+    dependencias.responsavel = {
+      id: responsavel.id,
+      ativo: responsavel.ativo,
+      alunosVinculados: responsavel.alunos.length,
+      aceitesMatricula: responsavel.aceitesMatricula.length,
+      aceitesEventos: responsavel.aceitesEventos.length
+    };
+
+    // Se tem aceites digitais (documentos legais), bloquear
+    if (responsavel.aceitesMatricula.length > 0 && podeExcluir) {
+      podeExcluir = false;
+      motivoBloqueio = `Este responsável assinou ${responsavel.aceitesMatricula.length} termo(s) de matrícula`;
+      sugestao = 'Termos assinados são documentos legais e não podem ser removidos';
+    }
+
+    if (responsavel.aceitesEventos.length > 0 && podeExcluir) {
+      podeExcluir = false;
+      motivoBloqueio = `Este responsável assinou ${responsavel.aceitesEventos.length} termo(s) de evento`;
+      sugestao = 'Termos assinados são documentos legais e não podem ser removidos';
+    }
+
+    if (responsavel.alunos.length > 0) {
+      const nomesAlunos = responsavel.alunos.map(r => r.aluno.pessoa?.nome || 'Aluno').join(', ');
+      dependencias.detalhes.push(`Responsável por ${responsavel.alunos.length} aluno(s): ${nomesAlunos}`);
+    }
+  }
+
+  // Verificar se é Educador
+  const educador = await prisma.educador.findUnique({
+    where: { pessoaId },
+    include: {
+      turmas: { where: { ativa: true } },
+      termos: true,
+      comunidades: { where: { ativo: true } }
+    }
+  });
+
+  if (educador) {
+    dependencias.educador = {
+      id: educador.id,
+      ativo: educador.ativo,
+      turmasAtivas: educador.turmas.length,
+      termosAssinados: educador.termos.length,
+      comunidadesAtivas: educador.comunidades.length
+    };
+
+    // Se tem termos de educador assinados, bloquear
+    if (educador.termos.length > 0 && podeExcluir) {
+      podeExcluir = false;
+      motivoBloqueio = `Este educador assinou ${educador.termos.length} termo(s) de voluntariado/imagem`;
+      sugestao = 'Termos assinados são documentos legais e não podem ser removidos';
+    }
+
+    // Se tem turmas ativas, avisar mas permitir (SetNull no schema)
+    if (educador.turmas.length > 0) {
+      dependencias.detalhes.push(`Responsável por ${educador.turmas.length} turma(s) ativa(s) - serão desvinculadas`);
+    }
+  }
+
+  return {
+    podeExcluir,
+    motivoBloqueio,
+    sugestao,
+    dependencias,
+    temDependencias: !!(aluno || responsavel || educador)
+  };
+}
+
+// 🔍 ENDPOINT: Verificar dependências antes de excluir pessoa
+async function pessoasVerificarExclusao(req, res, id) {
+  console.log('\n🔍 VERIFICANDO DEPENDÊNCIAS PARA EXCLUSÃO DE PESSOA');
+  const prisma = getPrisma();
+  
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const pessoaId = parseInt(id);
+    
+    // Buscar pessoa
+    const pessoa = await prisma.pessoa.findUnique({
+      where: { id: pessoaId },
+      select: { id: true, nome: true, cpf: true, comunidade: true }
+    });
+
+    if (!pessoa) {
+      return res.status(404).json({ erro: 'Pessoa não encontrada' });
+    }
+
+    // Verificar todas as dependências
+    const verificacao = await verificarDependenciasPessoa(prisma, pessoaId);
+
+    res.status(200).json({
+      pessoa,
+      ...verificacao
+    });
+  } catch (erro) {
+    log(`Erro ao verificar exclusão: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao verificar dependências' });
   }
 }
 
@@ -2542,7 +2785,7 @@ async function pessoasDeletarEmMassa(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem deletar em massa' });
     }
 
-    const { ids } = req.body;
+    const { ids, forcarExclusao } = req.body;
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ erro: 'Lista de IDs é obrigatória' });
@@ -2556,25 +2799,68 @@ async function pessoasDeletarEmMassa(req, res) {
       });
     }
 
-    log(`🗑️ Deletando ${ids.length} pessoas em massa`);
+    log(`🗑️ Verificando ${ids.length} pessoas para exclusão em massa`);
 
-    // Obter dados das pessoas antes de deletar para os eventos
-    const pessoasParaDeletar = await prisma.pessoa.findMany({ 
-      where: { id: { in: ids.map(id => parseInt(id)) } },
-      select: { id: true, nome: true, cpf: true }
-    });
+    // 🛡️ VERIFICAR DEPENDÊNCIAS DE CADA PESSOA
+    const pessoasVerificadas = [];
+    const pessoasBloqueadas = [];
+    const pessoasLiberadas = [];
 
-    // Deletar todas as pessoas
+    for (const id of ids) {
+      const pessoaId = parseInt(id);
+      const verificacao = await verificarDependenciasPessoa(prisma, pessoaId);
+      
+      const pessoa = await prisma.pessoa.findUnique({
+        where: { id: pessoaId },
+        select: { id: true, nome: true, cpf: true }
+      });
+
+      if (!pessoa) continue;
+
+      if (verificacao.podeExcluir) {
+        pessoasLiberadas.push({ ...pessoa, verificacao });
+      } else {
+        pessoasBloqueadas.push({ 
+          ...pessoa, 
+          motivo: verificacao.motivoBloqueio,
+          sugestao: verificacao.sugestao
+        });
+      }
+    }
+
+    // Se não forçar exclusão e houver bloqueadas, retornar relatório
+    if (pessoasBloqueadas.length > 0 && !forcarExclusao) {
+      return res.status(409).json({
+        erro: 'Algumas pessoas não podem ser excluídas',
+        bloqueadas: pessoasBloqueadas,
+        liberadas: pessoasLiberadas.map(p => ({ id: p.id, nome: p.nome })),
+        totalBloqueadas: pessoasBloqueadas.length,
+        totalLiberadas: pessoasLiberadas.length,
+        mensagem: `${pessoasBloqueadas.length} pessoa(s) possuem dependências que impedem a exclusão. ${pessoasLiberadas.length} podem ser excluídas.`
+      });
+    }
+
+    // Deletar apenas as pessoas liberadas
+    if (pessoasLiberadas.length === 0) {
+      return res.status(409).json({
+        erro: 'Nenhuma pessoa pode ser excluída',
+        bloqueadas: pessoasBloqueadas,
+        mensagem: 'Todas as pessoas selecionadas possuem dependências que impedem a exclusão'
+      });
+    }
+
+    const idsParaDeletar = pessoasLiberadas.map(p => p.id);
+    
     const resultado = await prisma.pessoa.deleteMany({
-      where: { id: { in: ids.map(id => parseInt(id)) } }
+      where: { id: { in: idsParaDeletar } }
     });
 
     log(`✅ ${resultado.count} pessoas deletadas com sucesso`);
 
     // 🚀 Enviar evento Pusher para cada pessoa deletada
-    for (const pessoa of pessoasParaDeletar) {
+    for (const pessoa of pessoasLiberadas) {
       await enviarEventoPusher('pessoaDeletada', {
-        pessoa,
+        pessoa: { id: pessoa.id, nome: pessoa.nome, cpf: pessoa.cpf },
         autorId: usuario.id,
         autorFuncao: usuario.funcao,
         tipo: 'delecao-em-massa'
@@ -2583,7 +2869,8 @@ async function pessoasDeletarEmMassa(req, res) {
 
     res.status(200).json({ 
       mensagem: `${resultado.count} pessoas deletadas com sucesso`,
-      quantidade: resultado.count
+      quantidade: resultado.count,
+      bloqueadas: pessoasBloqueadas.length > 0 ? pessoasBloqueadas : undefined
     });
   } catch (erro) {
     log(`Erro ao deletar pessoas em massa: ${erro.message}`, 'error');
@@ -2631,17 +2918,46 @@ async function guaraunaAlunosListar(req, res) {
       orderBy: { pessoa: { nome: 'asc' } }
     });
 
+    // Formatar os dados para o frontend
+    let resultado = alunos.map(aluno => {
+      const formatado = {
+        ...aluno,
+        // Dados da pessoa para facilitar acesso
+        nome: aluno.pessoa?.nome,
+        dataNascimento: aluno.pessoa?.dataNascimento,
+        comunidade: aluno.pessoa?.comunidade,
+        telefone: aluno.pessoa?.telefone,
+        cpf: aluno.pessoa?.cpf,
+        // Lista de responsáveis formatada
+        responsaveis: aluno.responsaveis?.map(ar => ({
+          id: ar.responsavel?.id,
+          nome: ar.responsavel?.pessoa?.nome,
+          parentesco: ar.parentesco,
+          principal: ar.principal,
+          telefone: ar.responsavel?.pessoa?.telefone
+        })) || [],
+        // Graduação atual (campo direto no aluno)
+        graduacaoAtual: aluno.graduacaoAtual || null,
+        // Turma atual (da relação com turmas)
+        turmaAtual: aluno.turmas?.[0]?.turma?.nome || null,
+        // Matrícula atual
+        matriculaAtual: aluno.matriculas?.[0] || null
+      };
+      
+      log(`📋 Aluno: ${formatado.nome} | Graduação: ${formatado.graduacaoAtual} | Responsáveis: ${formatado.responsaveis.length}`);
+      return formatado;
+    });
+
     // Filtrar por busca se fornecido
-    let resultado = alunos;
     if (busca) {
       const termoBusca = busca.toLowerCase();
-      resultado = alunos.filter(a => 
-        a.pessoa.nome.toLowerCase().includes(termoBusca) ||
-        a.pessoa.cpf?.includes(termoBusca)
+      resultado = resultado.filter(a => 
+        a.nome?.toLowerCase().includes(termoBusca) ||
+        a.cpf?.includes(termoBusca)
       );
     }
 
-    res.json(resultado);
+    res.json({ alunos: resultado, total: resultado.length });
   } catch (erro) {
     log(`Erro ao listar alunos: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao listar alunos' });
@@ -2656,23 +2972,108 @@ async function guaraunaAlunosCriar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { pessoaId, ubs, numeroSUS, doencas, alergias, medicamentos, necessidadesEspeciais } = req.body;
+    const { 
+      pessoaId, 
+      // Dados da pessoa (se não tiver pessoaId)
+      nome, cpf, dataNascimento, telefone, email, comunidade, endereco, rg,
+      // Dados do aluno
+      graduacaoAtual, ubs, numeroSUS, doencas, alergias, medicamentos, necessidadesEspeciais,
+      observacoes,
+      // Responsável a vincular (opcional)
+      responsavelId, parentesco
+    } = req.body;
+
+    // Função para limpar CPF (remover formatação)
+    const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
+    // Função para limpar telefone (remover formatação)
+    const limparTelefone = (tel) => tel ? tel.replace(/\D/g, '') : null;
+
+    let pessoaFinalId = pessoaId ? parseInt(pessoaId) : null;
+
+    const cpfLimpo = limparCPF(cpf);
+    const telefoneLimpo = limparTelefone(telefone);
+
+    // Se não tem pessoaId, criar ou buscar pessoa pelo CPF
+    if (!pessoaFinalId) {
+      if (!nome || !comunidade) {
+        return res.status(400).json({ erro: 'Nome e comunidade são obrigatórios' });
+      }
+
+      // Verificar se já existe pessoa com esse CPF
+      if (cpfLimpo && cpfLimpo.length === 11) {
+        const pessoaExistente = await prisma.pessoa.findUnique({ where: { cpf: cpfLimpo } });
+        if (pessoaExistente) {
+          pessoaFinalId = pessoaExistente.id;
+          // Atualizar dados da pessoa existente
+          await prisma.pessoa.update({
+            where: { id: pessoaFinalId },
+            data: {
+              nome,
+              dataNascimento: dataNascimento ? new Date(dataNascimento) : undefined,
+              telefone: telefoneLimpo || undefined,
+              email: email || undefined,
+              comunidade,
+              endereco: endereco || undefined,
+              rg: rg || undefined,
+              observacoes: observacoes || undefined
+            }
+          });
+        }
+      }
+
+      // Se ainda não tem pessoaId, criar nova pessoa
+      if (!pessoaFinalId) {
+        const novaPessoa = await prisma.pessoa.create({
+          data: {
+            nome,
+            cpf: cpfLimpo || `TEMP-${Date.now()}`, // CPF temporário se não fornecido
+            dataNascimento: dataNascimento ? new Date(dataNascimento) : null,
+            telefone: telefoneLimpo,
+            email,
+            comunidade,
+            endereco: endereco || '',
+            rg,
+            observacoes,
+            usuarioId: usuario.id
+          }
+        });
+        pessoaFinalId = novaPessoa.id;
+        log(`✅ Pessoa criada: ${nome} (ID: ${novaPessoa.id})`);
+      }
+    } else {
+      // Se tem pessoaId, atualizar dados da pessoa
+      await prisma.pessoa.update({
+        where: { id: pessoaFinalId },
+        data: {
+          ...(nome && { nome }),
+          ...(dataNascimento && { dataNascimento: new Date(dataNascimento) }),
+          ...(telefoneLimpo && { telefone: telefoneLimpo }),
+          ...(email !== undefined && { email }),
+          ...(comunidade && { comunidade }),
+          ...(endereco !== undefined && { endereco }),
+          ...(rg !== undefined && { rg }),
+          ...(observacoes !== undefined && { observacoes })
+        }
+      });
+    }
 
     // Verificar se pessoa existe
-    const pessoa = await prisma.pessoa.findUnique({ where: { id: parseInt(pessoaId) } });
+    const pessoa = await prisma.pessoa.findUnique({ where: { id: pessoaFinalId } });
     if (!pessoa) {
       return res.status(404).json({ erro: 'Pessoa não encontrada' });
     }
 
     // Verificar se já é aluno
-    const alunoExistente = await prisma.alunoGuarauna.findUnique({ where: { pessoaId: parseInt(pessoaId) } });
+    const alunoExistente = await prisma.alunoGuarauna.findUnique({ where: { pessoaId: pessoaFinalId } });
     if (alunoExistente) {
       return res.status(400).json({ erro: 'Esta pessoa já está cadastrada como aluno' });
     }
 
+    // Criar aluno
     const aluno = await prisma.alunoGuarauna.create({
       data: {
-        pessoaId: parseInt(pessoaId),
+        pessoaId: pessoaFinalId,
+        graduacaoAtual,
         ubs,
         numeroSUS,
         doencas,
@@ -2681,15 +3082,34 @@ async function guaraunaAlunosCriar(req, res) {
         necessidadesEspeciais
       },
       include: {
-        pessoa: true
+        pessoa: true,
+        responsaveis: {
+          include: {
+            responsavel: { include: { pessoa: true } }
+          }
+        }
       }
     });
+
+    // Se tiver responsável para vincular
+    if (responsavelId && parentesco) {
+      await prisma.alunoResponsavel.create({
+        data: {
+          alunoId: aluno.id,
+          responsavelId,
+          parentesco,
+          principal: true
+        }
+      });
+      log(`✅ Responsável vinculado ao aluno: ${aluno.id}`);
+    }
 
     log(`✅ Aluno criado: ${pessoa.nome} (ID: ${aluno.id})`);
     res.status(201).json(aluno);
   } catch (erro) {
     log(`Erro ao criar aluno: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao criar aluno' });
+    log(`Stack: ${erro.stack}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar aluno', detalhes: erro.message });
   }
 }
 
@@ -2741,27 +3161,78 @@ async function guaraunaAlunosAtualizar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { ubs, numeroSUS, doencas, alergias, medicamentos, necessidadesEspeciais, ativo } = req.body;
+    const { 
+      // Dados da pessoa
+      nome, cpf, dataNascimento, telefone, email, comunidade, endereco, rg, observacoes,
+      // Dados do aluno
+      graduacaoAtual, ubs, numeroSUS, doencas, alergias, medicamentos, necessidadesEspeciais, ativo 
+    } = req.body;
 
+    // Função para limpar CPF (remover formatação)
+    const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
+    // Função para limpar telefone (remover formatação)
+    const limparTelefone = (tel) => tel ? tel.replace(/\D/g, '') : null;
+
+    // Buscar aluno para obter pessoaId
+    const alunoExistente = await prisma.alunoGuarauna.findUnique({
+      where: { id },
+      include: { pessoa: true }
+    });
+
+    if (!alunoExistente) {
+      return res.status(404).json({ erro: 'Aluno não encontrado' });
+    }
+
+    const cpfLimpo = limparCPF(cpf);
+    const telefoneLimpo = limparTelefone(telefone);
+
+    // Atualizar dados da pessoa
+    if (nome || dataNascimento || telefone || email || comunidade || endereco || rg !== undefined || observacoes !== undefined || cpf) {
+      await prisma.pessoa.update({
+        where: { id: alunoExistente.pessoaId },
+        data: {
+          ...(nome && { nome }),
+          ...(cpfLimpo && cpfLimpo.length === 11 && { cpf: cpfLimpo }),
+          ...(dataNascimento && { dataNascimento: new Date(dataNascimento) }),
+          ...(telefoneLimpo && { telefone: telefoneLimpo }),
+          ...(email !== undefined && { email }),
+          ...(comunidade && { comunidade }),
+          ...(endereco !== undefined && { endereco }),
+          ...(rg !== undefined && { rg }),
+          ...(observacoes !== undefined && { observacoes })
+        }
+      });
+    }
+
+    // Atualizar dados do aluno
     const aluno = await prisma.alunoGuarauna.update({
       where: { id },
       data: {
-        ubs,
-        numeroSUS,
-        doencas,
-        alergias,
-        medicamentos,
-        necessidadesEspeciais,
-        ativo
+        ...(graduacaoAtual !== undefined && { graduacaoAtual }),
+        ...(ubs !== undefined && { ubs }),
+        ...(numeroSUS !== undefined && { numeroSUS }),
+        ...(doencas !== undefined && { doencas }),
+        ...(alergias !== undefined && { alergias }),
+        ...(medicamentos !== undefined && { medicamentos }),
+        ...(necessidadesEspeciais !== undefined && { necessidadesEspeciais }),
+        ...(ativo !== undefined && { ativo })
       },
-      include: { pessoa: true }
+      include: { 
+        pessoa: true,
+        responsaveis: {
+          include: {
+            responsavel: { include: { pessoa: true } }
+          }
+        }
+      }
     });
 
     log(`✅ Aluno atualizado: ${aluno.pessoa.nome}`);
     res.json(aluno);
   } catch (erro) {
     log(`Erro ao atualizar aluno: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao atualizar aluno' });
+    log(`Stack: ${erro.stack}`, 'error');
+    res.status(500).json({ erro: 'Erro ao atualizar aluno', detalhes: erro.message });
   }
 }
 
@@ -2822,32 +3293,136 @@ async function guaraunaResponsaveisCriar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { pessoaId, profissao, localTrabalho } = req.body;
+    const { 
+      pessoaId,
+      // Dados da pessoa (se não tiver pessoaId)
+      nome, cpf, rg, telefone, email, endereco,
+      // Dados do responsável
+      profissao, localTrabalho,
+      // Parentesco e alunos a vincular
+      parentesco, alunoIds
+    } = req.body;
 
-    const pessoa = await prisma.pessoa.findUnique({ where: { id: parseInt(pessoaId) } });
+    // Função para limpar CPF (remover formatação)
+    const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
+    // Função para limpar telefone (remover formatação)
+    const limparTelefone = (tel) => tel ? tel.replace(/\D/g, '') : null;
+
+    let pessoaFinalId = pessoaId ? parseInt(pessoaId) : null;
+
+    // Se não tem pessoaId, criar ou buscar pessoa pelo CPF
+    if (!pessoaFinalId) {
+      if (!nome) {
+        return res.status(400).json({ erro: 'Nome é obrigatório' });
+      }
+
+      const cpfLimpo = limparCPF(cpf);
+
+      // Verificar se já existe pessoa com esse CPF
+      if (cpfLimpo && cpfLimpo.length === 11) {
+        const pessoaExistente = await prisma.pessoa.findUnique({ where: { cpf: cpfLimpo } });
+        if (pessoaExistente) {
+          pessoaFinalId = pessoaExistente.id;
+          // Atualizar dados da pessoa existente
+          await prisma.pessoa.update({
+            where: { id: pessoaFinalId },
+            data: {
+              nome,
+              rg: rg || undefined,
+              telefone: limparTelefone(telefone) || undefined,
+              email: email || undefined,
+              endereco: endereco || undefined
+            }
+          });
+        }
+      }
+
+      // Se ainda não tem pessoaId, criar nova pessoa
+      if (!pessoaFinalId) {
+        const novaPessoa = await prisma.pessoa.create({
+          data: {
+            nome,
+            cpf: cpfLimpo || `TEMP-RESP-${Date.now()}`,
+            rg,
+            telefone: limparTelefone(telefone),
+            email,
+            endereco: endereco || '',
+            usuarioId: usuario.id
+          }
+        });
+        pessoaFinalId = novaPessoa.id;
+        log(`✅ Pessoa criada para responsável: ${nome} (ID: ${novaPessoa.id})`);
+      }
+    } else {
+      // Se tem pessoaId, atualizar dados da pessoa
+      await prisma.pessoa.update({
+        where: { id: pessoaFinalId },
+        data: {
+          ...(nome && { nome }),
+          ...(rg !== undefined && { rg }),
+          ...(telefone && { telefone: limparTelefone(telefone) }),
+          ...(email !== undefined && { email }),
+          ...(endereco !== undefined && { endereco })
+        }
+      });
+    }
+
+    // Verificar se pessoa existe
+    const pessoa = await prisma.pessoa.findUnique({ where: { id: pessoaFinalId } });
     if (!pessoa) {
       return res.status(404).json({ erro: 'Pessoa não encontrada' });
     }
 
-    const existente = await prisma.responsavelLegal.findUnique({ where: { pessoaId: parseInt(pessoaId) } });
+    // Verificar se já é responsável
+    const existente = await prisma.responsavelLegal.findUnique({ where: { pessoaId: pessoaFinalId } });
     if (existente) {
       return res.status(400).json({ erro: 'Esta pessoa já está cadastrada como responsável' });
     }
 
+    // Criar responsável
     const responsavel = await prisma.responsavelLegal.create({
       data: {
-        pessoaId: parseInt(pessoaId),
+        pessoaId: pessoaFinalId,
         profissao,
         localTrabalho
       },
-      include: { pessoa: true }
+      include: { pessoa: true, alunos: { include: { aluno: { include: { pessoa: true } } } } }
     });
 
-    log(`✅ Responsável criado: ${pessoa.nome}`);
-    res.status(201).json(responsavel);
+    // Vincular aos alunos se fornecidos
+    if (alunoIds && Array.isArray(alunoIds) && alunoIds.length > 0) {
+      for (const alunoId of alunoIds) {
+        try {
+          await prisma.alunoResponsavel.create({
+            data: {
+              alunoId: String(alunoId),
+              responsavelId: responsavel.id,
+              parentesco: parentesco || 'Responsável',
+              principal: alunoIds.indexOf(alunoId) === 0 // Primeiro é principal
+            }
+          });
+          log(`✅ Aluno ${alunoId} vinculado ao responsável ${responsavel.id}`);
+        } catch (vinculoErro) {
+          log(`⚠️ Erro ao vincular aluno ${alunoId}: ${vinculoErro.message}`, 'warn');
+        }
+      }
+    }
+
+    // Buscar responsável atualizado com vínculos
+    const responsavelAtualizado = await prisma.responsavelLegal.findUnique({
+      where: { id: responsavel.id },
+      include: { 
+        pessoa: true, 
+        alunos: { include: { aluno: { include: { pessoa: true } } } } 
+      }
+    });
+
+    log(`✅ Responsável criado: ${pessoa.nome} (ID: ${responsavel.id})`);
+    res.status(201).json(responsavelAtualizado);
   } catch (erro) {
     log(`Erro ao criar responsável: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao criar responsável' });
+    log(`Stack: ${erro.stack}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar responsável', detalhes: erro.message });
   }
 }
 
@@ -2892,18 +3467,147 @@ async function guaraunaResponsaveisAtualizar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { profissao, localTrabalho, ativo } = req.body;
+    const { 
+      // Dados da pessoa
+      nome, cpf, rg, telefone, email, endereco,
+      // Dados do responsável
+      profissao, localTrabalho, ativo,
+      // Parentesco e alunos a vincular
+      parentesco, alunoIds, pessoaId
+    } = req.body;
 
+    // Função para limpar CPF (remover formatação)
+    const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
+    // Função para limpar telefone (remover formatação)
+    const limparTelefone = (tel) => tel ? tel.replace(/\D/g, '') : null;
+
+    // Buscar responsável existente
+    const responsavelExistente = await prisma.responsavelLegal.findUnique({
+      where: { id },
+      include: { pessoa: true, alunos: true }
+    });
+
+    if (!responsavelExistente) {
+      return res.status(404).json({ erro: 'Responsável não encontrado' });
+    }
+
+    // Atualizar dados da pessoa
+    if (nome || telefone || email || endereco || rg !== undefined) {
+      const cpfLimpo = limparCPF(cpf);
+      await prisma.pessoa.update({
+        where: { id: responsavelExistente.pessoaId },
+        data: {
+          ...(nome && { nome }),
+          ...(cpfLimpo && cpfLimpo.length === 11 && { cpf: cpfLimpo }),
+          ...(rg !== undefined && { rg }),
+          ...(telefone && { telefone: limparTelefone(telefone) }),
+          ...(email !== undefined && { email }),
+          ...(endereco !== undefined && { endereco })
+        }
+      });
+      log(`✅ Pessoa do responsável atualizada: ${nome || responsavelExistente.pessoa.nome}`);
+    }
+
+    // Atualizar dados do responsável
     const responsavel = await prisma.responsavelLegal.update({
       where: { id },
-      data: { profissao, localTrabalho, ativo },
+      data: { 
+        ...(profissao !== undefined && { profissao }),
+        ...(localTrabalho !== undefined && { localTrabalho }),
+        ...(ativo !== undefined && { ativo })
+      },
       include: { pessoa: true }
     });
 
-    res.json(responsavel);
+    // Atualizar vínculos com alunos se fornecidos
+    if (alunoIds !== undefined && Array.isArray(alunoIds)) {
+      // Obter IDs dos alunos atualmente vinculados
+      const alunosAtuais = responsavelExistente.alunos.map(a => a.alunoId);
+      
+      // Alunos a adicionar (estão em alunoIds mas não em alunosAtuais)
+      const alunosAdicionar = alunoIds.filter(id => !alunosAtuais.includes(String(id)));
+      
+      // Alunos a remover (estão em alunosAtuais mas não em alunoIds)
+      const alunosRemover = alunosAtuais.filter(id => !alunoIds.map(String).includes(id));
+
+      // Remover vínculos antigos
+      if (alunosRemover.length > 0) {
+        await prisma.alunoResponsavel.deleteMany({
+          where: {
+            responsavelId: id,
+            alunoId: { in: alunosRemover }
+          }
+        });
+        log(`✅ ${alunosRemover.length} vínculos removidos do responsável ${id}`);
+      }
+
+      // Adicionar novos vínculos
+      for (const alunoId of alunosAdicionar) {
+        try {
+          await prisma.alunoResponsavel.create({
+            data: {
+              alunoId: String(alunoId),
+              responsavelId: id,
+              parentesco: parentesco || 'Responsável',
+              principal: false
+            }
+          });
+          log(`✅ Aluno ${alunoId} vinculado ao responsável ${id}`);
+        } catch (vinculoErro) {
+          if (vinculoErro.code !== 'P2002') { // Ignorar erro de duplicata
+            log(`⚠️ Erro ao vincular aluno ${alunoId}: ${vinculoErro.message}`, 'warn');
+          }
+        }
+      }
+
+      // Atualizar parentesco nos vínculos existentes se fornecido
+      if (parentesco) {
+        await prisma.alunoResponsavel.updateMany({
+          where: { responsavelId: id },
+          data: { parentesco }
+        });
+      }
+    }
+
+    // Buscar responsável atualizado com todos os vínculos
+    const responsavelAtualizado = await prisma.responsavelLegal.findUnique({
+      where: { id },
+      include: { 
+        pessoa: true, 
+        alunos: { include: { aluno: { include: { pessoa: true } } } } 
+      }
+    });
+
+    log(`✅ Responsável atualizado: ${responsavelAtualizado.pessoa.nome}`);
+    res.json(responsavelAtualizado);
   } catch (erro) {
     log(`Erro ao atualizar responsável: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao atualizar responsável' });
+    log(`Stack: ${erro.stack}`, 'error');
+    res.status(500).json({ erro: 'Erro ao atualizar responsável', detalhes: erro.message });
+  }
+}
+
+async function guaraunaResponsaveisDeletar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Verificar se é admin
+    if (usuario.funcao !== 'admin') {
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar responsáveis' });
+    }
+
+    // Deletar o responsável (cascade vai remover os vínculos)
+    await prisma.responsavelLegal.delete({ where: { id } });
+
+    log(`✅ Responsável deletado: ${id}`);
+    res.json({ sucesso: true });
+  } catch (erro) {
+    log(`Erro ao deletar responsável: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar responsável' });
   }
 }
 
@@ -2967,9 +3671,9 @@ async function guaraunaDesvincularAlunoResponsavel(req, res, id) {
   }
 }
 
-// ==================== MÓDULO GUARAÚNA - PROFESSORES ====================
+// ==================== MÓDULO GUARAÚNA - EDUCADORES ====================
 
-async function guaraunaProfessoresListar(req, res) {
+async function guaraunaEducadoresListar(req, res) {
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -2977,7 +3681,7 @@ async function guaraunaProfessoresListar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const professores = await prisma.professor.findMany({
+    const educadores = await prisma.educador.findMany({
       where: { ativo: true },
       include: {
         pessoa: true,
@@ -2987,14 +3691,14 @@ async function guaraunaProfessoresListar(req, res) {
       orderBy: { pessoa: { nome: 'asc' } }
     });
 
-    res.json(professores);
+    res.json(educadores);
   } catch (erro) {
-    log(`Erro ao listar professores: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao listar professores' });
+    log(`Erro ao listar educadores: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao listar educadores' });
   }
 }
 
-async function guaraunaProfessoresCriar(req, res) {
+async function guaraunaEducadoresCriar(req, res) {
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -3002,20 +3706,89 @@ async function guaraunaProfessoresCriar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { pessoaId, apelido, especialidade, comunidades } = req.body;
+    const { 
+      pessoaId, 
+      // Dados da pessoa (se não tiver pessoaId)
+      nome, cpf, telefone, email, endereco,
+      // Dados do educador
+      apelido, especialidade, graduacao, formacao,
+      // Comunidades
+      comunidades, comunidadeIds
+    } = req.body;
 
-    const pessoa = await prisma.pessoa.findUnique({ where: { id: parseInt(pessoaId) } });
+    // Função para limpar CPF (remover formatação)
+    const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
+    // Função para limpar telefone (remover formatação)
+    const limparTelefone = (tel) => tel ? tel.replace(/\D/g, '') : null;
+
+    let pessoaFinalId = pessoaId ? parseInt(pessoaId) : null;
+
+    // Se não tem pessoaId, criar ou buscar pessoa pelo CPF
+    if (!pessoaFinalId) {
+      if (!nome) {
+        return res.status(400).json({ erro: 'Nome é obrigatório' });
+      }
+
+      const cpfLimpo = limparCPF(cpf);
+
+      // Verificar se já existe pessoa com esse CPF
+      if (cpfLimpo && cpfLimpo.length === 11) {
+        const pessoaExistente = await prisma.pessoa.findUnique({ where: { cpf: cpfLimpo } });
+        if (pessoaExistente) {
+          pessoaFinalId = pessoaExistente.id;
+          // Atualizar dados da pessoa existente
+          await prisma.pessoa.update({
+            where: { id: pessoaFinalId },
+            data: {
+              nome,
+              telefone: limparTelefone(telefone) || undefined,
+              email: email || undefined,
+              endereco: endereco || undefined
+            }
+          });
+        }
+      }
+
+      // Se ainda não tem pessoaId, criar nova pessoa
+      if (!pessoaFinalId) {
+        const novaPessoa = await prisma.pessoa.create({
+          data: {
+            nome,
+            cpf: cpfLimpo || `TEMP-EDUC-${Date.now()}`,
+            telefone: limparTelefone(telefone),
+            email,
+            endereco: endereco || '',
+            usuarioId: usuario.id
+          }
+        });
+        pessoaFinalId = novaPessoa.id;
+        log(`✅ Pessoa criada para educador: ${nome} (ID: ${novaPessoa.id})`);
+      }
+    }
+
+    // Verificar se pessoa existe
+    const pessoa = await prisma.pessoa.findUnique({ where: { id: pessoaFinalId } });
     if (!pessoa) {
       return res.status(404).json({ erro: 'Pessoa não encontrada' });
     }
 
-    const professor = await prisma.professor.create({
+    // Verificar se já é educador
+    const educadorExistente = await prisma.educador.findUnique({ where: { pessoaId: pessoaFinalId } });
+    if (educadorExistente) {
+      return res.status(400).json({ erro: 'Esta pessoa já está cadastrada como educador' });
+    }
+
+    // Determinar as comunidades a vincular (aceita ambos formatos)
+    const listaComunidades = comunidades || comunidadeIds || [];
+
+    // Criar educador
+    const educador = await prisma.educador.create({
       data: {
-        pessoaId: parseInt(pessoaId),
-        apelido,
-        especialidade,
-        comunidades: comunidades ? {
-          create: comunidades.map(c => ({ comunidade: c }))
+        pessoaId: pessoaFinalId,
+        apelido: apelido || null,
+        especialidade: especialidade || graduacao || formacao || null,
+        comunidades: listaComunidades.length > 0 ? {
+          create: listaComunidades.map(c => ({ comunidade: typeof c === 'string' ? c : String(c) }))
         } : undefined
       },
       include: {
@@ -3024,15 +3797,16 @@ async function guaraunaProfessoresCriar(req, res) {
       }
     });
 
-    log(`✅ Professor criado: ${pessoa.nome}`);
-    res.status(201).json(professor);
+    log(`✅ Educador criado: ${pessoa.nome} (ID: ${educador.id})`);
+    res.status(201).json(educador);
   } catch (erro) {
-    log(`Erro ao criar professor: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao criar professor' });
+    log(`Erro ao criar educador: ${erro.message}`, 'error');
+    log(`Stack: ${erro.stack}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar educador', detalhes: erro.message });
   }
 }
 
-async function guaraunaProfessoresObter(req, res, id) {
+async function guaraunaEducadoresObter(req, res, id) {
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -3040,7 +3814,7 @@ async function guaraunaProfessoresObter(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const professor = await prisma.professor.findUnique({
+    const educador = await prisma.educador.findUnique({
       where: { id },
       include: {
         pessoa: true,
@@ -3050,18 +3824,18 @@ async function guaraunaProfessoresObter(req, res, id) {
       }
     });
 
-    if (!professor) {
-      return res.status(404).json({ erro: 'Professor não encontrado' });
+    if (!educador) {
+      return res.status(404).json({ erro: 'Educador não encontrado' });
     }
 
-    res.json(professor);
+    res.json(educador);
   } catch (erro) {
-    log(`Erro ao obter professor: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao obter professor' });
+    log(`Erro ao obter educador: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter educador' });
   }
 }
 
-async function guaraunaProfessoresAtualizar(req, res, id) {
+async function guaraunaEducadoresAtualizar(req, res, id) {
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
@@ -3069,34 +3843,107 @@ async function guaraunaProfessoresAtualizar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { apelido, especialidade, ativo } = req.body;
+    const { 
+      // Dados da pessoa
+      nome, cpf, telefone, email, endereco,
+      // Dados do educador
+      apelido, especialidade, graduacao, formacao, ativo,
+      // Comunidades
+      comunidades, comunidadeIds
+    } = req.body;
 
-    const professor = await prisma.professor.update({
+    // Função para limpar CPF (remover formatação)
+    const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
+    // Função para limpar telefone (remover formatação)
+    const limparTelefone = (tel) => tel ? tel.replace(/\D/g, '') : null;
+
+    // Buscar educador existente
+    const educadorExistente = await prisma.educador.findUnique({
       where: { id },
-      data: { apelido, especialidade, ativo },
-      include: { pessoa: true }
+      include: { pessoa: true, comunidades: true }
     });
 
-    res.json(professor);
+    if (!educadorExistente) {
+      return res.status(404).json({ erro: 'Educador não encontrado' });
+    }
+
+    // Atualizar dados da pessoa
+    if (nome || cpf || telefone || email || endereco !== undefined) {
+      const cpfLimpo = limparCPF(cpf);
+      await prisma.pessoa.update({
+        where: { id: educadorExistente.pessoaId },
+        data: {
+          ...(nome && { nome }),
+          ...(cpfLimpo && cpfLimpo.length === 11 && { cpf: cpfLimpo }),
+          ...(telefone && { telefone: limparTelefone(telefone) }),
+          ...(email !== undefined && { email }),
+          ...(endereco !== undefined && { endereco })
+        }
+      });
+    }
+
+    // Atualizar dados do educador
+    const educador = await prisma.educador.update({
+      where: { id },
+      data: { 
+        ...(apelido !== undefined && { apelido }),
+        ...(especialidade !== undefined && { especialidade }),
+        ...(graduacao && { especialidade: graduacao }),
+        ...(formacao && !especialidade && !graduacao && { especialidade: formacao }),
+        ...(ativo !== undefined && { ativo })
+      },
+      include: { pessoa: true, comunidades: true }
+    });
+
+    // Atualizar comunidades se fornecidas
+    const listaComunidades = comunidades || comunidadeIds;
+    if (listaComunidades !== undefined && Array.isArray(listaComunidades)) {
+      // Remover comunidades antigas
+      await prisma.educadorComunidade.deleteMany({
+        where: { educadorId: id }
+      });
+
+      // Adicionar novas comunidades
+      if (listaComunidades.length > 0) {
+        for (const c of listaComunidades) {
+          await prisma.educadorComunidade.create({
+            data: {
+              educadorId: id,
+              comunidade: typeof c === 'string' ? c : String(c)
+            }
+          });
+        }
+      }
+    }
+
+    // Buscar educador atualizado
+    const educadorAtualizado = await prisma.educador.findUnique({
+      where: { id },
+      include: { pessoa: true, comunidades: true }
+    });
+
+    log(`✅ Educador atualizado: ${educadorAtualizado.pessoa.nome}`);
+    res.json(educadorAtualizado);
   } catch (erro) {
-    log(`Erro ao atualizar professor: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao atualizar professor' });
+    log(`Erro ao atualizar educador: ${erro.message}`, 'error');
+    log(`Stack: ${erro.stack}`, 'error');
+    res.status(500).json({ erro: 'Erro ao atualizar educador', detalhes: erro.message });
   }
 }
 
-async function guaraunaProfessoresDeletar(req, res, id) {
+async function guaraunaEducadoresDeletar(req, res, id) {
   const prisma = getPrisma();
   try {
     const usuario = autenticarToken(req);
     if (!usuario || usuario.funcao !== 'admin') {
-      return res.status(403).json({ erro: 'Apenas administradores podem deletar professores' });
+      return res.status(403).json({ erro: 'Apenas administradores podem deletar educadores' });
     }
 
-    await prisma.professor.delete({ where: { id } });
+    await prisma.educador.delete({ where: { id } });
     res.status(204).end();
   } catch (erro) {
-    log(`Erro ao deletar professor: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao deletar professor' });
+    log(`Erro ao deletar educador: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao deletar educador' });
   }
 }
 
@@ -3110,17 +3957,28 @@ async function guaraunaTurmasListar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { comunidade, professorId, ativa } = req.query;
+    const { comunidade, comunidadeId, educadorId, ativa, ano, busca, pagina = '1', limite = '50' } = req.query;
 
-    const where = {};
+    const where = { ativa: true }; // Por padrão, só turmas ativas
     if (comunidade) where.comunidade = comunidade;
-    if (professorId) where.professorId = professorId;
+    if (comunidadeId) where.comunidade = comunidadeId; // comunidadeId é o nome
+    if (educadorId) where.educadorId = educadorId;
     if (ativa !== undefined) where.ativa = ativa === 'true';
+    if (ano) where.ano = parseInt(ano);
+    if (busca) {
+      where.nome = { contains: busca, mode: 'insensitive' };
+    }
+
+    // Contar total
+    const total = await prisma.turma.count({ where });
+    const paginaNum = parseInt(pagina);
+    const limiteNum = parseInt(limite);
+    const totalPaginas = Math.ceil(total / limiteNum);
 
     const turmas = await prisma.turma.findMany({
       where,
       include: {
-        professor: { include: { pessoa: true } },
+        educador: { include: { pessoa: true } },
         alunos: {
           where: { ativo: true },
           include: {
@@ -3128,10 +3986,24 @@ async function guaraunaTurmasListar(req, res) {
           }
         }
       },
-      orderBy: [{ comunidade: 'asc' }, { nome: 'asc' }]
+      orderBy: [{ comunidade: 'asc' }, { nome: 'asc' }],
+      skip: (paginaNum - 1) * limiteNum,
+      take: limiteNum
     });
 
-    res.json(turmas);
+    // Converter diaSemana para diasSemana (array) em cada turma
+    const turmasComDias = turmas.map(t => ({
+      ...t,
+      diasSemana: parseDiasSemana(t.diaSemana)
+    }));
+
+    // Retornar no formato padrão ouro
+    res.json({
+      turmas: turmasComDias,
+      total,
+      pagina: paginaNum,
+      totalPaginas
+    });
   } catch (erro) {
     log(`Erro ao listar turmas: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao listar turmas' });
@@ -3146,30 +4018,90 @@ async function guaraunaTurmasCriar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { nome, comunidade, professorId, diaSemana, horarioInicio, horarioFim, faixaEtariaMin, faixaEtariaMax, capacidade } = req.body;
+    const { nome, comunidade, comunidadeId, educadorId, diaSemana, diasSemana, horarioInicio, horarioFim, ano, faixaEtariaMin, faixaEtariaMax, capacidade, alunoIds } = req.body;
 
-    const turma = await prisma.turma.create({
-      data: {
-        nome,
-        comunidade,
-        professorId,
-        diaSemana,
-        horarioInicio,
-        horarioFim,
-        faixaEtariaMin,
-        faixaEtariaMax,
-        capacidade
-      },
-      include: {
-        professor: { include: { pessoa: true } }
+    log(`📝 Criar turma - body recebido: comunidade=${comunidade}, comunidadeId=${comunidadeId}, ano=${ano}, alunoIds=${JSON.stringify(alunoIds)}`);
+
+    // Suporte para diasSemana (array) ou diaSemana (string)
+    // Armazena como JSON string no campo diaSemana
+    let diaSemanaFinal = diaSemana;
+    if (diasSemana && Array.isArray(diasSemana) && diasSemana.length > 0) {
+      diaSemanaFinal = JSON.stringify(diasSemana);
+    }
+
+    // Aceitar comunidadeId (que é o nome) ou comunidade
+    const comunidadeFinal = comunidade || comunidadeId;
+    
+    if (!comunidadeFinal) {
+      return res.status(400).json({ erro: 'Comunidade é obrigatória' });
+    }
+
+    // Criar turma com alunos vinculados em uma transação
+    const turma = await prisma.$transaction(async (tx) => {
+      // Criar a turma
+      const novaTurma = await tx.turma.create({
+        data: {
+          nome,
+          comunidade: comunidadeFinal,
+          educadorId: educadorId || null,
+          ano: ano ? parseInt(ano) : new Date().getFullYear(),
+          diaSemana: diaSemanaFinal,
+          horarioInicio,
+          horarioFim,
+          faixaEtariaMin,
+          faixaEtariaMax,
+          capacidade
+        }
+      });
+
+      // Vincular alunos se houver
+      if (alunoIds && Array.isArray(alunoIds) && alunoIds.length > 0) {
+        log(`📝 Vinculando ${alunoIds.length} alunos à turma ${novaTurma.id}`);
+        await tx.alunoTurma.createMany({
+          data: alunoIds.map(alunoId => ({
+            alunoId,
+            turmaId: novaTurma.id,
+            ativo: true
+          })),
+          skipDuplicates: true
+        });
       }
+
+      // Retornar turma com relações
+      return tx.turma.findUnique({
+        where: { id: novaTurma.id },
+        include: {
+          educador: { include: { pessoa: true } },
+          alunos: {
+            where: { ativo: true },
+            include: { aluno: { include: { pessoa: true } } }
+          }
+        }
+      });
     });
 
-    log(`✅ Turma criada: ${nome} (${comunidade})`);
-    res.status(201).json(turma);
+    // Converter diaSemana de volta para array ao retornar
+    const turmaResposta = {
+      ...turma,
+      diasSemana: parseDiasSemana(turma.diaSemana)
+    };
+
+    log(`✅ Turma criada: ${nome} (${comunidadeFinal}) com ${turma.alunos?.length || 0} alunos`);
+    res.status(201).json(turmaResposta);
   } catch (erro) {
     log(`Erro ao criar turma: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao criar turma' });
+  }
+}
+
+// Helper para parsear diasSemana (pode ser JSON array ou string simples)
+function parseDiasSemana(diaSemana) {
+  if (!diaSemana) return [];
+  try {
+    const parsed = JSON.parse(diaSemana);
+    return Array.isArray(parsed) ? parsed : [diaSemana];
+  } catch {
+    return diaSemana ? [diaSemana] : [];
   }
 }
 
@@ -3184,7 +4116,7 @@ async function guaraunaTurmasObter(req, res, id) {
     const turma = await prisma.turma.findUnique({
       where: { id },
       include: {
-        professor: { include: { pessoa: true } },
+        educador: { include: { pessoa: true } },
         alunos: {
           include: {
             aluno: {
@@ -3204,7 +4136,13 @@ async function guaraunaTurmasObter(req, res, id) {
       return res.status(404).json({ erro: 'Turma não encontrada' });
     }
 
-    res.json(turma);
+    // Converter diaSemana para diasSemana (array)
+    const turmaResposta = {
+      ...turma,
+      diasSemana: parseDiasSemana(turma.diaSemana)
+    };
+
+    res.json(turmaResposta);
   } catch (erro) {
     log(`Erro ao obter turma: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao obter turma' });
@@ -3219,25 +4157,112 @@ async function guaraunaTurmasAtualizar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { nome, comunidade, professorId, diaSemana, horarioInicio, horarioFim, faixaEtariaMin, faixaEtariaMax, capacidade, ativa } = req.body;
+    const { nome, comunidade, comunidadeId, educadorId, diaSemana, diasSemana, horarioInicio, horarioFim, ano, faixaEtariaMin, faixaEtariaMax, capacidade, ativa, alunoIds } = req.body;
 
-    const turma = await prisma.turma.update({
-      where: { id },
-      data: {
-        nome,
-        comunidade,
-        professorId,
-        diaSemana,
-        horarioInicio,
-        horarioFim,
-        faixaEtariaMin,
-        faixaEtariaMax,
-        capacidade,
-        ativa
+    log(`📝 Atualizar turma ${id} - alunoIds recebidos: ${JSON.stringify(alunoIds)}`);
+
+    // Suporte para diasSemana (array) ou diaSemana (string)
+    let diaSemanaFinal = diaSemana;
+    if (diasSemana && Array.isArray(diasSemana) && diasSemana.length > 0) {
+      diaSemanaFinal = JSON.stringify(diasSemana);
+    }
+
+    // Aceitar comunidadeId (que é o nome) ou comunidade
+    const comunidadeFinal = comunidade || comunidadeId;
+
+    // Usar transação para atualizar turma e sincronizar alunos
+    const turma = await prisma.$transaction(async (tx) => {
+      // Atualizar dados da turma
+      await tx.turma.update({
+        where: { id },
+        data: {
+          nome,
+          comunidade: comunidadeFinal,
+          educadorId: educadorId || null,
+          ano: ano ? parseInt(ano) : undefined,
+          diaSemana: diaSemanaFinal,
+          horarioInicio,
+          horarioFim,
+          faixaEtariaMin,
+          faixaEtariaMax,
+          capacidade,
+          ativa
+        }
+      });
+
+      // Sincronizar alunos se alunoIds foi fornecido
+      if (alunoIds !== undefined && Array.isArray(alunoIds)) {
+        // Obter alunos atuais da turma
+        const alunosAtuais = await tx.alunoTurma.findMany({
+          where: { turmaId: id, ativo: true },
+          select: { alunoId: true }
+        });
+        const idsAtuais = alunosAtuais.map(a => a.alunoId);
+
+        // Alunos a adicionar (estão em alunoIds mas não em idsAtuais)
+        const aAdicionar = alunoIds.filter(aId => !idsAtuais.includes(aId));
+        
+        // Alunos a remover (estão em idsAtuais mas não em alunoIds)
+        const aRemover = idsAtuais.filter(aId => !alunoIds.includes(aId));
+
+        log(`📝 Sincronizando alunos: +${aAdicionar.length} -${aRemover.length}`);
+
+        // Remover alunos que não estão mais na lista (desativar)
+        if (aRemover.length > 0) {
+          await tx.alunoTurma.updateMany({
+            where: { 
+              turmaId: id, 
+              alunoId: { in: aRemover }
+            },
+            data: { ativo: false, dataSaida: new Date() }
+          });
+        }
+
+        // Adicionar novos alunos
+        if (aAdicionar.length > 0) {
+          // Primeiro tentar reativar registros existentes inativos
+          for (const alunoId of aAdicionar) {
+            const existente = await tx.alunoTurma.findUnique({
+              where: { alunoId_turmaId: { alunoId, turmaId: id } }
+            });
+            
+            if (existente) {
+              // Reativar
+              await tx.alunoTurma.update({
+                where: { id: existente.id },
+                data: { ativo: true, dataSaida: null }
+              });
+            } else {
+              // Criar novo
+              await tx.alunoTurma.create({
+                data: { alunoId, turmaId: id, ativo: true }
+              });
+            }
+          }
+        }
       }
+
+      // Retornar turma atualizada com relações
+      return tx.turma.findUnique({
+        where: { id },
+        include: {
+          educador: { include: { pessoa: true } },
+          alunos: {
+            where: { ativo: true },
+            include: { aluno: { include: { pessoa: true } } }
+          }
+        }
+      });
     });
 
-    res.json(turma);
+    // Converter diaSemana de volta para array ao retornar
+    const turmaResposta = {
+      ...turma,
+      diasSemana: parseDiasSemana(turma.diaSemana)
+    };
+
+    log(`✅ Turma atualizada: ${turma.nome} com ${turma.alunos?.length || 0} alunos`);
+    res.json(turmaResposta);
   } catch (erro) {
     log(`Erro ao atualizar turma: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao atualizar turma' });
@@ -3965,45 +4990,61 @@ async function guaraunaDashboard(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
+    log(`📊 Iniciando carregamento do dashboard`);
     const anoAtual = new Date().getFullYear();
+    log(`📊 Ano atual: ${anoAtual}`);
 
-    const [
-      totalAlunos,
-      alunosAtivos,
-      totalProfessores,
-      totalTurmas,
-      matriculasAno,
-      eventosAtivos
-    ] = await Promise.all([
-      prisma.alunoGuarauna.count(),
-      prisma.alunoGuarauna.count({ where: { ativo: true } }),
-      prisma.professor.count({ where: { ativo: true } }),
-      prisma.turma.count({ where: { ativa: true } }),
-      prisma.matricula.count({ where: { ano: anoAtual } }),
-      prisma.eventoTermo.count({ where: { ativo: true, dataEvento: { gte: new Date() } } })
-    ]);
+    try {
+      log(`📊 Contando alunos...`);
+      const totalAlunos = await prisma.alunoGuarauna.count();
+      log(`✅ Total alunos: ${totalAlunos}`);
 
-    // Alunos por comunidade
-    const alunosPorComunidade = await prisma.alunoGuarauna.groupBy({
-      by: ['pessoa'],
-      _count: true,
-      where: { ativo: true }
-    });
+      log(`📊 Contando alunos ativos...`);
+      const alunosAtivos = await prisma.alunoGuarauna.count({ where: { ativo: true } });
+      log(`✅ Alunos ativos: ${alunosAtivos}`);
 
-    res.json({
-      totais: {
-        alunos: totalAlunos,
-        alunosAtivos,
-        professores: totalProfessores,
-        turmas: totalTurmas,
-        matriculasAno,
-        eventosAtivos
-      },
-      anoAtual
-    });
+      log(`📊 Contando responsáveis...`);
+      const totalResponsaveis = await prisma.responsavelLegal.count();
+      log(`✅ Total responsáveis: ${totalResponsaveis}`);
+
+      log(`📊 Contando educadores...`);
+      const totalEducadores = await prisma.educador.count({ where: { ativo: true } });
+      log(`✅ Total educadores: ${totalEducadores}`);
+
+      log(`📊 Contando turmas...`);
+      const totalTurmas = await prisma.turma.count({ where: { ativa: true } });
+      log(`✅ Total turmas: ${totalTurmas}`);
+
+      log(`📊 Contando matrículas do ano...`);
+      const matriculasAno = await prisma.matricula.count({ where: { ano: anoAtual } });
+      log(`✅ Matrículas no ano: ${matriculasAno}`);
+
+      log(`📊 Contando eventos ativos...`);
+      const eventosAtivos = await prisma.eventoTermo.count({ where: { ativo: true, dataEvento: { gte: new Date() } } });
+      log(`✅ Eventos ativos: ${eventosAtivos}`);
+
+      log(`✅ Dashboard carregado com sucesso`);
+      res.json({
+        totais: {
+          alunos: totalAlunos,
+          alunosAtivos,
+          responsaveis: totalResponsaveis,
+          educadores: totalEducadores,
+          turmas: totalTurmas,
+          matriculasAno,
+          eventosAtivos
+        },
+        anoAtual
+      });
+    } catch (eroPrisma) {
+      log(`❌ Erro no Prisma: ${eroPrisma.message}`, 'error');
+      log(`❌ Stack: ${eroPrisma.stack}`, 'error');
+      throw eroPrisma;
+    }
   } catch (erro) {
-    log(`Erro ao obter dashboard: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao obter dashboard' });
+    log(`❌ Erro ao obter dashboard: ${erro.message}`, 'error');
+    log(`❌ Stack: ${erro.stack}`, 'error');
+    res.status(500).json({ erro: 'Erro ao obter dashboard', detalhes: erro.message });
   }
 }
 
