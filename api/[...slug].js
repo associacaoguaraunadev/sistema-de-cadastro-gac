@@ -3392,7 +3392,8 @@ async function guaraunaResponsaveisCriar(req, res) {
         pessoaId: pessoaFinalId,
         profissao,
         localTrabalho,
-        estaEmpregado: valorEmpregado
+        estaEmpregado: valorEmpregado,
+        parentesco: parentesco && parentesco.trim() ? parentesco : null
       },
       include: { pessoa: true, alunos: { include: { aluno: { include: { pessoa: true } } } } }
     });
@@ -3538,6 +3539,7 @@ async function guaraunaResponsaveisAtualizar(req, res, id) {
         ...(profissao !== undefined && { profissao }),
         ...(localTrabalho !== undefined && { localTrabalho }),
         ...(estaEmpregado !== undefined && { estaEmpregado: valorEmpregado }),
+        ...(parentesco !== undefined && { parentesco: parentesco && parentesco.trim() ? parentesco : null }),
         ...(ativo !== undefined && { ativo })
       },
       include: { pessoa: true }
