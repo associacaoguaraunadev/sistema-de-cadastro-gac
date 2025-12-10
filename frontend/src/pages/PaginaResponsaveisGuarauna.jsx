@@ -383,14 +383,6 @@ const FormularioResponsavel = ({
               const alunoCompleto = alunos.find(a => String(a.id) === String(alunoId));
               const nomeAluno = alunoCompleto?.pessoa?.nome || alunoCompleto?.nome || `ID: ${alunoId}`;
               
-              return (
-                <div key={alunoId} className="aluno-vinculado">
-                  <span className="aluno-nome">{nomeAluno}</span>
-                  <button type="button" className="btn-remover-aluno" onClick={() => toggleAluno(alunoId)}>
-                    <X size={16} />
-                  </button>
-                </div>
-              );
             })}
           </div>
         )}

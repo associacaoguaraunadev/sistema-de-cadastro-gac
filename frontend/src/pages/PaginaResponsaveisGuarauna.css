@@ -757,17 +757,6 @@
   border-color: #9ca3af;
 }
 
-.alunos-selecionados {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-  padding: 14px;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  border: 1px solid #86efac;
-  border-radius: 10px;
-}
-
 .aluno-tag {
   display: inline-flex;
   align-items: center;
