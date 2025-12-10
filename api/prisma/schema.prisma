@@ -120,6 +120,7 @@ model ResponsavelLegal {
   pessoa          Pessoa   @relation(fields: [pessoaId], references: [id], onDelete: Cascade)
   
   // Dados específicos do responsável
+  estaEmpregado   Boolean? // Indica se o responsável está empregado
   profissao       String?
   localTrabalho   String?
   
@@ -271,8 +272,14 @@ model Matricula {
   
   // Dados que podem mudar anualmente
   tamanhoCamiseta String?  // P, M, G, GG, etc.
-  tamanhoBermuda  String?
+  tamanhoCalca    String?
   tamanhoCalcado  String?
+  
+  nomeEscola      String?  @db.VarChar(50)
+  horarioEstudo   String?  // Manhã, Tarde, Noite
+  horaEntrada     String?  // Ex: 07:30
+  horaSaida       String?  // Ex: 12:00
+  situacaoComportamentoEscolar String?
   
   // Composição familiar (versionada por ano)
   composicaoFamiliar Json? // [{nome, idade, parentesco, escolaridade, ocupacao, renda}]

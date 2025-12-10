@@ -89,6 +89,7 @@ const PaginaResponsaveisGuarauna = () => {
     parentesco: '',
     profissao: '',
     localTrabalho: '',
+    estaEmpregado: null,
     alunoIds: []
   });
 
@@ -152,7 +153,7 @@ const PaginaResponsaveisGuarauna = () => {
   // Carregar comunidades
   const carregarComunidades = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/comunidades`, {
+      const response = await fetch(`${API_URL}/comunidades`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -164,15 +165,36 @@ const PaginaResponsaveisGuarauna = () => {
     }
   }, [token]);
 
+  // Carregar detalhes de um aluno específico (incluindo pessoa)
+  const carregarDetalhesAluno = async (alunoId) => {
+    try {
+      const response = await fetch(`${API_URL}/guarauna/alunos/${alunoId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error(`Erro ao carregar detalhes do aluno ${alunoId}:`, error);
+      return null;
+    }
+  };
+
   // Carregar alunos para vincular
   const carregarAlunos = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/guarauna/alunos?limite=1000`, {
+      // Modificado para solicitar explicitamente inclusão de dados da pessoa
+      const response = await fetch(`${API_URL}/guarauna/alunos?limite=1000&incluirPessoa=true`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         const data = await response.json();
-        setAlunos(data.alunos || data || []);
+        const alunosCarregados = data.alunos || data || [];
+        console.log('Alunos carregados:', alunosCarregados);
+        setAlunos(alunosCarregados);
       }
     } catch (error) {
       console.error('Erro ao carregar alunos:', error);
@@ -190,7 +212,7 @@ const PaginaResponsaveisGuarauna = () => {
 
       if (busca) params.append('busca', busca);
 
-      const response = await fetch(`${API_URL}/api/guarauna/responsaveis?${params}`, {
+      const response = await fetch(`${API_URL}/guarauna/responsaveis?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -237,7 +259,7 @@ const PaginaResponsaveisGuarauna = () => {
 
       setBuscandoPessoas(true);
       try {
-        const response = await fetch(`${API_URL}/api/pessoas?busca=${encodeURIComponent(buscaPessoa)}&limite=10`, {
+        const response = await fetch(`${API_URL}/pessoas?busca=${encodeURIComponent(buscaPessoa)}&limite=10`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -308,6 +330,7 @@ const PaginaResponsaveisGuarauna = () => {
       parentesco: '',
       profissao: '',
       localTrabalho: '',
+      estaEmpregado: null,
       alunoIds: [],
       pessoaId: null
     });
@@ -318,6 +341,27 @@ const PaginaResponsaveisGuarauna = () => {
     setDropdownAberto(false);
   };
 
+  // Carregar detalhes do responsável para edição
+  const carregarDetalhesResponsavel = async (id) => {
+    try {
+      // Solicitando explicitamente os detalhes completos do responsável incluindo estaEmpregado e relações
+      const response = await fetch(`${API_URL}/guarauna/responsaveis/${id}?incluirCompleto=true`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        const responsavelCompleto = await response.json();
+        // Log detalhado para debug
+        console.log("[DEBUG] Resposta completa do backend ao buscar responsável:", JSON.stringify(responsavelCompleto, null, 2));
+        return responsavelCompleto;
+      }
+      return null;
+    } catch (error) {
+      console.error(`[DEBUG] Erro ao carregar detalhes do responsável ${id}:`, error);
+      return null;
+    }
+  };
+
   // Abrir modal
   const abrirModal = async (responsavel = null) => {
     // Mostrar feedback visual que está carregando
@@ -326,7 +370,7 @@ const PaginaResponsaveisGuarauna = () => {
     
     // Carregar todas as pessoas para o dropdown
     try {
-      const response = await fetch(`${API_URL}/api/pessoas?limite=1000`, {
+      const response = await fetch(`${API_URL}/pessoas?limite=1000`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -339,31 +383,59 @@ const PaginaResponsaveisGuarauna = () => {
     }
 
     if (responsavel) {
-      setResponsavelEditando(responsavel);
+      // Carregar versão mais completa do responsável para garantir que temos todos os dados
+      const responsavelCompleto = await carregarDetalhesResponsavel(responsavel.id);
+      const responsavelParaEditar = responsavelCompleto || responsavel;
+      
+      setResponsavelEditando(responsavelParaEditar);
+      
+      // Imprimir o responsável completo para diagnóstico
+      console.log("Responsável para edição:", responsavelParaEditar);
       
       // Mapear IDs dos alunos - garantir que são strings (UUIDs)
-      const alunosIds = responsavel.alunos?.map(rel => {
+      const alunosIds = responsavelParaEditar.alunos?.map(rel => {
         const id = rel.alunoId || rel.aluno?.id || rel.id;
         return id ? String(id) : null;
       }).filter(id => id !== null && id !== undefined) || [];
       
+      // Log dos alunos vinculados para diagnóstico
+      console.log("IDs de alunos vinculados:", alunosIds);
+      
       // Obter valores brutos (sem formatação)
-      const cpfBruto = responsavel.pessoa?.cpf || responsavel.cpf || '';
-      const telefoneBruto = responsavel.pessoa?.telefone || responsavel.telefone || '';
-      const rgBruto = responsavel.pessoa?.rg || responsavel.rg || '';
+      const cpfBruto = responsavelParaEditar.pessoa?.cpf || responsavelParaEditar.cpf || '';
+      const telefoneBruto = responsavelParaEditar.pessoa?.telefone || responsavelParaEditar.telefone || '';
+      const rgBruto = responsavelParaEditar.pessoa?.rg || responsavelParaEditar.rg || '';
+      
+      // Normalizar o valor booleano do estaEmpregado para garantir que seja true, false ou null
+      // Pegando o valor diretamente do objeto para diagnóstico
+      console.log("Valor bruto de estaEmpregado:", responsavelParaEditar.estaEmpregado);
+      console.log("Tipo de estaEmpregado:", typeof responsavelParaEditar.estaEmpregado);
+      
+      // Processamento explícito para garantir tipo correto
+      let estaEmpregado = null;
+      const valorBruto = responsavelParaEditar.estaEmpregado;
+      
+      if (valorBruto === true || valorBruto === 1 || valorBruto === "1" || valorBruto === "true" || valorBruto === "sim") {
+        estaEmpregado = true;
+      } else if (valorBruto === false || valorBruto === 0 || valorBruto === "0" || valorBruto === "false" || valorBruto === "nao" || valorBruto === "não") {
+        estaEmpregado = false;
+      }
+      
+      console.log("estaEmpregado normalizado:", estaEmpregado);
       
       setFormData({
-        nome: responsavel.pessoa?.nome || responsavel.nome || '',
+        nome: responsavelParaEditar.pessoa?.nome || responsavelParaEditar.nome || '',
         cpf: formatarCPF(cpfBruto),
         rg: rgBruto,
         telefone: formatarTelefone(telefoneBruto),
-        email: responsavel.pessoa?.email || responsavel.email || '',
-        endereco: responsavel.pessoa?.endereco || responsavel.endereco || '',
-        parentesco: responsavel.parentesco || '',
-        profissao: responsavel.profissao || '',
-        localTrabalho: responsavel.localTrabalho || '',
+        email: responsavelParaEditar.pessoa?.email || responsavelParaEditar.email || '',
+        endereco: responsavelParaEditar.pessoa?.endereco || responsavelParaEditar.endereco || '',
+        parentesco: responsavelParaEditar.parentesco || '',
+        profissao: responsavelParaEditar.profissao || '',
+        localTrabalho: responsavelParaEditar.localTrabalho || '',
         alunoIds: alunosIds,
-        pessoaId: responsavel.pessoa?.id || responsavel.pessoaId
+        pessoaId: responsavelParaEditar.pessoa?.id || responsavelParaEditar.pessoaId,
+        estaEmpregado: estaEmpregado
       });
     } else {
       resetForm();
@@ -392,10 +464,14 @@ const PaginaResponsaveisGuarauna = () => {
     }
 
     setSalvando(true);
+    
+    // Log dos dados que estamos enviando para diagnóstico
+    console.log("Dados sendo salvos:", formData);
+    
     try {
       const url = responsavelEditando 
-        ? `${API_URL}/api/guarauna/responsaveis/${responsavelEditando.id}`
-        : `${API_URL}/api/guarauna/responsaveis`;
+        ? `${API_URL}/guarauna/responsaveis/${responsavelEditando.id}`
+        : `${API_URL}/guarauna/responsaveis`;
 
       const response = await fetch(url, {
         method: responsavelEditando ? 'PUT' : 'POST',
@@ -429,7 +505,7 @@ const PaginaResponsaveisGuarauna = () => {
   const excluirResponsavel = async () => {
     const { responsavel } = modalConfirmacao;
     try {
-      const response = await fetch(`${API_URL}/api/guarauna/responsaveis/${responsavel.id}`, {
+      const response = await fetch(`${API_URL}/guarauna/responsaveis/${responsavel.id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -466,6 +542,29 @@ const PaginaResponsaveisGuarauna = () => {
         alunoIds: novosIds
       };
     });
+  };
+
+  // Obter nome do aluno com garantia de acesso aos dados da pessoa
+  const obterNomeAluno = (alunoId) => {
+    const aluno = alunos.find(a => String(a.id) === String(alunoId));
+    
+    // Log para diagnóstico
+    if (aluno) {
+      console.log(`Aluno encontrado (ID: ${alunoId}):`, aluno);
+    } else {
+      console.log(`Aluno não encontrado (ID: ${alunoId})`);
+    }
+    
+    // Tentar obter o nome da relação pessoa primeiro
+    if (aluno?.pessoa?.nome) {
+      return aluno.pessoa.nome;
+    }
+    // Se não, tentar diretamente do aluno
+    if (aluno?.nome) {
+      return aluno.nome;
+    }
+    // Último recurso: mostrar o ID
+    return `ID: ${alunoId}`;
   };
 
   const breadcrumbItems = [
@@ -562,11 +661,18 @@ const PaginaResponsaveisGuarauna = () => {
                           <Users size={14} />
                           {responsavel.alunos?.length > 0 ? (
                             <div className="alunos-badges">
-                              {responsavel.alunos.map(rel => (
-                                <span key={rel.alunoId || rel.id} className="badge-aluno-mini">
-                                  {rel.aluno?.pessoa?.nome || rel.aluno?.nome || 'Aluno'}
-                                </span>
-                              ))}
+                              {responsavel.alunos.map(rel => {
+                                // Buscar aluno pelo ID para acessar os dados da pessoa
+                                const alunoId = rel.alunoId || rel.aluno?.id || rel.id;
+                                const alunoCompleto = alunos.find(a => String(a.id) === String(alunoId));
+                                const nomeAluno = alunoCompleto?.pessoa?.nome || rel.aluno?.pessoa?.nome || rel.aluno?.nome || 'Aluno';
+                                
+                                return (
+                                  <span key={alunoId} className="badge-aluno-mini">
+                                    {nomeAluno}
+                                  </span>
+                                );
+                              })}
                             </div>
                           ) : (
                             <span className="sem-alunos-vinculados">Nenhum aluno vinculado</span>
@@ -791,27 +897,46 @@ const PaginaResponsaveisGuarauna = () => {
                 />
               </div>
 
-              <div className="form-row">
-                <div className="form-grupo">
-                  <label>Profissão</label>
-                  <input
-                    type="text"
-                    value={formData.profissao}
-                    onChange={(e) => setFormData({ ...formData, profissao: e.target.value })}
-                    placeholder="Ex: Professor, Agricultor, etc."
-                  />
-                </div>
-
-                <div className="form-grupo">
-                  <label>Local de Trabalho</label>
-                  <input
-                    type="text"
-                    value={formData.localTrabalho}
-                    onChange={(e) => setFormData({ ...formData, localTrabalho: e.target.value })}
-                    placeholder="Nome da empresa ou local"
-                  />
-                </div>
+              <div className="form-grupo">
+                <label>Está empregado?</label>
+                <select
+                  value={formData.estaEmpregado === true ? 'sim' : formData.estaEmpregado === false ? 'nao' : ''}
+                  onChange={e => {
+                    console.log("Valor selecionado:", e.target.value);
+                    setFormData({ 
+                      ...formData, 
+                      estaEmpregado: e.target.value === 'sim' ? true : e.target.value === 'nao' ? false : null 
+                    });
+                  }}
+                >
+                  <option value="">Selecione</option>
+                  <option value="sim">Sim</option>
+                  <option value="nao">Não</option>
+                </select>
               </div>
+              
+              {formData.estaEmpregado === true && (
+                <div className="form-row">
+                  <div className="form-grupo">
+                    <label>Profissão</label>
+                    <input
+                      type="text"
+                      value={formData.profissao}
+                      onChange={(e) => setFormData({ ...formData, profissao: e.target.value })}
+                      placeholder="Ex: Professor, Agricultor, etc."
+                    />
+                  </div>
+                  <div className="form-grupo">
+                    <label>Local de Trabalho</label>
+                    <input
+                      type="text"
+                      value={formData.localTrabalho}
+                      onChange={(e) => setFormData({ ...formData, localTrabalho: e.target.value })}
+                      placeholder="Nome da empresa ou local"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="form-grupo alunos-vinculados-container">
                 <label className="label-alunos-vinculados">
@@ -846,20 +971,17 @@ const PaginaResponsaveisGuarauna = () => {
                 {formData.alunoIds.length > 0 && (
                   <div className="alunos-selecionados">
                     {formData.alunoIds.map(alunoId => {
-                      // Comparar como strings pois IDs são UUIDs
-                      const aluno = alunos.find(a => String(a.id) === String(alunoId));
-                      const nome = aluno?.pessoa?.nome || aluno?.nome || `ID: ${alunoId}`;
+                      // Buscar aluno pelo ID para acessar os dados da pessoa
+                      const alunoCompleto = alunos.find(a => String(a.id) === String(alunoId));
+                      const nomeAluno = alunoCompleto?.pessoa?.nome || alunoCompleto?.nome || `ID: ${alunoId}`;
+                      
                       return (
-                        <span key={alunoId} className="aluno-tag">
-                          {nome}
-                          <button 
-                            type="button"
-                            onClick={() => toggleAluno(alunoId)}
-                            className="remover-aluno"
-                          >
-                            <X size={14} />
+                        <div key={alunoId} className="aluno-vinculado">
+                          <span className="aluno-nome">{nomeAluno}</span>
+                          <button type="button" className="btn-remover-aluno" onClick={() => toggleAluno(alunoId)}>
+                            <X size={16} />
                           </button>
-                        </span>
+                        </div>
                       );
                     })}
                   </div>
@@ -880,6 +1002,7 @@ const PaginaResponsaveisGuarauna = () => {
                       // Filtrar por busca
                       .filter(aluno => {
                         if (!buscaAluno) return true;
+                        // Buscar no nome da pessoa associada ao aluno
                         const nome = (aluno.pessoa?.nome || aluno.nome || '').toLowerCase();
                         return nome.includes(buscaAluno.toLowerCase());
                       })
@@ -890,6 +1013,7 @@ const PaginaResponsaveisGuarauna = () => {
                         return comunidade === comunidadeFiltroAlunos;
                       })
                       .map(aluno => {
+                        // Buscar dados da pessoa vinculada ao aluno
                         const nome = aluno.pessoa?.nome || aluno.nome;
                         const comunidade = aluno.pessoa?.comunidade || aluno.comunidade;
                         // Comparar como strings pois IDs são UUIDs

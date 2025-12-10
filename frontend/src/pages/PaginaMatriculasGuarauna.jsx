@@ -168,7 +168,13 @@ const PaginaMatriculasGuarauna = () => {
         alunoId: matricula.alunoId || '',
         ano: matricula.ano || new Date().getFullYear(),
         status: matricula.status || 'pendente',
-        observacoes: matricula.observacoes || ''
+        observacoes: matricula.observacoes || '',
+        tamanhoCalca: matricula.tamanhoCalca || '',
+        nomeEscola: matricula.nomeEscola || '',
+        horarioEstudo: matricula.horarioEstudo || '',
+        horaEntrada: matricula.horaEntrada || '',
+        horaSaida: matricula.horaSaida || '',
+        situacaoComportamentoEscolar: matricula.situacaoComportamentoEscolar || '',
       });
     } else {
       resetForm();
@@ -528,15 +534,141 @@ const PaginaMatriculasGuarauna = () => {
                 </div>
               </div>
 
+              <div className="form-row">
+                <div className="form-grupo">
+                  <label>Tipo *</label>
+                  <select
+                    value={formData.tipo || ''}
+                    onChange={e => setFormData({ ...formData, tipo: e.target.value })}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="MATRICULA">Matrícula</option>
+                    <option value="REMATRICULA">Rematrícula</option>
+                  </select>
+                </div>
+                <div className="form-grupo">
+                  <label>Tam. Camiseta</label>
+                  <select
+                    value={formData.tamanhoCamiseta || ''}
+                    onChange={e => setFormData({ ...formData, tamanhoCamiseta: e.target.value })}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="P">P</option>
+                    <option value="M">M</option>
+                    <option value="G">G</option>
+                    <option value="GG">GG</option>
+                  </select>
+                </div>
+                <div className="form-grupo">
+                  <label>Tam. Calça</label>
+                  <select
+                    value={formData.tamanhoCalca || ''}
+                    onChange={e => setFormData({ ...formData, tamanhoCalca: e.target.value })}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="P">P</option>
+                    <option value="M">M</option>
+                    <option value="G">G</option>
+                    <option value="GG">GG</option>
+                  </select>
+                </div>
+                <div className="form-grupo">
+                  <label>Tam. Calçado</label>
+                  <input
+                    type="text"
+                    value={formData.tamanhoCalcado || ''}
+                    onChange={e => setFormData({ ...formData, tamanhoCalcado: e.target.value })}
+                    placeholder="Ex: 34, 35, 36..."
+                  />
+                </div>
+              </div>
+
+              {/* Dados escolares */}
+              <div className="form-row">
+                <div className="form-grupo">
+                  <label>Nome da Escola</label>
+                  <input
+                    type="text"
+                    maxLength={50}
+                    value={formData.nomeEscola || ''}
+                    onChange={(e) => setFormData({ ...formData, nomeEscola: e.target.value })}
+                    placeholder="Nome da escola (máx. 50 caracteres)"
+                  />
+                </div>
+                <div className="form-grupo">
+                  <label>Horário de Estudo</label>
+                  <select
+                    value={formData.horarioEstudo || ''}
+                    onChange={e => setFormData({ ...formData, horarioEstudo: e.target.value })}
+                  >
+                    <option value="">Selecione</option>
+                    <option value="Manhã">Manhã</option>
+                    <option value="Tarde">Tarde</option>
+                    <option value="Noite">Noite</option>
+                  </select>
+                </div>
+                <div className="form-grupo">
+                  <label>Hora Entrada</label>
+                  <input
+                    type="text"
+                    value={formData.horaEntrada || ''}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^0-9:]/g, '').slice(0,5);
+                      let hora = val.replace(/^\d{2}(\d{0,2})$/, (m, h, mnt) => h + (mnt ? ':' + mnt : ''));
+                      setFormData({ ...formData, horaEntrada: hora });
+                    }}
+                    placeholder="Ex: 07:30"
+                    pattern="^([01]?\d|2[0-3]):[0-5]\d$"
+                    maxLength={5}
+                  />
+                </div>
+                <div className="form-grupo">
+                  <label>Hora Saída</label>
+                  <input
+                    type="text"
+                    value={formData.horaSaida || ''}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^0-9:]/g, '').slice(0,5);
+                      let hora = val.replace(/^\d{2}(\d{0,2})$/, (m, h, mnt) => h + (mnt ? ':' + mnt : ''));
+                      setFormData({ ...formData, horaSaida: hora });
+                    }}
+                    placeholder="Ex: 12:00"
+                    pattern="^([01]?\d|2[0-3]):[0-5]\d$"
+                    maxLength={5}
+                  />
+                </div>
+              </div>
               <div className="form-grupo">
-                <label>Observações</label>
+                <label>Situação/Comportamento Escolar</label>
                 <textarea
-                  value={formData.observacoes}
-                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                  placeholder="Observações sobre a matrícula..."
-                  rows={4}
+                  value={formData.situacaoComportamentoEscolar || ''}
+                  onChange={e => setFormData({ ...formData, situacaoComportamentoEscolar: e.target.value })}
+                  placeholder="Descreva se há alguma situação escolar, comportamento ou dificuldade de aprendizagem que necessita de atenção."
+                  rows={2}
                 />
               </div>
+
+              {/* Composição Familiar */}
+              <div className="form-grupo">
+                <label>Composição Familiar</label>
+                <ComposicaoFamiliarInput
+                  value={formData.composicaoFamiliar || []}
+                  onChange={val => setFormData({ ...formData, composicaoFamiliar: val })}
+                />
+              </div>
+
+              {/* Motivo de Desistência */}
+              {formData.status === 'desistente' && (
+                <div className="form-grupo">
+                  <label>Motivo da Desistência</label>
+                  <textarea
+                    value={formData.motivoDesistencia || ''}
+                    onChange={e => setFormData({ ...formData, motivoDesistencia: e.target.value })}
+                    placeholder="Descreva o motivo da desistência..."
+                    rows={2}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="modal-footer">
@@ -616,10 +748,34 @@ const PaginaMatriculasGuarauna = () => {
                 </div>
               </div>
 
-              {modalVisualizacao.matricula?.observacoes && (
+              <div className="detalhe-row">
                 <div className="detalhe-item">
-                  <label>Observações</label>
-                  <p className="observacoes-texto">{modalVisualizacao.matricula.observacoes}</p>
+                  <label>Tipo</label>
+                  <span>{modalVisualizacao.matricula?.tipo}</span>
+                </div>
+                <div className="detalhe-item">
+                  <label>Tam. Camiseta</label>
+                  <span>{modalVisualizacao.matricula?.tamanhoCamiseta || '-'}</span>
+                </div>
+                <div className="detalhe-item">
+                  <label>Tam. Calça</label>
+                  <span>{modalVisualizacao.matricula?.tamanhoCalca || '-'}</span>
+                </div>
+                <div className="detalhe-item">
+                  <label>Tam. Calçado</label>
+                  <span>{modalVisualizacao.matricula?.tamanhoCalcado || '-'}</span>
+                </div>
+              </div>
+              {modalVisualizacao.matricula?.composicaoFamiliar && (
+                <div className="detalhe-item">
+                  <label>Composição Familiar</label>
+                  <ComposicaoFamiliarView value={modalVisualizacao.matricula.composicaoFamiliar} />
+                </div>
+              )}
+              {modalVisualizacao.matricula?.motivoDesistência && (
+                <div className="detalhe-item">
+                  <label>Motivo da Desistência</label>
+                  <span>{modalVisualizacao.matricula.motivoDesistencia}</span>
                 </div>
               )}
             </div>
@@ -676,3 +832,110 @@ const PaginaMatriculasGuarauna = () => {
 };
 
 export default PaginaMatriculasGuarauna;
+
+// Componente para composição familiar (input)
+function ComposicaoFamiliarInput({ value, onChange }) {
+  const [membros, setMembros] = useState(Array.isArray(value) ? value : []);
+
+  const handleChange = (idx, campo, val) => {
+    const novos = membros.map((m, i) => i === idx ? { ...m, [campo]: val } : m);
+    setMembros(novos);
+    onChange(novos);
+  };
+
+  const adicionarMembro = () => {
+    const novos = [...membros, { nome: '', idade: '', parentesco: '', escolaridade: '', ocupacao: '', renda: '' }];
+    setMembros(novos);
+    onChange(novos);
+  };
+
+  const removerMembro = (idx) => {
+    const novos = membros.filter((_, i) => i !== idx);
+    setMembros(novos);
+    onChange(novos);
+  };
+
+  return (
+    <div className="composicao-familiar-input">
+      {membros.map((m, idx) => (
+        <div key={idx} className="membro-row">
+          <input
+            type="text"
+            placeholder="Nome"
+            value={m.nome}
+            onChange={e => handleChange(idx, 'nome', e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Idade"
+            value={m.idade}
+            onChange={e => handleChange(idx, 'idade', e.target.value)}
+            min={0}
+          />
+          <input
+            type="text"
+            placeholder="Parentesco"
+            value={m.parentesco}
+            onChange={e => handleChange(idx, 'parentesco', e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Escolaridade"
+            value={m.escolaridade}
+            onChange={e => handleChange(idx, 'escolaridade', e.target.value)}
+          />
+          <input
+            type="text"
+            placeholder="Ocupação"
+            value={m.ocupacao}
+            onChange={e => handleChange(idx, 'ocupacao', e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Renda"
+            value={m.renda}
+            onChange={e => handleChange(idx, 'renda', e.target.value)}
+            min={0}
+          />
+          <button type="button" className="btn-remover" onClick={() => removerMembro(idx)}>
+            <X size={16} />
+          </button>
+        </div>
+      ))}
+      <button type="button" className="btn-adicionar" onClick={adicionarMembro}>
+        <Plus size={16} /> Adicionar membro
+      </button>
+    </div>
+  );
+}
+
+// Componente para visualização da composição familiar
+function ComposicaoFamiliarView({ value }) {
+  if (!Array.isArray(value) || value.length === 0) return <span>-</span>;
+  return (
+    <table className="composicao-familiar-view">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Idade</th>
+          <th>Parentesco</th>
+          <th>Escolaridade</th>
+          <th>Ocupação</th>
+          <th>Renda</th>
+        </tr>
+      </thead>
+      <tbody>
+        {value.map((m, idx) => (
+          <tr key={idx}>
+            <td>{m.nome}</td>
+            <td>{m.idade}</td>
+            <td>{m.parentesco}</td>
+            <td>{m.escolaridade}</td>
+            <td>{m.ocupacao}</td>
+            <td>{m.renda}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
