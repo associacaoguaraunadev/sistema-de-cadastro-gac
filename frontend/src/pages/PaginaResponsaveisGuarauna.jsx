@@ -67,6 +67,393 @@ const formatarRG = (valor) => {
   return `${valor.slice(0, 2)}.${valor.slice(2, 5)}.${valor.slice(5, 8)}-${valor.slice(8)}`;
 };
 
+// Componente de Skeleton Loading
+const SkeletonLoader = ({ quantidade = 1, altura = '2rem', largura = '100%', className = '' }) => {
+  return (
+    <div className={`skeleton-container ${className}`}>
+      {[...Array(quantidade)].map((_, i) => (
+        <div 
+          key={i} 
+          className="skeleton-item"
+          style={{ 
+            height: altura, 
+            width: typeof largura === 'string' ? largura : largura[i] || '100%',
+            margin: '0.5rem 0'
+          }}
+        ></div>
+      ))}
+    </div>
+  );
+};
+
+// Componente para o formulário de responsável com loading state
+const FormularioResponsavel = ({ 
+  formData, 
+  setFormData, 
+  carregandoFormulario,
+  pessoaSelecionada,
+  limparPessoaSelecionada,
+  dropdownRef,
+  dropdownAberto,
+  setDropdownAberto,
+  pessoasSugeridas,
+  todasPessoas,
+  buscaPessoa,
+  setBuscaPessoa,
+  buscandoPessoas,
+  selecionarPessoa,
+  parentescos,
+  comunidadeFiltroAlunos,
+  setComunidadeFiltroAlunos,
+  comunidades,
+  buscaAluno,
+  setBuscaAluno,
+  alunos,
+  toggleAluno
+}) => {
+  if (carregandoFormulario) {
+    return (
+      <div className="modal-body-skeleton">
+        {/* Skeletons para o formulário */}
+        <SkeletonLoader quantidade={1} altura="3rem" className="mb-4" />
+        
+        <div className="form-row-skeleton">
+          <SkeletonLoader quantidade={1} largura="65%" altura="4rem" />
+          <SkeletonLoader quantidade={1} largura="30%" altura="4rem" />
+        </div>
+        
+        <div className="form-row-skeleton">
+          <SkeletonLoader quantidade={1} largura="48%" altura="4rem" />
+          <SkeletonLoader quantidade={1} largura="48%" altura="4rem" />
+        </div>
+        
+        <div className="form-row-skeleton">
+          <SkeletonLoader quantidade={1} largura="48%" altura="4rem" />
+          <SkeletonLoader quantidade={1} largura="48%" altura="4rem" />
+        </div>
+        
+        <SkeletonLoader quantidade={1} altura="4rem" className="mb-4" />
+        <SkeletonLoader quantidade={1} altura="4rem" className="mb-4" />
+        
+        <SkeletonLoader quantidade={1} altura="2rem" largura="40%" className="mb-2" />
+        <SkeletonLoader quantidade={1} altura="12rem" className="mb-4" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="modal-body">
+      {/* Busca de Pessoa Existente */}
+      {!pessoaSelecionada && (
+        <div className="pessoa-busca-container">
+          <label><User size={16} /> Buscar pessoa já cadastrada</label>
+          
+          <div className="pessoa-dropdown-container" ref={dropdownRef}>
+            <div 
+              className={`pessoa-dropdown-trigger ${dropdownAberto ? 'aberto' : ''}`}
+              onClick={() => {
+                setDropdownAberto(!dropdownAberto);
+                if (!dropdownAberto) {
+                  setPessoasSugeridas(todasPessoas);
+                }
+              }}
+            >
+              <Search size={18} />
+              <span>Clique para selecionar uma pessoa...</span>
+              <ChevronDown size={18} className={`chevron ${dropdownAberto ? 'rotacionado' : ''}`} />
+            </div>
+            
+            {dropdownAberto && (
+              <div className="pessoa-dropdown-menu">
+                <div className="pessoa-dropdown-busca">
+                  <Search size={16} />
+                  <input
+                    type="text"
+                    value={buscaPessoa}
+                    onChange={(e) => setBuscaPessoa(e.target.value)}
+                    placeholder="Filtrar por nome ou CPF..."
+                    autoFocus
+                  />
+                </div>
+                
+                <div className="pessoa-dropdown-lista">
+                  {(buscaPessoa.length >= 2 ? pessoasSugeridas : todasPessoas).length === 0 ? (
+                    <div className="pessoa-dropdown-vazio">
+                      {buscandoPessoas ? 'Buscando...' : 'Nenhuma pessoa encontrada'}
+                    </div>
+                  ) : (
+                    (buscaPessoa.length >= 2 ? pessoasSugeridas : todasPessoas).map(pessoa => (
+                      <div 
+                        key={pessoa.id} 
+                        className="pessoa-dropdown-item"
+                        onClick={() => selecionarPessoa(pessoa)}
+                      >
+                        <User size={16} />
+                        <div className="pessoa-dropdown-item-info">
+                          <div className="pessoa-dropdown-item-nome">{pessoa.nome}</div>
+                          <div className="pessoa-dropdown-item-detalhes">
+                            {pessoa.comunidade || 'Sem comunidade'}
+                            {pessoa.cpf && ` • CPF: ${pessoa.cpf}`}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {pessoaSelecionada && (
+        <div className="pessoa-selecionada">
+          <User size={24} />
+          <div className="pessoa-selecionada-info">
+            <div className="pessoa-selecionada-nome">{pessoaSelecionada.nome}</div>
+            <div className="pessoa-selecionada-detalhes">
+              {pessoaSelecionada.comunidade && `${pessoaSelecionada.comunidade}`}
+              {pessoaSelecionada.cpf && ` • CPF: ${pessoaSelecionada.cpf}`}
+            </div>
+          </div>
+          <button type="button" className="btn-limpar-pessoa" onClick={limparPessoaSelecionada}>
+            Limpar
+          </button>
+        </div>
+      )}
+
+      <div className="form-row">
+        <div className="form-grupo flex-2">
+          <label>Nome Completo *</label>
+          <input
+            type="text"
+            value={formData.nome}
+            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+            placeholder="Nome completo do responsável"
+          />
+        </div>
+
+        <div className="form-grupo">
+          <label>Parentesco *</label>
+          <select
+            value={formData.parentesco}
+            onChange={(e) => setFormData({ ...formData, parentesco: e.target.value })}
+          >
+            <option value="">Selecione</option>
+            {parentescos.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-grupo">
+          <label>CPF</label>
+          <input
+            type="text"
+            value={formData.cpf}
+            onChange={(e) => setFormData({ ...formData, cpf: formatarCPF(e.target.value) })}
+            placeholder="000.000.000-00"
+          />
+        </div>
+
+        <div className="form-grupo">
+          <label>RG</label>
+          <input
+            type="text"
+            value={formData.rg}
+            onChange={(e) => setFormData({ ...formData, rg: formatarRG(e.target.value) })}
+            placeholder="00.000.000-0"
+            maxLength={12}
+          />
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-grupo">
+          <label>Telefone *</label>
+          <input
+            type="text"
+            value={formData.telefone}
+            onChange={(e) => setFormData({ ...formData, telefone: formatarTelefone(e.target.value) })}
+            placeholder="(00) 00000-0000"
+          />
+        </div>
+
+        <div className="form-grupo">
+          <label>Email</label>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="email@exemplo.com"
+          />
+        </div>
+      </div>
+
+      <div className="form-grupo">
+        <label>Endereço</label>
+        <input
+          type="text"
+          value={formData.endereco}
+          onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+          placeholder="Endereço completo"
+        />
+      </div>
+
+      <div className="form-grupo">
+        <label>Está empregado? *</label>
+        <select
+          value={formData.estaEmpregado === true ? 'sim' : 'nao'}
+          onChange={e => {
+            // Converter diretamente para booleano
+            const novoValor = e.target.value === 'sim';
+            console.log("Alterando estaEmpregado para:", e.target.value, "convertido para:", novoValor);
+            
+            setFormData({ 
+              ...formData, 
+              estaEmpregado: novoValor
+            });
+          }}
+          required
+        >
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option>
+        </select>
+      </div>
+      
+      {formData.estaEmpregado === true && (
+        <div className="form-row">
+          <div className="form-grupo">
+            <label>Profissão</label>
+            <input
+              type="text"
+              value={formData.profissao}
+              onChange={(e) => setFormData({ ...formData, profissao: e.target.value })}
+              placeholder="Ex: Professor, Agricultor, etc."
+            />
+          </div>
+          <div className="form-grupo">
+            <label>Local de Trabalho</label>
+            <input
+              type="text"
+              value={formData.localTrabalho}
+              onChange={(e) => setFormData({ ...formData, localTrabalho: e.target.value })}
+              placeholder="Nome da empresa ou local"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="form-grupo alunos-vinculados-container">
+        <label className="label-alunos-vinculados">
+          <Users size={16} />
+          Alunos Vinculados
+        </label>
+        
+        {/* Filtros de busca */}
+        <div className="alunos-filtros-inline">
+          <div className="filtro-busca-alunos">
+            <Search size={16} />
+            <input
+              type="text"
+              placeholder="Buscar aluno por nome..."
+              value={buscaAluno}
+              onChange={(e) => setBuscaAluno(e.target.value)}
+            />
+          </div>
+          <select
+            value={comunidadeFiltroAlunos}
+            onChange={(e) => setComunidadeFiltroAlunos(e.target.value)}
+            className="filtro-comunidade-alunos"
+          >
+            <option value="">Todas as comunidades</option>
+            {comunidades.map(c => (
+              <option key={c.id} value={c.nome}>{c.nome}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Alunos selecionados (tags) */}
+        {formData.alunoIds.length > 0 && (
+          <div className="alunos-selecionados">
+            {formData.alunoIds.map(alunoId => {
+              // Buscar aluno pelo ID para acessar os dados da pessoa
+              const alunoCompleto = alunos.find(a => String(a.id) === String(alunoId));
+              const nomeAluno = alunoCompleto?.pessoa?.nome || alunoCompleto?.nome || `ID: ${alunoId}`;
+              
+              return (
+                <div key={alunoId} className="aluno-vinculado">
+                  <span className="aluno-nome">{nomeAluno}</span>
+                  <button type="button" className="btn-remover-aluno" onClick={() => toggleAluno(alunoId)}>
+                    <X size={16} />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Lista de alunos filtrada */}
+        <div className="alunos-lista-selecao">
+          {alunos.length === 0 ? (
+            <p className="sem-alunos-msg">Nenhum aluno cadastrado ainda</p>
+          ) : (
+            alunos
+              // Filtrar próprio responsável
+              .filter(aluno => {
+                const pessoaIdAluno = aluno.pessoa?.id || aluno.pessoaId;
+                const pessoaIdResponsavel = formData.pessoaId || pessoaSelecionada?.id;
+                return pessoaIdAluno !== pessoaIdResponsavel;
+              })
+              // Filtrar por busca
+              .filter(aluno => {
+                if (!buscaAluno) return true;
+                // Buscar no nome da pessoa associada ao aluno
+                const nome = (aluno.pessoa?.nome || aluno.nome || '').toLowerCase();
+                return nome.includes(buscaAluno.toLowerCase());
+              })
+              // Filtrar por comunidade
+              .filter(aluno => {
+                if (!comunidadeFiltroAlunos) return true;
+                const comunidade = aluno.pessoa?.comunidade || aluno.comunidade || '';
+                return comunidade === comunidadeFiltroAlunos;
+              })
+              .map(aluno => {
+                // Buscar dados da pessoa vinculada ao aluno
+                const nome = aluno.pessoa?.nome || aluno.nome;
+                const comunidade = aluno.pessoa?.comunidade || aluno.comunidade;
+                // Comparar como strings pois IDs são UUIDs
+                const alunoIdStr = String(aluno.id);
+                const selecionado = formData.alunoIds.some(id => String(id) === alunoIdStr);
+                
+                return (
+                  <div 
+                    key={aluno.id} 
+                    className={`aluno-item-selecao ${selecionado ? 'selecionado' : ''}`}
+                    onClick={() => toggleAluno(aluno.id)}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selecionado}
+                      onChange={() => toggleAluno(aluno.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className="aluno-item-info">
+                      <span className="aluno-item-nome">{nome}</span>
+                      {comunidade && <span className="aluno-item-comunidade">{comunidade}</span>}
+                    </div>
+                  </div>
+                );
+              })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const PaginaResponsaveisGuarauna = () => {
   const { usuario, token } = useAuth();
   const { adicionarToast } = useGlobalToast();
@@ -77,6 +464,7 @@ const PaginaResponsaveisGuarauna = () => {
   const [responsaveis, setResponsaveis] = useState([]);
   const [alunos, setAlunos] = useState([]);
   const [carregando, setCarregando] = useState(true);
+  const [carregandoFormulario, setCarregandoFormulario] = useState(false);
   const [busca, setBusca] = useState('');
 
   // Paginação
@@ -100,7 +488,8 @@ const PaginaResponsaveisGuarauna = () => {
     profissao: '',
     localTrabalho: '',
     estaEmpregado: false, // Inicializar com false em vez de null
-    alunoIds: []
+    alunoIds: [],
+    pessoaId: null
   });
 
   // Modal de confirmação
@@ -377,7 +766,11 @@ const PaginaResponsaveisGuarauna = () => {
   const abrirModal = async (responsavel = null) => {
     // Mostrar feedback visual que está carregando
     setModalAberto(true);
-    setSalvando(true);
+    
+    // Se estiver editando um responsável existente, mostrar skeleton loading
+    if (responsavel) {
+      setCarregandoFormulario(true);
+    }
     
     // Carregar todas as pessoas para o dropdown
     try {
@@ -449,18 +842,19 @@ const PaginaResponsaveisGuarauna = () => {
         pessoaId: responsavelParaEditar.pessoa?.id || responsavelParaEditar.pessoaId,
         estaEmpregado: estaEmpregado // Usando o valor já normalizado
       });
+      
+      // Desativar o skeleton loader após os dados serem carregados
+      setCarregandoFormulario(false);
     } else {
       resetForm();
     }
-    
-    // Remover feedback visual após carregar
-    setSalvando(false);
   };
 
   // Fechar modal
   const fecharModal = () => {
     setModalAberto(false);
     resetForm();
+    setCarregandoFormulario(false);
   };
 
   // Salvar responsável
@@ -476,7 +870,10 @@ const PaginaResponsaveisGuarauna = () => {
       return;
     }
 
-    // Não validamos estaEmpregado aqui, pois agora sempre tem um valor booleano definido
+    if (!formData.parentesco || !formData.parentesco.trim()) {
+      adicionarToast('Parentesco é obrigatório', 'erro');
+      return;
+    }
 
     setSalvando(true);
     
@@ -569,29 +966,6 @@ const PaginaResponsaveisGuarauna = () => {
         alunoIds: novosIds
       };
     });
-  };
-
-  // Obter nome do aluno com garantia de acesso aos dados da pessoa
-  const obterNomeAluno = (alunoId) => {
-    const aluno = alunos.find(a => String(a.id) === String(alunoId));
-    
-    // Log para diagnóstico
-    if (aluno) {
-      console.log(`Aluno encontrado (ID: ${alunoId}):`, aluno);
-    } else {
-      console.log(`Aluno não encontrado (ID: ${alunoId})`);
-    }
-    
-    // Tentar obter o nome da relação pessoa primeiro
-    if (aluno?.pessoa?.nome) {
-      return aluno.pessoa.nome;
-    }
-    // Se não, tentar diretamente do aluno
-    if (aluno?.nome) {
-      return aluno.nome;
-    }
-    // Último recurso: mostrar o ID
-    return `ID: ${alunoId}`;
   };
 
   const breadcrumbItems = [
@@ -765,324 +1139,44 @@ const PaginaResponsaveisGuarauna = () => {
               </button>
             </div>
 
-            <div className="modal-body">
-              {/* Busca de Pessoa Existente */}
-              {!responsavelEditando && (
-                <div className="pessoa-busca-container">
-                  <label><User size={16} /> Buscar pessoa já cadastrada</label>
-                  
-                  {pessoaSelecionada ? (
-                    <div className="pessoa-selecionada">
-                      <User size={24} />
-                      <div className="pessoa-selecionada-info">
-                        <div className="pessoa-selecionada-nome">{pessoaSelecionada.nome}</div>
-                        <div className="pessoa-selecionada-detalhes">
-                          {pessoaSelecionada.comunidade && `${pessoaSelecionada.comunidade}`}
-                          {pessoaSelecionada.cpf && ` • CPF: ${pessoaSelecionada.cpf}`}
-                        </div>
-                      </div>
-                      <button type="button" className="btn-limpar-pessoa" onClick={limparPessoaSelecionada}>
-                        Limpar
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="pessoa-dropdown-container" ref={dropdownRef}>
-                      <div 
-                        className={`pessoa-dropdown-trigger ${dropdownAberto ? 'aberto' : ''}`}
-                        onClick={() => {
-                          setDropdownAberto(!dropdownAberto);
-                          if (!dropdownAberto) {
-                            setPessoasSugeridas(todasPessoas);
-                          }
-                        }}
-                      >
-                        <Search size={18} />
-                        <span>Clique para selecionar uma pessoa...</span>
-                        <ChevronDown size={18} className={`chevron ${dropdownAberto ? 'rotacionado' : ''}`} />
-                      </div>
-                      
-                      {dropdownAberto && (
-                        <div className="pessoa-dropdown-menu">
-                          <div className="pessoa-dropdown-busca">
-                            <Search size={16} />
-                            <input
-                              type="text"
-                              value={buscaPessoa}
-                              onChange={(e) => setBuscaPessoa(e.target.value)}
-                              placeholder="Filtrar por nome ou CPF..."
-                              autoFocus
-                            />
-                          </div>
-                          
-                          <div className="pessoa-dropdown-lista">
-                            {(buscaPessoa.length >= 2 ? pessoasSugeridas : todasPessoas).length === 0 ? (
-                              <div className="pessoa-dropdown-vazio">
-                                {buscandoPessoas ? 'Buscando...' : 'Nenhuma pessoa encontrada'}
-                              </div>
-                            ) : (
-                              (buscaPessoa.length >= 2 ? pessoasSugeridas : todasPessoas).map(pessoa => (
-                                <div 
-                                  key={pessoa.id} 
-                                  className="pessoa-dropdown-item"
-                                  onClick={() => selecionarPessoa(pessoa)}
-                                >
-                                  <User size={16} />
-                                  <div className="pessoa-dropdown-item-info">
-                                    <div className="pessoa-dropdown-item-nome">{pessoa.nome}</div>
-                                    <div className="pessoa-dropdown-item-detalhes">
-                                      {pessoa.comunidade || 'Sem comunidade'}
-                                      {pessoa.cpf && ` • CPF: ${pessoa.cpf}`}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="form-row">
-                <div className="form-grupo flex-2">
-                  <label>Nome Completo *</label>
-                  <input
-                    type="text"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    placeholder="Nome completo do responsável"
-                  />
-                </div>
-
-                <div className="form-grupo">
-                  <label>Parentesco</label>
-                  <select
-                    value={formData.parentesco}
-                    onChange={(e) => setFormData({ ...formData, parentesco: e.target.value })}
-                  >
-                    <option value="">Selecione</option>
-                    {parentescos.map(p => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-grupo">
-                  <label>CPF</label>
-                  <input
-                    type="text"
-                    value={formData.cpf}
-                    onChange={(e) => setFormData({ ...formData, cpf: formatarCPF(e.target.value) })}
-                    placeholder="000.000.000-00"
-                  />
-                </div>
-
-                <div className="form-grupo">
-                  <label>RG</label>
-                  <input
-                    type="text"
-                    value={formData.rg}
-                    onChange={(e) => setFormData({ ...formData, rg: formatarRG(e.target.value) })}
-                    placeholder="00.000.000-0"
-                    maxLength={12}
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-grupo">
-                  <label>Telefone *</label>
-                  <input
-                    type="text"
-                    value={formData.telefone}
-                    onChange={(e) => setFormData({ ...formData, telefone: formatarTelefone(e.target.value) })}
-                    placeholder="(00) 00000-0000"
-                  />
-                </div>
-
-                <div className="form-grupo">
-                  <label>Email</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="email@exemplo.com"
-                  />
-                </div>
-              </div>
-
-              <div className="form-grupo">
-                <label>Endereço</label>
-                <input
-                  type="text"
-                  value={formData.endereco}
-                  onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-                  placeholder="Endereço completo"
-                />
-              </div>
-
-              <div className="form-grupo">
-                <label>Está empregado? *</label>
-                <select
-                  value={formData.estaEmpregado === true ? 'sim' : 'nao'}
-                  onChange={e => {
-                    // Converter diretamente para booleano
-                    const novoValor = e.target.value === 'sim';
-                    console.log("Alterando estaEmpregado para:", e.target.value, "convertido para:", novoValor);
-                    
-                    setFormData({ 
-                      ...formData, 
-                      estaEmpregado: novoValor
-                    });
-                  }}
-                  required
-                >
-                  <option value="sim">Sim</option>
-                  <option value="nao">Não</option>
-                </select>
-              </div>
-              
-              {formData.estaEmpregado === true && (
-                <div className="form-row">
-                  <div className="form-grupo">
-                    <label>Profissão</label>
-                    <input
-                      type="text"
-                      value={formData.profissao}
-                      onChange={(e) => setFormData({ ...formData, profissao: e.target.value })}
-                      placeholder="Ex: Professor, Agricultor, etc."
-                    />
-                  </div>
-                  <div className="form-grupo">
-                    <label>Local de Trabalho</label>
-                    <input
-                      type="text"
-                      value={formData.localTrabalho}
-                      onChange={(e) => setFormData({ ...formData, localTrabalho: e.target.value })}
-                      placeholder="Nome da empresa ou local"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="form-grupo alunos-vinculados-container">
-                <label className="label-alunos-vinculados">
-                  <Users size={16} />
-                  Alunos Vinculados
-                </label>
-                
-                {/* Filtros de busca */}
-                <div className="alunos-filtros-inline">
-                  <div className="filtro-busca-alunos">
-                    <Search size={16} />
-                    <input
-                      type="text"
-                      placeholder="Buscar aluno por nome..."
-                      value={buscaAluno}
-                      onChange={(e) => setBuscaAluno(e.target.value)}
-                    />
-                  </div>
-                  <select
-                    value={comunidadeFiltroAlunos}
-                    onChange={(e) => setComunidadeFiltroAlunos(e.target.value)}
-                    className="filtro-comunidade-alunos"
-                  >
-                    <option value="">Todas as comunidades</option>
-                    {comunidades.map(c => (
-                      <option key={c.id} value={c.nome}>{c.nome}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Alunos selecionados (tags) */}
-                {formData.alunoIds.length > 0 && (
-                  <div className="alunos-selecionados">
-                    {formData.alunoIds.map(alunoId => {
-                      // Buscar aluno pelo ID para acessar os dados da pessoa
-                      const alunoCompleto = alunos.find(a => String(a.id) === String(alunoId));
-                      const nomeAluno = alunoCompleto?.pessoa?.nome || alunoCompleto?.nome || `ID: ${alunoId}`;
-                      
-                      return (
-                        <div key={alunoId} className="aluno-vinculado">
-                          <span className="aluno-nome">{nomeAluno}</span>
-                          <button type="button" className="btn-remover-aluno" onClick={() => toggleAluno(alunoId)}>
-                            <X size={16} />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Lista de alunos filtrada */}
-                <div className="alunos-lista-selecao">
-                  {alunos.length === 0 ? (
-                    <p className="sem-alunos-msg">Nenhum aluno cadastrado ainda</p>
-                  ) : (
-                    alunos
-                      // Filtrar próprio responsável
-                      .filter(aluno => {
-                        const pessoaIdAluno = aluno.pessoa?.id || aluno.pessoaId;
-                        const pessoaIdResponsavel = formData.pessoaId || pessoaSelecionada?.id;
-                        return pessoaIdAluno !== pessoaIdResponsavel;
-                      })
-                      // Filtrar por busca
-                      .filter(aluno => {
-                        if (!buscaAluno) return true;
-                        // Buscar no nome da pessoa associada ao aluno
-                        const nome = (aluno.pessoa?.nome || aluno.nome || '').toLowerCase();
-                        return nome.includes(buscaAluno.toLowerCase());
-                      })
-                      // Filtrar por comunidade
-                      .filter(aluno => {
-                        if (!comunidadeFiltroAlunos) return true;
-                        const comunidade = aluno.pessoa?.comunidade || aluno.comunidade || '';
-                        return comunidade === comunidadeFiltroAlunos;
-                      })
-                      .map(aluno => {
-                        // Buscar dados da pessoa vinculada ao aluno
-                        const nome = aluno.pessoa?.nome || aluno.nome;
-                        const comunidade = aluno.pessoa?.comunidade || aluno.comunidade;
-                        // Comparar como strings pois IDs são UUIDs
-                        const alunoIdStr = String(aluno.id);
-                        const selecionado = formData.alunoIds.some(id => String(id) === alunoIdStr);
-                        
-                        return (
-                          <div 
-                            key={aluno.id} 
-                            className={`aluno-item-selecao ${selecionado ? 'selecionado' : ''}`}
-                            onClick={() => toggleAluno(aluno.id)}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={selecionado}
-                              onChange={() => toggleAluno(aluno.id)}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                            <div className="aluno-item-info">
-                              <span className="aluno-item-nome">{nome}</span>
-                              {comunidade && <span className="aluno-item-comunidade">{comunidade}</span>}
-                            </div>
-                          </div>
-                        );
-                      })
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Formulário com skeleton loading condicional */}
+            <FormularioResponsavel
+              formData={formData}
+              setFormData={setFormData}
+              carregandoFormulario={carregandoFormulario}
+              pessoaSelecionada={pessoaSelecionada}
+              limparPessoaSelecionada={limparPessoaSelecionada}
+              dropdownRef={dropdownRef}
+              dropdownAberto={dropdownAberto}
+              setDropdownAberto={setDropdownAberto}
+              pessoasSugeridas={pessoasSugeridas}
+              todasPessoas={todasPessoas}
+              buscaPessoa={buscaPessoa}
+              setBuscaPessoa={setBuscaPessoa}
+              buscandoPessoas={buscandoPessoas}
+              selecionarPessoa={selecionarPessoa}
+              parentescos={parentescos}
+              comunidadeFiltroAlunos={comunidadeFiltroAlunos}
+              setComunidadeFiltroAlunos={setComunidadeFiltroAlunos}
+              comunidades={comunidades}
+              buscaAluno={buscaAluno}
+              setBuscaAluno={setBuscaAluno}
+              alunos={alunos}
+              toggleAluno={toggleAluno}
+            />
 
             <div className="modal-footer">
-              <button className="btn-cancelar" onClick={fecharModal}>
+              <button 
+                className="btn-cancelar" 
+                onClick={fecharModal}
+                disabled={carregandoFormulario || salvando}
+              >
                 Cancelar
               </button>
               <button 
                 className="btn-salvar" 
                 onClick={salvarResponsavel}
-                disabled={salvando}
+                disabled={carregandoFormulario || salvando}
               >
                 {salvando ? (
                   <>
@@ -1115,5 +1209,42 @@ const PaginaResponsaveisGuarauna = () => {
     </div>
   );
 };
+
+// Adicione o CSS para o skeleton loading
+const skeletonCSS = `
+/* Skeleton Loading */
+.skeleton-item {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 4px;
+}
+
+.form-row-skeleton {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.modal-body-skeleton {
+  padding: 1rem 0;
+}
+
+.skeleton-container {
+  margin-bottom: 1rem;
+}
+`;
+
+// Adicione essa tag style ao seu componente ou ao CSS existente
+document.head.insertAdjacentHTML('beforeend', `<style>${skeletonCSS}</style>`);
 
 export default PaginaResponsaveisGuarauna;
