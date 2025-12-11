@@ -10,7 +10,9 @@ import {
   ArrowLeft,
   Search,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  User,
+  UserCheck
 } from 'lucide-react';
 import './PaginaAlunosGuarauna.css';
 
