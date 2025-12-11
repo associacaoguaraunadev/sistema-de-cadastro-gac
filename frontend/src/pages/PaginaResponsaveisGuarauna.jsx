@@ -584,8 +584,16 @@ const PaginaResponsaveisGuarauna = () => {
       if (response.ok) {
         const data = await response.json();
         const alunosCarregados = data.alunos || data || [];
-        console.log('Alunos carregados:', alunosCarregados);
-        setAlunos(alunosCarregados);
+        // Filtrar alunos com 18 anos ou mais — apenas menores devem aparecer
+        const alunosMenores = (alunosCarregados || []).filter(aluno => {
+          const dataNasc = aluno.pessoa?.dataNascimento || aluno.dataNascimento;
+          const idade = calcularIdade(dataNasc);
+          // Incluir quando idade desconhecida (null) ou menor que 18
+          return idade === null || idade < 18;
+        });
+        console.log('Alunos carregados (originais):', alunosCarregados);
+        console.log('Alunos disponíveis para vinculação (menores de 18):', alunosMenores);
+        setAlunos(alunosMenores);
       }
     } catch (error) {
       console.error('Erro ao carregar alunos:', error);
