@@ -5335,19 +5335,31 @@ async function guaraunaAceiteCriar(req, res) {
     const codigo = require('crypto').randomUUID ? require('crypto').randomUUID() : require('crypto').randomBytes(16).toString('hex');
     const hashVerificacao = require('crypto').createHash('sha256').update(`${matriculaId}-${responsavelId}-${Date.now()}`).digest('hex');
 
-    const aceite = await prisma.aceiteDigital.create({
-      data: {
-        codigo,
-        matriculaId,
-        responsavelId,
-        termoLGPD,
-        termoResponsabilidade,
-        termoImagem,
-        dispositivoInfo: req.headers['user-agent'],
-        ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
-        hashVerificacao
-      }
-    });
+    // Se já existe um aceite para essa matrícula+responsável, retornamos o existente
+    let aceite = null;
+    try {
+      aceite = await prisma.aceiteDigital.findUnique({ where: { matriculaId_responsavelId: { matriculaId, responsavelId } } });
+    } catch (errFind) {
+      // Alguns clientes/versões do Prisma podem nomear a chave única composta de forma diferente.
+      // Tentar buscar pela combinação usando findFirst como fallback.
+      aceite = await prisma.aceiteDigital.findFirst({ where: { matriculaId, responsavelId } });
+    }
+
+    if (!aceite) {
+      aceite = await prisma.aceiteDigital.create({
+        data: {
+          codigo,
+          matriculaId,
+          responsavelId,
+          termoLGPD,
+          termoResponsabilidade,
+          termoImagem,
+          dispositivoInfo: req.headers['user-agent'],
+          ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+          hashVerificacao
+        }
+      });
+    }
 
     // Tentar enviar email com link público
     try {
