@@ -14,7 +14,14 @@ import {
   User,
   UserCheck,
   Plus,
-  MapPin
+  MapPin,
+  Phone,
+  Award,
+  Heart,
+  Edit2,
+  Trash2,
+  X,
+  ChevronLeft
 } from 'lucide-react';
 import './PaginaAlunosGuarauna.css';
 
