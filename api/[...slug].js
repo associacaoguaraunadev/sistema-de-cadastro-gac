@@ -4437,7 +4437,9 @@ async function guaraunaMatriculasCriar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { alunoId, ano, tipo, tamanhoCamiseta, tamanhoBermuda, tamanhoCalcado, composicaoFamiliar } = req.body;
+    const { alunoId, ano, tipo, tamanhoCamiseta, tamanhoCalca, tamanhoCalcado, composicaoFamiliar,
+      nomeEscola, horarioEstudo, horaEntrada, horaSaida, situacaoComportamentoEscolar, status, motivoDesistencia
+    } = req.body;
 
     // Verificar se já existe matrícula para este ano
     const existente = await prisma.matricula.findUnique({
@@ -4452,11 +4454,19 @@ async function guaraunaMatriculasCriar(req, res) {
       data: {
         alunoId,
         ano: parseInt(ano),
-        tipo: tipo || 'MATRICULA',
+        tipo: (tipo || 'MATRICULA').toString().toUpperCase(),
         tamanhoCamiseta,
-        tamanhoBermuda,
+        tamanhoCalca,
         tamanhoCalcado,
-        composicaoFamiliar
+        nomeEscola,
+        horarioEstudo,
+        horaEntrada,
+        horaSaida,
+        situacaoComportamentoEscolar,
+        composicaoFamiliar,
+        // Normalizar status enum se fornecido
+        ...(status ? { status: status.toString().toUpperCase() } : {}),
+        motivoDesistencia
       },
       include: {
         aluno: { include: { pessoa: true } }
