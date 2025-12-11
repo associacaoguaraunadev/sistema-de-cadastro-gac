@@ -192,15 +192,13 @@
 }
 
 .btn-acao svg {
-  width: 20px !important;
-  height: 20px !important;
+  width: 18px !important;
+  height: 18px !important;
 }
 
 .btn-acao.ver {
   background: #f0fdf4;
   color: #22c55e;
-  width: 20px !important;
-  height: 20px !important;
 }
 
 .btn-acao.ver:hover {
@@ -211,8 +209,6 @@
 .btn-acao.editar {
   background: #eff6ff;
   color: #3b82f6;
-  width: 20px !important;
-  height: 20px !important;
 }
 
 .btn-acao.editar:hover {
@@ -223,8 +219,6 @@
 .btn-acao.excluir {
   background: #fef2f2;
   color: #ef4444;
-  width: 20px !important;
-  height: 20px !important;
 }
 
 .btn-acao.excluir:hover {

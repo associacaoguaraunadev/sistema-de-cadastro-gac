@@ -121,7 +121,9 @@ const PaginaMatriculasGuarauna = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setMatriculas(data.matriculas || []);
+        // Normalizar status para lowercase para casar com as opções da UI
+        const matriculasNorm = (data.matriculas || []).map(m => ({ ...m, status: m.status ? String(m.status).toLowerCase() : m.status }));
+        setMatriculas(matriculasNorm);
         setTotalPaginas(data.totalPaginas || 1);
         setTotalItens(data.total || 0);
       }
@@ -155,7 +157,18 @@ const PaginaMatriculasGuarauna = () => {
       alunoId: '',
       ano: new Date().getFullYear(),
       status: 'pendente',
-      observacoes: ''
+      observacoes: '',
+      tipo: 'MATRICULA',
+      tamanhoCamiseta: '',
+      tamanhoCalca: '',
+      tamanhoCalcado: '',
+      nomeEscola: '',
+      horarioEstudo: '',
+      horaEntrada: '',
+      horaSaida: '',
+      situacaoComportamentoEscolar: '',
+      composicaoFamiliar: [],
+      motivoDesistencia: ''
     });
     setMatriculaEditando(null);
   };
@@ -167,14 +180,20 @@ const PaginaMatriculasGuarauna = () => {
       setFormData({
         alunoId: matricula.alunoId || '',
         ano: matricula.ano || new Date().getFullYear(),
-        status: matricula.status || 'pendente',
+        // normalizar para lowercase para as opções de UI
+        status: matricula.status ? String(matricula.status).toLowerCase() : 'pendente',
         observacoes: matricula.observacoes || '',
+        tipo: matricula.tipo || 'MATRICULA',
+        tamanhoCamiseta: matricula.tamanhoCamiseta || '',
         tamanhoCalca: matricula.tamanhoCalca || '',
+        tamanhoCalcado: matricula.tamanhoCalcado || '',
         nomeEscola: matricula.nomeEscola || '',
         horarioEstudo: matricula.horarioEstudo || '',
         horaEntrada: matricula.horaEntrada || '',
         horaSaida: matricula.horaSaida || '',
         situacaoComportamentoEscolar: matricula.situacaoComportamentoEscolar || '',
+        composicaoFamiliar: Array.isArray(matricula.composicaoFamiliar) ? matricula.composicaoFamiliar : [],
+        motivoDesistencia: matricula.motivoDesistencia || ''
       });
     } else {
       resetForm();
@@ -408,7 +427,7 @@ const PaginaMatriculasGuarauna = () => {
                     <td>
                       <div className="matricula-comunidade">
                         <MapPin size={14} />
-                        <span>{matricula.aluno?.comunidade?.nome || '-'}</span>
+                        <span>{matricula.aluno?.pessoa?.comunidade || matricula.aluno?.comunidade || '-'}</span>
                       </div>
                     </td>
                     <td>
@@ -502,7 +521,7 @@ const PaginaMatriculasGuarauna = () => {
                   <option value="">Selecione um aluno</option>
                   {alunos.map(a => (
                     <option key={a.id} value={a.id}>
-                      {a.pessoa?.nome || a.nome} - {a.comunidade?.nome || 'Sem comunidade'}
+                      {a.pessoa?.nome || a.nome} - {a.pessoa?.comunidade || a.comunidade || 'Sem comunidade'}
                     </option>
                   ))}
                 </select>
@@ -728,7 +747,7 @@ const PaginaMatriculasGuarauna = () => {
 
               <div className="detalhe-item">
                 <label>Comunidade</label>
-                <span>{modalVisualizacao.matricula?.aluno?.comunidade?.nome || '-'}</span>
+                <span>{modalVisualizacao.matricula?.aluno?.pessoa?.comunidade || modalVisualizacao.matricula?.aluno?.comunidade || '-'}</span>
               </div>
 
               <div className="detalhe-row">
@@ -784,7 +803,7 @@ const PaginaMatriculasGuarauna = () => {
                   <ComposicaoFamiliarView value={modalVisualizacao.matricula.composicaoFamiliar} />
                 </div>
               )}
-              {modalVisualizacao.matricula?.motivoDesistência && (
+              {modalVisualizacao.matricula?.motivoDesistencia && (
                 <div className="detalhe-item">
                   <label>Motivo da Desistência</label>
                   <span>{modalVisualizacao.matricula.motivoDesistencia}</span>
