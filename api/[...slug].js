@@ -4382,31 +4382,47 @@ async function guaraunaMatriculasListar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { ano, status, alunoId } = req.query;
+    const { ano, status, alunoId, pagina = 1, limite = 20 } = req.query;
 
     const where = {};
     if (ano) where.ano = parseInt(ano);
     if (status) where.status = status;
     if (alunoId) where.alunoId = alunoId;
 
-    const matriculas = await prisma.matricula.findMany({
-      where,
-      include: {
-        aluno: {
-          include: {
-            pessoa: true,
-            responsaveis: {
-              where: { principal: true },
-              include: { responsavel: { include: { pessoa: true } } }
-            }
-          }
-        },
-        aceites: true
-      },
-      orderBy: [{ ano: 'desc' }, { aluno: { pessoa: { nome: 'asc' } } }]
-    });
+    const paginaAtual = Math.max(1, parseInt(pagina));
+    const itensPorPagina = Math.max(1, parseInt(limite));
+    const skip = (paginaAtual - 1) * itensPorPagina;
 
-    res.json(matriculas);
+    const [total, matriculas] = await Promise.all([
+      prisma.matricula.count({ where }),
+      prisma.matricula.findMany({
+        where,
+        skip,
+        take: itensPorPagina,
+        include: {
+          aluno: {
+            include: {
+              pessoa: true,
+              responsaveis: {
+                where: { principal: true },
+                include: { responsavel: { include: { pessoa: true } } }
+              }
+            }
+          },
+          aceites: true
+        },
+        orderBy: [{ ano: 'desc' }, { aluno: { pessoa: { nome: 'asc' } } }]
+      })
+    ]);
+
+    const totalPaginas = Math.max(1, Math.ceil(total / itensPorPagina));
+
+    res.json({
+      matriculas,
+      total,
+      totalPaginas,
+      pagina: paginaAtual
+    });
   } catch (erro) {
     log(`Erro ao listar matrículas: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao listar matrículas' });
