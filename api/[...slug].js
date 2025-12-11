@@ -5332,8 +5332,12 @@ async function guaraunaAceiteCriar(req, res) {
     }
 
     // Gerar código público (UUID) e hash de verificação
-    const codigo = require('crypto').randomUUID ? require('crypto').randomUUID() : require('crypto').randomBytes(16).toString('hex');
-    const hashVerificacao = require('crypto').createHash('sha256').update(`${matriculaId}-${responsavelId}-${Date.now()}`).digest('hex');
+    // Usar import dinâmico para compatibilidade com ESM / ambientes sem `require`
+    const cryptoMod = await import('crypto');
+    const codigo = typeof cryptoMod.randomUUID === 'function'
+      ? cryptoMod.randomUUID()
+      : cryptoMod.randomBytes(16).toString('hex');
+    const hashVerificacao = cryptoMod.createHash('sha256').update(`${matriculaId}-${responsavelId}-${Date.now()}`).digest('hex');
 
     // Se já existe um aceite para essa matrícula+responsável, retornamos o existente
     let aceite = null;
