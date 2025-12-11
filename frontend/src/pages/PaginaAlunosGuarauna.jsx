@@ -22,6 +22,9 @@ import {
   Trash2,
   X,
   ChevronLeft,
+  adicionarMembro,
+  atualizarMembro,
+  removerMembro
 } from 'lucide-react';
 import './PaginaAlunosGuarauna.css';
 
@@ -46,34 +49,7 @@ const formatarTelefone = (valor) => {
 };
 
 const PaginaAlunosGuarauna = () => {
-    // Função para adicionar membro à composição familiar
-    const adicionarMembro = () => {
-      setFormData(prev => ({
-        ...prev,
-        composicaoFamiliar: [
-          ...(prev.composicaoFamiliar || []),
-          { nome: '', idade: '', parentesco: '', escolaridade: '', ocupacao: '', renda: '' }
-        ]
-      }));
-    };
 
-    // Função para atualizar campo de um membro
-    const atualizarMembro = (idx, campo, valor) => {
-      setFormData(prev => ({
-        ...prev,
-        composicaoFamiliar: prev.composicaoFamiliar.map((m, i) =>
-          i === idx ? { ...m, [campo]: valor } : m
-        )
-      }));
-    };
-
-    // Função para remover membro
-    const removerMembro = (idx) => {
-      setFormData(prev => ({
-        ...prev,
-        composicaoFamiliar: prev.composicaoFamiliar.filter((_, i) => i !== idx)
-      }));
-    };
   const { usuario, token } = useAuth();
   const { adicionarToast } = useGlobalToast();
   const navegar = useNavigate();
