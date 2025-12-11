@@ -192,8 +192,23 @@
 }
 
 .btn-acao svg {
-  width: 18px !important;
-  height: 18px !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: block;
+  line-height: 0;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Ensure action icons inside the actions group don't get shrunk by other rules */
+.acoes-btns .btn-acao svg,
+.matricula-aluno svg {
+  width: 20px !important;
+  height: 20px !important;
+  display: block;
+  line-height: 0;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .btn-acao.ver {
@@ -597,4 +612,60 @@
   .detalhe-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* Estilos específicos para o modal de gerar link de aceite */
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.link-gerado .link-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.link-gerado .link-box a {
+  color: #0b74ff;
+  text-decoration: none;
+  background: #f1f8ff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e6f0ff;
+  font-weight: 500;
+}
+
+.btn-copiar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #374151;
+  cursor: pointer;
+}
+
+.btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #25D366 0%, #128C7E 100%);
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Ajuste responsivo para os botões do modal */
+@media (max-width: 480px) {
+  .modal-actions { flex-direction: column-reverse; align-items: stretch; }
+  .link-gerado .link-box { flex-direction: column; align-items: stretch; }
 }

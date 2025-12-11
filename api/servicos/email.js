@@ -295,3 +295,61 @@ export default {
   enviarEmailRecuperacao,
   enviarEmailBoasVindas
 };
+
+export async function enviarEmailAceiteDigital(email, nome, codigo, link) {
+  try {
+    if (!process.env.BREVO_API_KEY) {
+      console.warn('⚠️ BREVO_API_KEY não configurada. Email de aceite não será enviado.');
+      console.log(`📧 [DEV] Link de aceite para ${email}: ${link}`);
+      return { sucesso: false, motivo: 'API key não configurada', link };
+    }
+
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.subject = 'Aceite Digital de Matrícula - GAC';
+    sendSmtpEmail.to = [{ email, name: nome || email.split('@')[0] }];
+
+    sendSmtpEmail.htmlContent = `
+      <!doctype html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body{font-family:Arial,Helvetica,sans-serif;color:#333;margin:0;padding:0}
+            .container{max-width:600px;margin:30px auto;background:#fff;border-radius:8px;overflow:hidden}
+            .header{background:#2d5016;color:#fff;padding:24px;text-align:center}
+            .content{padding:24px}
+            .button{display:inline-block;padding:12px 20px;background:#2d5016;color:#fff;text-decoration:none;border-radius:6px;font-weight:700}
+            .note{font-size:13px;color:#666;margin-top:12px}
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header"><h1>GAC - Aceite de Matrícula</h1></div>
+            <div class="content">
+              <p>Olá ${nome || ''},</p>
+              <p>Para confirmar a matrícula, clique no botão abaixo e siga as instruções para registrar o aceite digital.</p>
+              <p style="text-align:center;margin:20px 0;"><a class="button" href="${link}">Confirmar Matrícula</a></p>
+              <p class="note">Se o botão acima não funcionar, copie e cole este link no seu navegador:</p>
+              <p class="note"><a href="${link}">${link}</a></p>
+              <p class="note">Se você não solicitou esse aceite, ignore esta mensagem.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    sendSmtpEmail.sender = {
+      name: process.env.EMAIL_FROM_NAME || 'GAC - Sistema de Gestão',
+      email: process.env.EMAIL_FROM || 'noreply@gac-gestao.com'
+    };
+
+    const resultado = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`✅ Email de aceite enviado para ${email}. MessageId: ${resultado?.body?.messageId || 'sem-id'}`);
+    return { sucesso: true, email };
+  } catch (erro) {
+    console.error('❌ Erro ao enviar email de aceite:', erro.message);
+    console.log(`📧 [FALLBACK] Link de aceite para ${email}: ${link}`);
+    return { sucesso: false, erro: erro.message, link };
+  }
+}

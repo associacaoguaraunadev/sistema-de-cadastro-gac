@@ -288,6 +288,8 @@ model Matricula {
   
   // Status
   status          StatusMatricula @default(PENDENTE)
+  // Data em que a matrícula foi efetivada (quando status -> ATIVA)
+  dataMatricula   DateTime?
   motivoDesistencia String? // Se status = DESISTENTE
   
   criadoEm        DateTime @default(now())

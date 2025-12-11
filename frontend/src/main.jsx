@@ -27,6 +27,7 @@ import PaginaTurmasGuarauna from './pages/PaginaTurmasGuarauna';
 import PaginaMatriculasGuarauna from './pages/PaginaMatriculasGuarauna';
 import PaginaEventosGuarauna from './pages/PaginaEventosGuarauna';
 import PaginaAceiteEvento from './pages/PaginaAceiteEvento';
+import PaginaAceiteMatricula from './pages/PaginaAceiteMatricula';
 import './index.css';
 
 // Limpar cache ao iniciar
@@ -227,6 +228,12 @@ function App() {
       <Route 
         path="/aceite/evento/:codigo" 
         element={<PaginaAceiteEvento />} 
+      />
+
+      {/* Rota pública para aceite de matrícula - não requer autenticação */}
+      <Route
+        path="/aceite/matricula/:codigo"
+        element={<PaginaAceiteMatricula />}
       />
 
       <Route path="*" element={<Navigate to="/" />} />

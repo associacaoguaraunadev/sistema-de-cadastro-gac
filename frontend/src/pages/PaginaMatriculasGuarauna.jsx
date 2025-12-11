@@ -23,6 +23,7 @@ import {
   Eye,
   Download
 } from 'lucide-react';
+import { Link as LinkIcon, Copy } from 'lucide-react';
 import './PaginaMatriculasGuarauna.css';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -64,6 +65,9 @@ const PaginaMatriculasGuarauna = () => {
   
   // Modal de confirmação
   const [modalConfirmacao, setModalConfirmacao] = useState({ aberto: false, matricula: null });
+  
+  // Modal de gerar link de aceite
+  const [modalAceite, setModalAceite] = useState({ aberto: false, matricula: null, responsaveis: [], responsavelId: '', gerando: false, codigo: null });
 
   const anosDisponiveis = [];
   const anoAtual = new Date().getFullYear();
@@ -307,6 +311,63 @@ const PaginaMatriculasGuarauna = () => {
     }
   };
 
+  // Abrir modal para gerar link de aceite
+  const abrirModalGerarLink = async (matricula) => {
+    setModalAceite({ aberto: true, matricula, responsaveis: [], responsavelId: '', gerando: false, codigo: null });
+    try {
+      const res = await fetch(`${API_URL}/guarauna/responsaveis`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) return;
+      const lista = await res.json();
+      // Filtrar responsáveis vinculados ao aluno
+      const vinculados = lista.filter(r => Array.isArray(r.alunos) && r.alunos.some(ar => ar.alunoId === matricula.alunoId));
+      const opcaoInicial = vinculados.length > 0 ? vinculados[0].id : (lista[0]?.id || '');
+      setModalAceite({ aberto: true, matricula, responsaveis: vinculados.length > 0 ? vinculados : lista, responsavelId: opcaoInicial, gerando: false, codigo: null });
+    } catch (err) {
+      console.error('Erro ao buscar responsáveis:', err);
+    }
+  };
+
+  const fecharModalAceite = () => setModalAceite({ aberto: false, matricula: null, responsaveis: [], responsavelId: '', gerando: false, codigo: null });
+
+  const gerarLinkAceite = async () => {
+    if (!modalAceite.matricula || !modalAceite.responsavelId) return;
+    setModalAceite(prev => ({ ...prev, gerando: true }));
+    try {
+      const res = await fetch(`${API_URL}/guarauna/aceite/matricula`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ matriculaId: modalAceite.matricula.id, responsavelId: modalAceite.responsavelId })
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        adicionarToast(d.erro || 'Erro ao criar link de aceite', 'erro');
+        setModalAceite(prev => ({ ...prev, gerando: false }));
+        return;
+      }
+      const d = await res.json();
+      const codigo = d.codigo || d.aceite?.codigo || (d.aceite && d.aceite.codigo) || d.id || null;
+      setModalAceite(prev => ({ ...prev, gerando: false, codigo }));
+      adicionarToast('Link de aceite gerado', 'sucesso');
+    } catch (err) {
+      console.error('Erro ao gerar link de aceite:', err);
+      adicionarToast('Erro ao gerar link de aceite', 'erro');
+      setModalAceite(prev => ({ ...prev, gerando: false }));
+    }
+  };
+
+  const copiarLink = async () => {
+    if (!modalAceite.codigo) return;
+    const base = import.meta.env.VITE_APP_URL || window.location.origin;
+    const link = `${base}/aceite/matricula/${modalAceite.codigo}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      adicionarToast('Link copiado para a área de transferência', 'sucesso');
+    } catch (err) {
+      console.error('Erro ao copiar link:', err);
+      adicionarToast('Não foi possível copiar o link', 'erro');
+    }
+  };
+
   const formatarData = (dataStr) => {
     if (!dataStr) return '-';
     return new Date(dataStr).toLocaleDateString('pt-BR');
@@ -467,6 +528,13 @@ const PaginaMatriculasGuarauna = () => {
                           title="Excluir"
                         >
                           <Trash2 size={16} />
+                        </button>
+                        <button
+                          className="btn-acao gerar-link"
+                          onClick={() => abrirModalGerarLink(matricula)}
+                          title="Gerar link de aceite"
+                        >
+                          <LinkIcon size={18} />
                         </button>
                       </div>
                     </td>
@@ -854,6 +922,60 @@ const PaginaMatriculasGuarauna = () => {
                 <Trash2 size={16} />
                 Excluir
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Gerar Link de Aceite */}
+      {modalAceite.aberto && (
+        <div className="modal-overlay" onClick={fecharModalAceite}>
+          <div className="modal-conteudo" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Gerar link de aceite</h2>
+              <button className="btn-fechar" onClick={fecharModalAceite}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p>Gerar um link público para que o responsável confirme a matrícula.</p>
+              <div className="form-grupo">
+                <label>Aluno</label>
+                <div>{modalAceite.matricula?.aluno?.pessoa?.nome || '—'}</div>
+              </div>
+
+              <div className="form-grupo">
+                <label>Responsável</label>
+                <select value={modalAceite.responsavelId} onChange={e => setModalAceite(prev => ({ ...prev, responsavelId: e.target.value }))}>
+                  <option value="">Selecione um responsável</option>
+                  {modalAceite.responsaveis.map(r => (
+                    <option key={r.id} value={r.id}>{r.pessoa?.nome || r.pessoa?.nome}</option>
+                  ))}
+                </select>
+              </div>
+
+              {modalAceite.codigo ? (
+                <div className="link-gerado">
+                  <label>Link público</label>
+                  <div className="link-box">
+                    <a href={`${(import.meta.env.VITE_APP_URL || window.location.origin)}/aceite/matricula/${modalAceite.codigo}`} target="_blank" rel="noreferrer">
+                      {(import.meta.env.VITE_APP_URL || window.location.origin)}/aceite/matricula/{modalAceite.codigo}
+                    </a>
+                    <button className="btn-copiar" onClick={copiarLink} title="Copiar link">
+                      <Copy size={16} />
+                    </button>
+                    <a className="btn-whatsapp" href={`https://wa.me/?text=${encodeURIComponent((import.meta.env.VITE_APP_URL || window.location.origin) + '/aceite/matricula/' + modalAceite.codigo)}`} target="_blank" rel="noreferrer">Abrir no WhatsApp</a>
+                  </div>
+                </div>
+              ) : (
+                <div className="modal-actions">
+                  <button className="btn-cancelar" onClick={fecharModalAceite}>Cancelar</button>
+                  <button className="btn-salvar" onClick={gerarLinkAceite} disabled={modalAceite.gerando || !modalAceite.responsavelId}>
+                    {modalAceite.gerando ? 'Gerando...' : 'Gerar Link'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

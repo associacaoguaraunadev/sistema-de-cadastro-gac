@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import Pusher from 'pusher';
 import { gerarTokenGeracao, listarTokens, revogarToken } from './autenticacao/tokens.js';
-import { enviarEmailRecuperacao } from './servicos/email.js';
+import { enviarEmailRecuperacao, enviarEmailAceiteDigital } from './servicos/email.js';
 
 // Pool de conexão Prisma - CRUCIAL para serverless
 let prisma;
@@ -634,6 +634,10 @@ async function rotear(req, res, slug) {
   if (rota.match(/^guarauna\/eventos\/[^/]+\/aceites$/) && req.method === 'GET') {
     const id = slug[2];
     return guaraunaEventosAceitesListar(req, res, id);
+  }
+  // Criar link de aceite para matrícula (admin/usuário autenticado)
+  if (rota === 'guarauna/aceite/matricula' && req.method === 'POST') {
+    return guaraunaAceiteCriar(req, res);
   }
   
   // ROTAS PÚBLICAS - ACEITES (não requerem autenticação)
@@ -5055,7 +5059,7 @@ async function aceiteMatriculaRegistrar(req, res, codigo) {
     // Atualizar status da matrícula
     await prisma.matricula.update({
       where: { id: aceiteExistente.matriculaId },
-      data: { status: 'ATIVA' }
+      data: { status: 'ATIVA', dataMatricula: new Date() }
     });
 
     log(`✅ Aceite de matrícula registrado`);
@@ -5295,5 +5299,78 @@ async function guaraunaMatriculasDeletar(req, res, id) {
   } catch (erro) {
     log(`Erro ao deletar matrícula: ${erro.message}`, 'error');
     return res.status(500).json({ erro: 'Erro ao deletar matrícula' });
+  }
+}
+
+// ==================== MÓDULO GUARAÚNA - ACEITES (ADMIN) ====================
+
+async function guaraunaAceiteCriar(req, res) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    const { matriculaId, responsavelId, termoLGPD = false, termoResponsabilidade = false, termoImagem = false } = req.body;
+
+    if (!matriculaId || !responsavelId) {
+      return res.status(400).json({ erro: 'matriculaId e responsavelId são obrigatórios' });
+    }
+
+    // Verificar existência
+    const matricula = await prisma.matricula.findUnique({ where: { id: matriculaId } });
+    if (!matricula) {
+      return res.status(404).json({ erro: 'Matrícula não encontrada' });
+    }
+
+    const responsavel = await prisma.responsavelLegal.findUnique({ where: { id: responsavelId } });
+    if (!responsavel) {
+      return res.status(404).json({ erro: 'Responsável não encontrado' });
+    }
+
+    // Gerar código público (UUID) e hash de verificação
+    const codigo = require('crypto').randomUUID ? require('crypto').randomUUID() : require('crypto').randomBytes(16).toString('hex');
+    const hashVerificacao = require('crypto').createHash('sha256').update(`${matriculaId}-${responsavelId}-${Date.now()}`).digest('hex');
+
+    const aceite = await prisma.aceiteDigital.create({
+      data: {
+        codigo,
+        matriculaId,
+        responsavelId,
+        termoLGPD,
+        termoResponsabilidade,
+        termoImagem,
+        dispositivoInfo: req.headers['user-agent'],
+        ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+        hashVerificacao
+      }
+    });
+
+    // Tentar enviar email com link público
+    try {
+      const baseUrl = process.env.APP_URL || process.env.CORS_ORIGIN || 'http://localhost:5173';
+      const linkPublico = `${baseUrl.replace(/\/$/, '')}/aceite/matricula/${codigo}`;
+
+      // Buscar email do responsável (pessoa)
+      const responsavelFull = await prisma.responsavelLegal.findUnique({ where: { id: responsavelId }, include: { pessoa: true } });
+      const emailDest = responsavelFull?.pessoa?.email;
+      const nomeDest = responsavelFull?.pessoa?.nome;
+
+      if (emailDest) {
+        const envio = await enviarEmailAceiteDigital(emailDest, nomeDest, codigo, linkPublico);
+        log(`📧 Tentativa de envio de aceite para ${emailDest}: ${envio.sucesso ? 'OK' : 'FALHOU'}`);
+      } else {
+        log(`⚠️ Responsável ${responsavelId} não possui email; link: ${linkPublico}`);
+      }
+    } catch (errEmail) {
+      log(`Erro ao enviar email de aceite: ${errEmail.message}`, 'warn');
+    }
+
+    log(`✅ Aceite criado (codigo=${codigo}) para matricula ${matriculaId}`);
+    res.status(201).json({ aceite });
+  } catch (erro) {
+    log(`Erro ao criar aceite: ${erro.message}`, 'error');
+    res.status(500).json({ erro: 'Erro ao criar aceite', detalhes: erro.message });
   }
 }
