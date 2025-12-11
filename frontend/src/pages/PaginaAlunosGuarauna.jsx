@@ -21,7 +21,8 @@ import {
   Edit2,
   Trash2,
   X,
-  ChevronLeft
+  ChevronLeft,
+  Save
 } from 'lucide-react';
 import './PaginaAlunosGuarauna.css';
 
