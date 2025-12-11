@@ -433,14 +433,14 @@ const PaginaMatriculasGuarauna = () => {
                           onClick={() => setModalVisualizacao({ aberto: true, matricula })}
                           title="Visualizar"
                         >
-                          <Eye size={16} />
+                          <Eye size={18} />
                         </button>
                         <button 
                           className="btn-acao editar" 
                           onClick={() => abrirModal(matricula)}
                           title="Editar"
                         >
-                          <Edit2 size={16} />
+                          <Edit2 size={18} />
                         </button>
                         <button 
                           className="btn-acao excluir" 
@@ -613,8 +613,14 @@ const PaginaMatriculasGuarauna = () => {
                     type="text"
                     value={formData.horaEntrada || ''}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9:]/g, '').slice(0,5);
-                      let hora = val.replace(/^\d{2}(\d{0,2})$/, (m, h, mnt) => h + (mnt ? ':' + mnt : ''));
+                      const raw = e.target.value || '';
+                      const digits = raw.replace(/\D/g, '').slice(0,4);
+                      let hora = digits;
+                      if (digits.length > 2) {
+                        const hh = digits.slice(0, digits.length - 2);
+                        const mm = digits.slice(-2);
+                        hora = `${hh}:${mm}`;
+                      }
                       setFormData({ ...formData, horaEntrada: hora });
                     }}
                     placeholder="Ex: 07:30"
@@ -628,8 +634,14 @@ const PaginaMatriculasGuarauna = () => {
                     type="text"
                     value={formData.horaSaida || ''}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^0-9:]/g, '').slice(0,5);
-                      let hora = val.replace(/^\d{2}(\d{0,2})$/, (m, h, mnt) => h + (mnt ? ':' + mnt : ''));
+                      const raw = e.target.value || '';
+                      const digits = raw.replace(/\D/g, '').slice(0,4);
+                      let hora = digits;
+                      if (digits.length > 2) {
+                        const hh = digits.slice(0, digits.length - 2);
+                        const mm = digits.slice(-2);
+                        hora = `${hh}:${mm}`;
+                      }
                       setFormData({ ...formData, horaSaida: hora });
                     }}
                     placeholder="Ex: 12:00"
