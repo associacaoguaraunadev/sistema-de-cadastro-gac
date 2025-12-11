@@ -352,13 +352,65 @@
   border-color: #15803d;
 }
 
-.btn-card-acao.excluir {
-  background: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-  padding: 5px 8px;
-  min-height: 28px;
-}
+  .composicao-familiar-section {
+    margin-top: 12px;
+    background: #fff;
+    padding: 12px;
+    border: 1px solid #e6e6e6;
+    border-radius: 8px;
+  }
+  .composicao-familiar-label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .membro-card {
+    border: 1px solid #f0f0f0;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: #fafafa;
+  }
+  .membro-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .membro-numero { font-weight: 700; }
+  .membro-fields {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .membro-field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .membro-field input {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid #dcdcdc;
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
+  .btn-adicionar-membro {
+    margin-top: 8px;
+    padding: 8px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 6px;
+    border: 1px solid #e0e0e0;
+    background: #fff;
+    cursor: pointer;
+  }
+  .btn-adicionar-icon { color: #6b7280; }
+
+  @media (max-width: 640px) {
+    .membro-fields { grid-template-columns: 1fr; }
+  }
 
 .btn-card-acao.excluir:hover {
   background: #dc2626;
@@ -801,6 +853,48 @@
   font-size: 14px;
   color: #666;
   margin: 0;
+}
+
+/* Skeleton (modal) */
+.modal-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0;
+}
+.skeleton-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #eee, #f5f5f5, #eee);
+  animation: shimmer 1.2s infinite linear;
+}
+.skeleton-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.skeleton-line {
+  height: 12px;
+  background: linear-gradient(90deg, #eee, #f5f5f5, #eee);
+  animation: shimmer 1.2s infinite linear;
+  border-radius: 6px;
+}
+.skeleton-line.short { width: 30%; }
+.skeleton-line.long { width: 70%; }
+.skeleton-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.skeleton-input { height: 36px; border-radius: 6px; background: linear-gradient(90deg, #eee, #f5f5f5, #eee); animation: shimmer 1.2s infinite linear; }
+.skeleton-textarea { height: 80px; border-radius: 6px; background: linear-gradient(90deg, #eee, #f5f5f5, #eee); animation: shimmer 1.2s infinite linear; }
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
 }
 
 /* Tabela de Alunos */

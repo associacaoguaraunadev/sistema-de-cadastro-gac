@@ -22,7 +22,12 @@ import {
   Trash2,
   X,
   ChevronLeft,
-  Save
+  Save,
+  Calendar,
+  Briefcase,
+  DollarSign,
+  BookOpen,
+  Users
 } from 'lucide-react';
 import './PaginaAlunosGuarauna.css';
 
@@ -77,6 +82,12 @@ const PaginaAlunosGuarauna = () => {
     }));
   };
 
+  // Confirmação antes de remover membro
+  const confirmarRemoverMembro = (idx) => {
+    const ok = window.confirm('Remover este membro da composição familiar?');
+    if (ok) removerMembro(idx);
+  };
+
   const { usuario, token } = useAuth();
   const { adicionarToast } = useGlobalToast();
   const navegar = useNavigate();
@@ -99,6 +110,7 @@ const PaginaAlunosGuarauna = () => {
   const [modalAberto, setModalAberto] = useState(false);
   const [alunoEditando, setAlunoEditando] = useState(null);
   const [salvando, setSalvando] = useState(false);
+  const [modalCarregando, setModalCarregando] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     dataNascimento: '',
@@ -347,12 +359,11 @@ const PaginaAlunosGuarauna = () => {
     setDropdownAberto(false);
   };
 
-  // Abrir modal
+  // Abrir modal (usa skeleton enquanto carrega dados iniciais)
   const abrirModal = async (aluno = null) => {
-    // Mostrar feedback visual que está carregando
     setModalAberto(true);
-    setSalvando(true);
-    
+    setModalCarregando(true);
+
     // Carregar todas as pessoas para o dropdown
     try {
       const response = await fetch(`${API_URL}/pessoas?limite=1000`, {
@@ -390,9 +401,8 @@ const PaginaAlunosGuarauna = () => {
     } else {
       resetForm();
     }
-    
-    // Remover feedback visual após carregar
-    setSalvando(false);
+
+    setModalCarregando(false);
   };
 
   // Fechar modal
@@ -686,8 +696,28 @@ const PaginaAlunosGuarauna = () => {
             </div>
 
             <div className="modal-body">
-              {/* Busca de Pessoa Existente */}
-              {!alunoEditando && (
+              {modalCarregando ? (
+                <div className="modal-skeleton">
+                  <div className="skeleton-row">
+                    <div className="skeleton-avatar"></div>
+                    <div className="skeleton-lines">
+                      <div className="skeleton-line short"></div>
+                      <div className="skeleton-line long"></div>
+                    </div>
+                  </div>
+                  <div className="skeleton-grid">
+                    <div className="skeleton-input"></div>
+                    <div className="skeleton-input"></div>
+                    <div className="skeleton-input"></div>
+                    <div className="skeleton-input"></div>
+                    <div className="skeleton-input"></div>
+                    <div className="skeleton-input"></div>
+                  </div>
+                  <div className="skeleton-textarea"></div>
+                </div>
+              ) : (
+              /* Busca de Pessoa Existente */
+              !alunoEditando && (
                 <div className="pessoa-busca-container">
                   <label><UserCheck size={16} /> Selecionar pessoa cadastrada</label>
                   
@@ -763,72 +793,8 @@ const PaginaAlunosGuarauna = () => {
                     </div>
                   )}
                 </div>
+              )
               )}
-
-              <div className="form-row">
-                <div className="form-grupo flex-2">
-                  <label>Nome Completo *</label>
-                  <input
-                    type="text"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    placeholder="Nome completo do aluno"
-                  />
-                </div>
-
-                <div className="form-grupo">
-                  <label>Data de Nascimento</label>
-                  <input
-                    type="date"
-                    value={formData.dataNascimento}
-                    onChange={(e) => setFormData({ ...formData, dataNascimento: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-grupo">
-                  <label>CPF</label>
-                  <input
-                    type="text"
-                    value={formData.cpf}
-                    onChange={(e) => setFormData({ ...formData, cpf: formatarCPF(e.target.value) })}
-                    placeholder="000.000.000-00"
-                  />
-                </div>
-
-                <div className="form-grupo">
-                  <label>RG</label>
-                  <input
-                    type="text"
-                    value={formData.rg}
-                    onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
-                    placeholder="RG do aluno"
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-grupo">
-                  <label>Telefone</label>
-                  <input
-                    type="text"
-                    value={formData.telefone}
-                    onChange={(e) => setFormData({ ...formData, telefone: formatarTelefone(e.target.value) })}
-                    placeholder="(00) 00000-0000"
-                  />
-                </div>
-
-                <div className="form-grupo">
-                  <label>Email</label>
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="email@exemplo.com"
-                  />
-                </div>
-              </div>
 
               <div className="form-row">
                 <div className="form-grupo">
@@ -957,12 +923,30 @@ const PaginaAlunosGuarauna = () => {
                         </button>
                       </div>
                       <div className="membro-fields">
-                        <div className="membro-field"><span className="membro-icon">👤</span><input placeholder="Nome" value={membro.nome} onChange={e => atualizarMembro(idx, 'nome', e.target.value)} /></div>
-                        <div className="membro-field"><span className="membro-icon">🎂</span><input placeholder="Idade" value={membro.idade} onChange={e => atualizarMembro(idx, 'idade', e.target.value)} /></div>
-                        <div className="membro-field"><span className="membro-icon">👪</span><input placeholder="Parentesco" value={membro.parentesco} onChange={e => atualizarMembro(idx, 'parentesco', e.target.value)} /></div>
-                        <div className="membro-field"><span className="membro-icon">🎓</span><input placeholder="Escolaridade" value={membro.escolaridade} onChange={e => atualizarMembro(idx, 'escolaridade', e.target.value)} /></div>
-                        <div className="membro-field"><span className="membro-icon">💼</span><input placeholder="Ocupação" value={membro.ocupacao} onChange={e => atualizarMembro(idx, 'ocupacao', e.target.value)} /></div>
-                        <div className="membro-field"><span className="membro-icon">💰</span><input placeholder="Renda" value={membro.renda} onChange={e => atualizarMembro(idx, 'renda', e.target.value)} /></div>
+                        <div className="membro-field">
+                          <User size={14} />
+                          <input aria-label={`Nome membro ${idx + 1}`} placeholder="Nome" value={membro.nome} onChange={e => atualizarMembro(idx, 'nome', e.target.value)} />
+                        </div>
+                        <div className="membro-field">
+                          <Calendar size={14} />
+                          <input aria-label={`Idade membro ${idx + 1}`} type="number" min="0" max="120" placeholder="Idade" value={membro.idade} onChange={e => atualizarMembro(idx, 'idade', e.target.value)} />
+                        </div>
+                        <div className="membro-field">
+                          <Users size={14} />
+                          <input aria-label={`Parentesco membro ${idx + 1}`} placeholder="Parentesco" value={membro.parentesco} onChange={e => atualizarMembro(idx, 'parentesco', e.target.value)} />
+                        </div>
+                        <div className="membro-field">
+                          <BookOpen size={14} />
+                          <input aria-label={`Escolaridade membro ${idx + 1}`} placeholder="Escolaridade" value={membro.escolaridade} onChange={e => atualizarMembro(idx, 'escolaridade', e.target.value)} />
+                        </div>
+                        <div className="membro-field">
+                          <Briefcase size={14} />
+                          <input aria-label={`Ocupação membro ${idx + 1}`} placeholder="Ocupação" value={membro.ocupacao} onChange={e => atualizarMembro(idx, 'ocupacao', e.target.value)} />
+                        </div>
+                        <div className="membro-field">
+                          <DollarSign size={14} />
+                          <input aria-label={`Renda membro ${idx + 1}`} placeholder="Renda" value={membro.renda} onChange={e => atualizarMembro(idx, 'renda', e.target.value)} />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -979,7 +963,7 @@ const PaginaAlunosGuarauna = () => {
               <button 
                 className="btn-salvar" 
                 onClick={salvarAluno}
-                disabled={salvando}
+                disabled={salvando || modalCarregando}
               >
                 {salvando ? (
                   <>
