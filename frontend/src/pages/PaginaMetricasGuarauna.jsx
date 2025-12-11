@@ -21,14 +21,17 @@ const PaginaMetricasGuarauna = () => {
   const { token } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [carregando, setCarregando] = useState(true);
+  const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
 
   useEffect(() => {
-    carregarDashboard();
-  }, []);
+    carregarDashboard(anoSelecionado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anoSelecionado]);
 
-  const carregarDashboard = async () => {
+  const carregarDashboard = async (ano) => {
     try {
-      const resposta = await fetch(`${API_URL}/guarauna/dashboard`, {
+      const url = `${API_URL}/guarauna/dashboard` + (ano ? `?ano=${ano}` : '');
+      const resposta = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (resposta.ok) {
@@ -130,7 +133,17 @@ const PaginaMetricasGuarauna = () => {
                 </div>
                 <div className="metrica-info">
                   <span className="metrica-valor">{dashboard?.totais?.matriculasAno || 0}</span>
-                  <span className="metrica-label">Matrículas {dashboard?.anoAtual || new Date().getFullYear()}</span>
+                  <span className="metrica-label">Matrículas {dashboard?.anoAtual || anoSelecionado}</span>
+                  <div style={{ marginTop: 8 }}>
+                    <select value={anoSelecionado} onChange={e => setAnoSelecionado(parseInt(e.target.value, 10))}>
+                      {(() => {
+                        const current = new Date().getFullYear();
+                        const anos = [];
+                        for (let y = current - 2; y <= current + 2; y++) anos.push(y);
+                        return anos.map(y => <option key={y} value={y}>{y}</option>);
+                      })()}
+                    </select>
+                  </div>
                 </div>
               </div>
 

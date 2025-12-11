@@ -5085,8 +5085,10 @@ async function guaraunaDashboard(req, res) {
     }
 
     log(`📊 Iniciando carregamento do dashboard`);
-    const anoAtual = new Date().getFullYear();
-    log(`📊 Ano atual: ${anoAtual}`);
+    // Permite sobrescrever o ano via query ?ano=2025
+    const anoQuery = req.query && (req.query.ano || req.query.year);
+    const anoAtual = anoQuery ? parseInt(anoQuery, 10) : new Date().getFullYear();
+    log(`📊 Ano selecionado: ${anoAtual}`);
 
     try {
       log(`📊 Contando alunos...`);
@@ -5109,7 +5111,7 @@ async function guaraunaDashboard(req, res) {
       const totalTurmas = await prisma.turma.count({ where: { ativa: true } });
       log(`✅ Total turmas: ${totalTurmas}`);
 
-      log(`📊 Contando matrículas do ano...`);
+      log(`📊 Contando matrículas do ano ${anoAtual}...`);
       const matriculasAno = await prisma.matricula.count({ where: { ano: anoAtual } });
       log(`✅ Matrículas no ano: ${matriculasAno}`);
 
