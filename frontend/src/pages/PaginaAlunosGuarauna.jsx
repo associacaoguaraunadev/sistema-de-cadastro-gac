@@ -12,7 +12,8 @@ import {
   ChevronRight,
   ChevronDown,
   User,
-  UserCheck
+  UserCheck,
+  Plus
 } from 'lucide-react';
 import './PaginaAlunosGuarauna.css';
 
