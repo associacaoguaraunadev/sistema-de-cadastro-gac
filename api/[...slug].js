@@ -4499,7 +4499,8 @@ async function guaraunaMatriculasAtualizar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { tamanhoCamiseta, tamanhoBermuda, tamanhoCalcado, composicaoFamiliar, status, motivoDesistencia } = req.body;
+    const { tamanhoCamiseta, tamanhoBermuda, tamanhoCalcado, composicaoFamiliar, status, motivoDesistencia,
+      nomeEscola, horarioEstudo, horaEntrada, horaSaida, situacaoComportamentoEscolar } = req.body;
 
     const matricula = await prisma.matricula.update({
       where: { id },
@@ -4509,7 +4510,12 @@ async function guaraunaMatriculasAtualizar(req, res, id) {
         tamanhoCalcado,
         composicaoFamiliar,
         status,
-        motivoDesistencia
+        motivoDesistencia,
+        nomeEscola,
+        horarioEstudo,
+        horaEntrada,
+        horaSaida,
+        situacaoComportamentoEscolar
       }
     });
 

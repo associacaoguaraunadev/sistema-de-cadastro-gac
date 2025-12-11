@@ -9,21 +9,30 @@ import { GraduacaoSelectOptions, getGraduacaoLabel, getCategoria } from '../util
 import { 
   ArrowLeft,
   Search,
-  Plus,
-  Edit2,
-  Trash2,
-  User,
-  Phone,
-  MapPin,
-  Heart,
-  UserCheck,
-  BookOpen,
-  Filter,
-  X,
-  Save,
-  Calendar,
-  Award,
-  ChevronLeft,
+      <div className="composicao-familiar-section">
+        <label className="composicao-familiar-label">Composição Familiar</label>
+        {formData.composicaoFamiliar.map((membro, idx) => (
+          <div key={idx} className="membro-card">
+            <div className="membro-header">
+              <span className="membro-numero">Membro {idx + 1}</span>
+              <button type="button" className="btn-remover-membro" title="Remover membro" onClick={() => removerMembro(idx)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+              </button>
+            </div>
+            <div className="membro-fields">
+              <div className="membro-field"><span className="membro-icon">👤</span><input placeholder="Nome" value={membro.nome} onChange={e => atualizarMembro(idx, 'nome', e.target.value)} /></div>
+              <div className="membro-field"><span className="membro-icon">🎂</span><input placeholder="Idade" value={membro.idade} onChange={e => atualizarMembro(idx, 'idade', e.target.value)} /></div>
+              <div className="membro-field"><span className="membro-icon">👪</span><input placeholder="Parentesco" value={membro.parentesco} onChange={e => atualizarMembro(idx, 'parentesco', e.target.value)} /></div>
+              <div className="membro-field"><span className="membro-icon">🎓</span><input placeholder="Escolaridade" value={membro.escolaridade} onChange={e => atualizarMembro(idx, 'escolaridade', e.target.value)} /></div>
+              <div className="membro-field"><span className="membro-icon">💼</span><input placeholder="Ocupação" value={membro.ocupacao} onChange={e => atualizarMembro(idx, 'ocupacao', e.target.value)} /></div>
+              <div className="membro-field"><span className="membro-icon">💰</span><input placeholder="Renda" value={membro.renda} onChange={e => atualizarMembro(idx, 'renda', e.target.value)} /></div>
+            </div>
+          </div>
+        ))}
+        <button type="button" className="btn-adicionar-membro" onClick={adicionarMembro}>
+          <span className="btn-adicionar-icon">➕</span> Adicionar membro
+        </button>
+      </div>
   ChevronRight,
   ChevronDown
 } from 'lucide-react';
