@@ -153,6 +153,7 @@ model AlunoResponsavel {
   @@unique([alunoId, responsavelId])
   @@index([alunoId])
   @@index([responsavelId])
+  @@index([parentesco])
 }
 
 // ============================================

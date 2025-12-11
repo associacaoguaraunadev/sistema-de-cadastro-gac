@@ -17,6 +17,7 @@
     "reset-db": "node reset-db.js",
     "limpar-banco": "node limpar-banco.js",
     "test-db": "node test-db-connection.js",
+    "test:api-matriculas": "node api/scripts/test-matriculas.js",
     "test:beneficios": "node test-beneficios-types.js",
     "diagnostico": "node diagnostico-completo.js",
     "verificar-credenciais": "node verificar-credenciais.js",

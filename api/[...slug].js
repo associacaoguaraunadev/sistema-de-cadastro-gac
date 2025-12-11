@@ -587,6 +587,10 @@ async function rotear(req, res, slug) {
     const id = slug[2];
     return guaraunaMatriculasAtualizar(req, res, id);
   }
+  if (rota.match(/^guarauna\/matriculas\/[^/]+$/) && req.method === 'DELETE') {
+    const id = slug[2];
+    return guaraunaMatriculasDeletar(req, res, id);
+  }
   
   // MODELOS DE TERMOS
   if (rota === 'guarauna/modelos-termo' && req.method === 'GET') {
@@ -4377,6 +4381,16 @@ async function guaraunaDesmatricularAlunoTurma(req, res, id) {
 async function guaraunaMatriculasListar(req, res) {
   const prisma = getPrisma();
   try {
+    // Atualizar matrículas antigas para CONCLUIDA (ano anterior ao atual)
+    try {
+      const anoAtual = new Date().getFullYear();
+      await prisma.matricula.updateMany({
+        where: { ano: { lt: anoAtual }, status: { not: 'CONCLUIDA' } },
+        data: { status: 'CONCLUIDA' }
+      });
+    } catch (updErr) {
+      log(`Aviso: falha ao atualizar status de matrículas antigas: ${updErr.message}`, 'warn');
+    }
     const usuario = autenticarToken(req);
     if (!usuario) {
       return res.status(401).json({ erro: 'Token inválido' });
@@ -4441,6 +4455,11 @@ async function guaraunaMatriculasCriar(req, res) {
       nomeEscola, horarioEstudo, horaEntrada, horaSaida, situacaoComportamentoEscolar, status, motivoDesistencia
     } = req.body;
 
+    // Validar que o status não seja ATIVA (sistema não permite criar como ATIVA diretamente)
+    if (status && String(status).toUpperCase() === 'ATIVA') {
+      return res.status(400).json({ erro: 'Não é permitido definir o status como ATIVA via API. Use alteração controlada pelo sistema.' });
+    }
+
     // Verificar se já existe matrícula para este ano
     const existente = await prisma.matricula.findUnique({
       where: { alunoId_ano: { alunoId, ano: parseInt(ano) } }
@@ -4450,10 +4469,15 @@ async function guaraunaMatriculasCriar(req, res) {
       return res.status(400).json({ erro: `Já existe matrícula para o ano ${ano}` });
     }
 
+    // Se ano é anterior ao ano atual, marcar como CONCLUIDA automaticamente
+    const anoNum = parseInt(ano);
+    const anoAtual = new Date().getFullYear();
+    const statusToSave = (anoNum < anoAtual) ? 'CONCLUIDA' : (status ? status.toString().toUpperCase() : undefined);
+
     const matricula = await prisma.matricula.create({
       data: {
         alunoId,
-        ano: parseInt(ano),
+        ano: anoNum,
         tipo: (tipo || 'MATRICULA').toString().toUpperCase(),
         tamanhoCamiseta,
         tamanhoCalca,
@@ -4464,8 +4488,8 @@ async function guaraunaMatriculasCriar(req, res) {
         horaSaida,
         situacaoComportamentoEscolar,
         composicaoFamiliar,
-        // Normalizar status enum se fornecido
-        ...(status ? { status: status.toString().toUpperCase() } : {}),
+        // Normalizar status enum se fornecido e permitido
+        ...(statusToSave ? { status: statusToSave } : {}),
         motivoDesistencia
       },
       include: {
@@ -4525,25 +4549,33 @@ async function guaraunaMatriculasAtualizar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { tamanhoCamiseta, tamanhoBermuda, tamanhoCalcado, composicaoFamiliar, status, motivoDesistencia,
+    const { tamanhoCamiseta, tamanhoBermuda, tamanhoCalca, tamanhoCalcado, composicaoFamiliar, status, motivoDesistencia,
       nomeEscola, horarioEstudo, horaEntrada, horaSaida, situacaoComportamentoEscolar } = req.body;
 
-    const matricula = await prisma.matricula.update({
-      where: { id },
-      data: {
-        tamanhoCamiseta,
-        tamanhoBermuda,
-        tamanhoCalcado,
-        composicaoFamiliar,
-        status,
-        motivoDesistencia,
-        nomeEscola,
-        horarioEstudo,
-        horaEntrada,
-        horaSaida,
-        situacaoComportamentoEscolar
-      }
-    });
+    // Impedir que cliente force o status para ATIVA
+    if (status && String(status).toUpperCase() === 'ATIVA') {
+      return res.status(400).json({ erro: 'Não é permitido definir o status como ATIVA via API.' });
+    }
+
+    // Normalizar nomes de campos e status
+    const dadosAtualizar = {
+      tamanhoCamiseta,
+      tamanhoCalca: tamanhoCalca || tamanhoBermuda,
+      tamanhoCalcado,
+      composicaoFamiliar,
+      motivoDesistencia,
+      nomeEscola,
+      horarioEstudo,
+      horaEntrada,
+      horaSaida,
+      situacaoComportamentoEscolar
+    };
+
+    // Se status foi enviado e não é ATIVA (já filtrado), aplicar normalização
+    if (status) dadosAtualizar.status = String(status).toUpperCase();
+
+    // Atualizar
+    const matricula = await prisma.matricula.update({ where: { id }, data: dadosAtualizar });
 
     res.json(matricula);
   } catch (erro) {
@@ -5246,4 +5278,22 @@ export default async function handler(req, res) {
   }
   
   return rotear(req, res, slug);
+}
+
+async function guaraunaMatriculasDeletar(req, res, id) {
+  const prisma = getPrisma();
+  try {
+    const usuario = autenticarToken(req);
+    if (!usuario) {
+      return res.status(401).json({ erro: 'Token inválido' });
+    }
+
+    // Deletar matrícula (remove registro)
+    await prisma.matricula.delete({ where: { id } });
+    log(`✅ Matrícula excluída: ${id}`);
+    return res.status(204).end();
+  } catch (erro) {
+    log(`Erro ao deletar matrícula: ${erro.message}`, 'error');
+    return res.status(500).json({ erro: 'Erro ao deletar matrícula' });
+  }
 }
