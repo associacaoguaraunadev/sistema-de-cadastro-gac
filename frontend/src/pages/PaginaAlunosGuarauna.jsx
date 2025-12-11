@@ -142,12 +142,12 @@ const PaginaAlunosGuarauna = () => {
   // Carregar alunos
   const carregarAlunos = useCallback(async () => {
     setCarregando(true);
+    console.log('carregarAlunos chamado');
     try {
       const params = new URLSearchParams({
         pagina: paginaAtual.toString(),
         limite: itensPorPagina.toString()
       });
-      
       if (filtros.comunidade) params.append('comunidade', filtros.comunidade);
       if (filtros.ativo) params.append('ativo', filtros.ativo);
       if (busca) params.append('busca', busca);
@@ -155,20 +155,27 @@ const PaginaAlunosGuarauna = () => {
       const resposta = await fetch(`${API_URL}/guarauna/alunos?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
+      console.log('Resposta da API alunos:', resposta);
       if (resposta.ok) {
         const dados = await resposta.json();
+        console.log('Dados recebidos:', dados);
         const alunosCarregados = dados.alunos || dados || [];
         const alunosOrdenados = ordenarAlunosAlfabeticamente(alunosCarregados);
         setAlunos(alunosOrdenados);
         setTotalPaginas(dados.totalPaginas || 1);
         setTotalItens(dados.total || alunosCarregados.length);
+        if (!Array.isArray(alunosCarregados)) {
+          adicionarToast('Resposta do backend inválida: alunos não é array', 'erro');
+        }
+      } else {
+        adicionarToast('Erro ao buscar alunos: resposta não OK', 'erro');
       }
     } catch (erro) {
       console.error('Erro ao carregar alunos:', erro);
       adicionarToast('Erro ao carregar alunos', 'erro');
     } finally {
       setCarregando(false);
+      console.log('carregando definido como false');
     }
   }, [token, paginaAtual, filtros, busca, adicionarToast]);
 
