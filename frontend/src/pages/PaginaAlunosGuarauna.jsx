@@ -13,7 +13,8 @@ import {
   ChevronDown,
   User,
   UserCheck,
-  Plus
+  Plus,
+  MapPin
 } from 'lucide-react';
 import './PaginaAlunosGuarauna.css';
 
