@@ -584,21 +584,45 @@ const PaginaResponsaveisGuarauna = () => {
       if (response.ok) {
         const data = await response.json();
         const alunosCarregados = data.alunos || data || [];
-        // Filtrar alunos com 18 anos ou mais — apenas menores devem aparecer
-        const alunosMenores = (alunosCarregados || []).filter(aluno => {
-          const dataNasc = aluno.pessoa?.dataNascimento || aluno.dataNascimento;
+
+        // Diagnose: montar registro com motivo de inclusão/exclusão
+        const diagnostico = (alunosCarregados || []).map(a => {
+          const nome = a.pessoa?.nome || a.nome || null;
+          // Tentar detectar o ID real do aluno em vários formatos possíveis
+          const candidatoId = a.id || a.alunoId || a.aluno?.id || a.alunoId || a.aluno?.alunoId || null;
+          const pessoaId = a.pessoa?.id || a.pessoaId || null;
+          const dataNasc = a.pessoa?.dataNascimento || a.dataNascimento || null;
           const idade = calcularIdade(dataNasc);
-          // Incluir quando idade desconhecida (null) ou menor que 18
-          return idade === null || idade < 18;
+          const menor = idade === null || idade < 18;
+          return {
+            raw: a,
+            nome,
+            candidatoId,
+            pessoaId,
+            dataNasc,
+            idade,
+            menor
+          };
         });
+
         console.log('Alunos carregados (originais):', alunosCarregados);
-        console.log('Alunos disponíveis para vinculação (menores de 18):', alunosMenores);
+        console.log('Diagnóstico por aluno (nome, id, dataNasc, idade, menor):', diagnostico.map(d => ({ nome: d.nome, id: d.candidatoId, dataNasc: d.dataNasc, idade: d.idade, menor: d.menor })));
+
+        // Filtrar alunos com 18 anos ou mais — apenas menores devem aparecer
+        const alunosMenores = diagnostico.filter(d => d.menor).map(d => d.raw);
+
         // Normalizar IDs como strings para evitar mismatches entre tipos
-        const alunosNormalizados = (alunosMenores || []).map(a => ({
-          ...a,
-          id: String(a.id),
-          pessoa: a.pessoa ? { ...a.pessoa, id: a.pessoa.id ? String(a.pessoa.id) : a.pessoa.id } : a.pessoa
-        }));
+        const alunosNormalizados = (alunosMenores || []).map(a => {
+          const realId = a.id || a.alunoId || a.aluno?.id || a.alunoId || a.aluno?.alunoId || null;
+          return {
+            ...a,
+            id: realId ? String(realId) : String(a.id || ''),
+            pessoa: a.pessoa ? { ...a.pessoa, id: a.pessoa.id ? String(a.pessoa.id) : a.pessoa.id } : a.pessoa
+          };
+        });
+
+        console.log('Alunos disponíveis para vinculação (após normalização):', alunosNormalizados.map(a => ({ id: a.id, nome: a.pessoa?.nome || a.nome, comunidade: a.pessoa?.comunidade || a.comunidade })));
+
         setAlunos(alunosNormalizados);
       }
     } catch (error) {
