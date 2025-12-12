@@ -5,24 +5,37 @@
  * DELETE /api/autenticacao/token/:id      - Revogar token
  */
 
-import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import { verificarToken } from '../middleware/autenticacao.js';
 
 let prisma;
 
-function getPrisma() {
-  if (!prisma) {
-    try {
-      prisma = new PrismaClient({
-        log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn']
-      });
-    } catch (err) {
-      console.error('❌ Falha ao inicializar Prisma Client. Certifique-se de rodar `npx prisma generate` durante o build/deploy e incluir o client gerado no bundle. Detalhe:', err && (err.stack || err.message) || err);
-      throw err;
+async function getPrisma() {
+  if (prisma) return prisma;
+
+  // Quick check: is generated client present on disk?
+  try {
+    const clientPath = path.join(process.cwd(), 'node_modules', '@prisma', 'client', 'index.js');
+    if (!fs.existsSync(clientPath)) {
+      const msg = 'Prisma Client não encontrado em node_modules. Execute `npx prisma generate` durante o build/deploy e inclua o client gerado no bundle.';
+      console.error('❌ Falha ao inicializar Prisma Client. Certifique-se de rodar `npx prisma generate` durante o build/deploy e incluir o client gerado no bundle.');
+      throw new Error(msg);
     }
+  } catch (chkErr) {
+    console.error('❌ Erro ao verificar presença do Prisma Client:', chkErr && (chkErr.stack || chkErr.message) || chkErr);
   }
-  return prisma;
+
+  try {
+    const mod = await import('@prisma/client');
+    const { PrismaClient } = mod;
+    prisma = new PrismaClient({ log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn'] });
+    return prisma;
+  } catch (err) {
+    console.error('❌ Falha ao inicializar Prisma Client. Certifique-se de rodar `npx prisma generate` durante o build/deploy e incluir o client gerado no bundle. Detalhe:', err && (err.stack || err.message) || err);
+    throw err;
+  }
 }
 
 export async function gerarTokenGeracao(req, res) {
@@ -38,7 +51,7 @@ export async function gerarTokenGeracao(req, res) {
       return res.status(400).json({ erro: 'Email inválido', statusCode: 400 });
     }
 
-    const prismaClient = getPrisma();
+    const prismaClient = await getPrisma();
     const usuarioExistente = await prismaClient.usuario.findUnique({ where: { email } });
     if (usuarioExistente) {
       return res.status(409).json({ erro: 'Email já possui uma conta criada', statusCode: 409 });
@@ -80,7 +93,7 @@ export async function listarTokens(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem listar tokens', statusCode: 403 });
     }
 
-    const prismaClient = getPrisma();
+    const prismaClient = await getPrisma();
     const tokens = await prismaClient.tokenGeracao.findMany({ orderBy: { dataCriacao: 'desc' } });
 
     const agora = new Date();
@@ -110,7 +123,7 @@ export async function revogarToken(req, res) {
     const { id } = req.params;
     if (!id) return res.status(400).json({ erro: 'ID do token não fornecido', statusCode: 400 });
 
-    const prismaClient = getPrisma();
+    const prismaClient = await getPrisma();
     const tokenDeletado = await prismaClient.tokenGeracao.delete({ where: { id: parseInt(id) } });
 
     console.log(`✅ Token revogado: ${tokenDeletado.email}`);
