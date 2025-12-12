@@ -637,7 +637,7 @@ const PaginaAlunosGuarauna = () => {
                         <div className="saude-tooltip">
                           <Heart size={16} className="saude-tooltip-icon" />
                           <div className="saude-tooltip-content">
-                            Possui informações importantes de saúde!
+                            Saúde sensível!
                           </div>
                         </div>
                       )}
