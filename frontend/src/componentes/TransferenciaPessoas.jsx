@@ -275,7 +275,7 @@ const TransferenciaPessoas = () => {
                   >
                     <option value="">🏘️ Todas Comunidades</option>
                     {opcoesFiltros.comunidades.map(c => (
-                      <option key={c} value={c}>{c}</option>
+                      <option key={c?.id ?? c} value={c?.id ?? c}>{c?.nome ?? c}</option>
                     ))}
                   </select>
                 </div>

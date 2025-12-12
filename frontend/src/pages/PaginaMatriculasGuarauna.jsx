@@ -490,7 +490,7 @@ const PaginaMatriculasGuarauna = () => {
           >
             <option value="">Todas as comunidades</option>
             {comunidades.map(c => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c?.id ?? c} value={c?.id ?? c}>{c?.nome ?? c}</option>
             ))}
           </select>
           </div>
