@@ -24,6 +24,7 @@
     "vercel-build": "echo '🔨 Build Local Test' && npm run build"
   },
   "dependencies": {
+    "@getbrevo/brevo": "^3.0.1",
     "@prisma/client": "^6.19.0",
     "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
