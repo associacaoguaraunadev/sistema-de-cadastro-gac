@@ -593,7 +593,13 @@ const PaginaResponsaveisGuarauna = () => {
         });
         console.log('Alunos carregados (originais):', alunosCarregados);
         console.log('Alunos disponíveis para vinculação (menores de 18):', alunosMenores);
-        setAlunos(alunosMenores);
+        // Normalizar IDs como strings para evitar mismatches entre tipos
+        const alunosNormalizados = (alunosMenores || []).map(a => ({
+          ...a,
+          id: String(a.id),
+          pessoa: a.pessoa ? { ...a.pessoa, id: a.pessoa.id ? String(a.pessoa.id) : a.pessoa.id } : a.pessoa
+        }));
+        setAlunos(alunosNormalizados);
       }
     } catch (error) {
       console.error('Erro ao carregar alunos:', error);
