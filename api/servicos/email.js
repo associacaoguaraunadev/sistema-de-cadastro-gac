@@ -50,7 +50,7 @@ export async function enviarEmailRecuperacao(email, token) {
 
       sendSmtpEmail.subject = 'Código de Recuperação de Senha - GAC';
       sendSmtpEmail.to = [{ email, name: email.split('@')[0] }];
-    sendSmtpEmail.htmlContent = `
+      const htmlTemplate = `
       <!DOCTYPE html>
       <html lang="pt-BR">
         <head>
@@ -171,51 +171,18 @@ export async function enviarEmailRecuperacao(email, token) {
                 letter-spacing: 4px;
               }
             }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>GAC</h1>
-              <p>Associação Guaraúna de Arte e Cultura</p>
-            </div>
-            
-            <div class="content">
-              <div class="greeting">Olá!</div>
-              
-              <p>Você solicitou a recuperação de senha para sua conta no sistema de gestão GAC.</p>
-              
-              <p>Use o código abaixo para continuar o processo de redefinição:</p>
-              
-              <div class="code-container">
-                <div class="code-label">Seu Código de Recuperação</div>
-                <div class="code">${token}</div>
-              </div>
-              
-              <div class="expiry">
-                <strong>⏰ Atenção:</strong> Este código expira em <strong>30 minutos</strong>.
-              </div>
-              
-              <p>Se você não solicitou esta recuperação, ignore este email. Sua senha permanecerá inalterada e sua conta estará segura.</p>
-              
-              <div class="warning">
-                <span class="warning-icon">🔒</span>
-                <strong>Segurança:</strong> Nunca compartilhe este código com ninguém. Nossa equipe nunca pedirá seu código por telefone ou email.
-              </div>
-            </div>
-            
-            <div class="footer">
-              <p><strong>© ${new Date().getFullYear()} GAC - Associação Guaraúna de Arte e Cultura</strong></p>
-              <p>Este é um email automático, não responda a esta mensagem.</p>
-              <p style="margin-top: 15px; font-size: 12px; color: #999;">
-                Se precisar de ajuda, entre em contato conosco.
-              </p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+          </html>
+        `;
 
+          // Garantir que o HTML não comece com espaços em branco que possam confundir alguns provedores
+          const htmlContent = (htmlTemplate || '').trim();
+
+          // Versão texto simples (fallback) para clientes que não renderizam HTML
+          const textContent = `Código de recuperação: ${token}\nEste código expira em 30 minutos.\nSe você não solicitou, ignore este email.`;
+
+          sendSmtpEmail.htmlContent = htmlContent;
+          sendSmtpEmail.textContent = textContent;
+    
     // Configurar remetente
     sendSmtpEmail.sender = {
       name: process.env.EMAIL_FROM_NAME || 'GAC - Sistema de Gestão',
