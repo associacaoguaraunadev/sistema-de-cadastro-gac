@@ -65,6 +65,9 @@ export async function gerarTokenGeracao(req, res) {
     return res.status(201).json({ sucesso: true, mensagem: 'Token gerado com sucesso', token: novoToken.token, email: novoToken.email, dataExpiracao: novoToken.dataExpiracao });
   } catch (erro) {
     console.error('❌ Erro ao gerar token:', erro);
+    if (erro && (erro.message || '').includes('did not initialize') || (erro && (erro.message || '').includes('prisma generate'))) {
+      return res.status(503).json({ erro: 'Prisma Client não inicializado. Execute `npx prisma generate` durante o build/deploy.', statusCode: 503 });
+    }
     return res.status(500).json({ erro: erro.message || 'Erro ao gerar token', statusCode: 500 });
   }
 }
@@ -89,6 +92,9 @@ export async function listarTokens(req, res) {
     return res.status(200).json({ sucesso: true, pendentes, usados, total: tokens.length });
   } catch (erro) {
     console.error('❌ Erro ao listar tokens:', erro);
+    if (erro && (erro.message || '').includes('did not initialize') || (erro && (erro.message || '').includes('prisma generate'))) {
+      return res.status(503).json({ erro: 'Prisma Client não inicializado. Execute `npx prisma generate` durante o build/deploy.', statusCode: 503 });
+    }
     return res.status(500).json({ erro: erro.message || 'Erro ao listar tokens', statusCode: 500 });
   }
 }
@@ -111,6 +117,9 @@ export async function revogarToken(req, res) {
     return res.status(200).json({ sucesso: true, mensagem: 'Token revogado com sucesso' });
   } catch (erro) {
     console.error('❌ Erro ao revogar token:', erro);
+    if (erro && (erro.message || '').includes('did not initialize') || (erro && (erro.message || '').includes('prisma generate'))) {
+      return res.status(503).json({ erro: 'Prisma Client não inicializado. Execute `npx prisma generate` durante o build/deploy.', statusCode: 503 });
+    }
     if (erro.code === 'P2025') {
       return res.status(404).json({ erro: 'Token não encontrado', statusCode: 404 });
     }
