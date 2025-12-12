@@ -10,6 +10,7 @@ import {
   validarTokenRecuperacao,
   redefinirSenha
 } from '../servicos/recuperacaoSenha.js';
+import { enviarEmailRecuperacao } from '../servicos/email.js';
 
 /**
  * Solicita recuperação de senha
@@ -26,14 +27,20 @@ export async function solicitarRecuperacaoSenha(req, res) {
 
     const resultado = await solicitarRecuperacao(email);
 
-    // Em produção, enviar email com o link
-    // await enviarEmailRecuperacao(email, resultado.token, resultado.url);
+    // Tentar enviar email (não falhar a rota se envio falhar)
+    try {
+      const envio = await enviarEmailRecuperacao(resultado.email, resultado.token);
+      if (!envio || envio.sucesso === false) {
+        console.warn(`Falha no envio de email de recuperação (não bloqueante): ${envio && envio.motivo ? envio.motivo : 'sem motivo'}`);
+      }
+    } catch (e) {
+      console.error('Erro ao enviar email de recuperação (capturado no handler):', e);
+    }
 
     return res.status(200).json({
       sucesso: true,
       mensagem: 'Se esse email existe em nossa base, você receberá um link de recuperação',
-      // IMPORTANTE: Em produção, NÃO retornar o token!
-      // Apenas comentado para desenvolvimento
+      // Em ambiente de desenvolvimento retornamos token para facilitar testes
       debug: process.env.NODE_ENV === 'development' ? {
         token: resultado.token,
         url: resultado.url
