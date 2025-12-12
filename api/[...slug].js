@@ -20,17 +20,93 @@ async function getEmailService() {
       _emailService = await import('../server/servicos/email.js');
       return _emailService;
     } catch (e2) {
-      console.warn('⚠️ Serviço de email não encontrado via imports dinâmicos. Usando fallback de log.', e1?.message, e2?.message);
+      console.warn('⚠️ Serviço de email não encontrado via imports dinâmicos. Tentando fallback HTTP ou log.', e1?.message, e2?.message);
+
+      // Fallback avançado: se BREVO_API_KEY estiver presente, usamos fetch direto
+      const brevoKey = process.env.BREVO_API_KEY;
+
       _emailService = {
         enviarEmailRecuperacao: async (email, token) => {
+          // Se tiver chave, tente enviar via REST; senão, apenas logar
+          if (brevoKey && typeof fetch === 'function') {
+            try {
+              const html = (`<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,Helvetica,sans-serif;color:#333;margin:0;padding:20px"><h2>GAC - Recuperação de Senha</h2><p>Use o código abaixo para redefinir sua senha:</p><div style="font-size:28px;font-weight:700;letter-spacing:6px;padding:12px;border:2px solid #2d5016;display:inline-block">${token}</div><p>Este código expira em 30 minutos.</p><p>Se não solicitou, ignore este email.</p><footer style="margin-top:24px;color:#666;font-size:12px">© ${new Date().getFullYear()} GAC</footer></body></html>`).trim();
+
+              const payload = {
+                sender: { name: process.env.EMAIL_FROM_NAME || 'GAC - Sistema de Gestão', email: process.env.EMAIL_FROM || 'noreply@gac-gestao.com' },
+                to: [{ email }],
+                subject: 'Código de Recuperação de Senha - GAC',
+                htmlContent: html
+              };
+
+              const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'api-key': brevoKey
+                },
+                body: JSON.stringify(payload)
+              });
+
+              if (!resp.ok) {
+                const text = await resp.text().catch(() => '');
+                console.warn('⚠️ Falha no envio via Brevo REST', resp.status, text);
+                console.log(`📧 [FALLBACK] Código de recuperação para ${email}: ${token}`);
+                return { sucesso: false, motivo: 'brevo-rest-failed', status: resp.status };
+              }
+
+              const json = await resp.json().catch(() => ({}));
+              return { sucesso: true, messageId: json?.messageId || json?.message_id || null, email };
+            } catch (errSend) {
+              console.error('Erro no fallback HTTP de envio de email:', errSend);
+              console.log(`📧 [FALLBACK] Código de recuperação para ${email}: ${token}`);
+              return { sucesso: false, motivo: 'exception', erro: errSend?.message };
+            }
+          }
+
           console.log(`📧 [FALLBACK-EMAIL] enviarEmailRecuperacao -> ${email} token=${token}`);
           return { sucesso: false, motivo: 'fallback' };
         },
+
         enviarEmailAceiteDigital: async (email, nome, codigo, link) => {
+          if (brevoKey && typeof fetch === 'function') {
+            try {
+              const html = (`<!doctype html><html><head><meta charset="utf-8"></head><body style="font-family:Arial,Helvetica,sans-serif;color:#333;margin:0;padding:20px"><h2>GAC - Aceite de Matrícula</h2><p>Olá ${nome || ''},</p><p>Confirme a matrícula clicando no link abaixo:</p><p><a href="${link}">Confirmar Matrícula</a></p><p>Se não solicitou, ignore.</p><footer style="margin-top:24px;color:#666;font-size:12px">© ${new Date().getFullYear()} GAC</footer></body></html>`).trim();
+
+              const payload = {
+                sender: { name: process.env.EMAIL_FROM_NAME || 'GAC - Sistema de Gestão', email: process.env.EMAIL_FROM || 'noreply@gac-gestao.com' },
+                to: [{ email, name: nome || email.split('@')[0] }],
+                subject: 'Aceite Digital de Matrícula - GAC',
+                htmlContent: html
+              };
+
+              const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'api-key': brevoKey },
+                body: JSON.stringify(payload)
+              });
+
+              if (!resp.ok) {
+                const text = await resp.text().catch(() => '');
+                console.warn('⚠️ Falha no envio via Brevo REST (aceite)', resp.status, text);
+                console.log(`📧 [FALLBACK] Link de aceite para ${email}: ${link}`);
+                return { sucesso: false, motivo: 'brevo-rest-failed', status: resp.status, link };
+              }
+
+              const json = await resp.json().catch(() => ({}));
+              return { sucesso: true, messageId: json?.messageId || null, email, link };
+            } catch (errSend) {
+              console.error('Erro no fallback HTTP de envio de aceite:', errSend);
+              console.log(`📧 [FALLBACK] Link de aceite para ${email}: ${link}`);
+              return { sucesso: false, motivo: 'exception', erro: errSend?.message, link };
+            }
+          }
+
           console.log(`📧 [FALLBACK-EMAIL] enviarEmailAceiteDigital -> ${email} link=${link}`);
           return { sucesso: false, motivo: 'fallback', link };
         }
       };
+
       return _emailService;
     }
   }
