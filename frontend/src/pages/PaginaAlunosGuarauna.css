@@ -352,6 +352,16 @@
   border-color: #15803d;
 }
 
+.btn-acao.visualizar {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+
+.btn-acao.visualizar:hover {
+  background: #22c55e;
+  color: white;
+}
+
   .composicao-familiar-section {
     margin-top: 12px;
     background: #fff;
