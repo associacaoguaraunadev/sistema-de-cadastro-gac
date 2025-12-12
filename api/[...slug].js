@@ -4,7 +4,8 @@ import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import Pusher from 'pusher';
 import { gerarTokenGeracao, listarTokens, revogarToken } from '../server/autenticacao/tokens.js';
-import { enviarEmailRecuperacao, enviarEmailAceiteDigital } from '../server/servicos/email.js';
+import { enviarEmailRecuperacao, enviarEmailAceiteDigital } from './servicos/email.js';
+import { solicitarRecuperacao } from './servicos/recuperacaoSenha.js';
 
 // Pool de conexão Prisma - CRUCIAL para serverless
 let prisma;
@@ -347,6 +348,11 @@ async function rotear(req, res, slug) {
 
   if (rota === 'autenticacao/recuperacao-senha/solicitar' && req.method === 'POST') {
     return recuperacaoSenhaSolicitar(req, res);
+  }
+
+  // Rota de teste para envio de email de recuperação (uso: POST /test/email/recuperacao { email })
+  if (rota === 'test/email/recuperacao' && req.method === 'POST') {
+    return testarEnvioRecuperacao(req, res);
   }
 
   if (rota === 'autenticacao/recuperacao-senha/validar-token' && req.method === 'POST') {
@@ -5565,5 +5571,28 @@ export default async function handler(req, res) {
   } catch (erro) {
     log(`Erro no handler default: ${erro.message}`, 'error');
     try { res.status(500).json({ erro: 'Erro interno do servidor', detalhes: erro.message }); } catch (e) { /* swallow */ }
+  }
+}
+
+// Handler de teste: gerar token de recuperação e tentar enviar email
+async function testarEnvioRecuperacao(req, res) {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ erro: 'Email é obrigatório' });
+
+    // Gera e persiste token (reaproveita lógica segura existente)
+    const resultado = await solicitarRecuperacao(email);
+
+    // Tenta enviar o email de recuperação (não deve travar em produção se falhar)
+    try {
+      const envio = await enviarEmailRecuperacao(resultado.email, resultado.token);
+      return res.status(200).json({ sucesso: true, envio, debug: resultado });
+    } catch (e) {
+      // Retorna sucesso parcial com debug para investigação
+      return res.status(200).json({ sucesso: false, erro: e && (e.message || e), debug: resultado });
+    }
+  } catch (erro) {
+    console.error('Erro no teste de envio de recuperação:', erro);
+    return res.status(400).json({ erro: erro && (erro.message || erro) });
   }
 }
