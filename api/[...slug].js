@@ -3,8 +3,8 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import Pusher from 'pusher';
-import { gerarTokenGeracao, listarTokens, revogarToken } from './autenticacao/tokens.js';
-import { enviarEmailRecuperacao, enviarEmailAceiteDigital } from './servicos/email.js';
+import { gerarTokenGeracao, listarTokens, revogarToken } from '../server/autenticacao/tokens.js';
+import { enviarEmailRecuperacao, enviarEmailAceiteDigital } from '../server/servicos/email.js';
 
 // Pool de conexão Prisma - CRUCIAL para serverless
 let prisma;
@@ -5202,7 +5202,14 @@ async function guaraunaDashboard(req, res) {
       log(`❌ Stack: ${eroPrisma.stack}`, 'error');
       throw eroPrisma;
     }
-        const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem, respostasQuestionario } = req.body;
+  } catch (erro) {
+    log(`Erro ao carregar dashboard: ${erro.message}`, 'error');
+    return res.status(500).json({ erro: 'Erro ao carregar dashboard' });
+  }
+
+  // Fim do guaraunaDashboard
+
+  const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem, respostasQuestionario } = req.body;
 
         const aceiteExistente = await prisma.aceiteDigital.findUnique({ where: { codigo } });
 

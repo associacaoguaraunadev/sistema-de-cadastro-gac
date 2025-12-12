@@ -8,3 +8,12 @@ run-seed.sh
 test-setup.sh
 build.sh
 backend
+api/autenticacao/**
+api/servicos/**
+api/middleware/**
+api/scripts/**
+api/diagnostico-db.js
+api/seed-modelos-aceite.js
+api/criar-enum-aceitetipo.js
+api/server-local.js
+api/test-db.js

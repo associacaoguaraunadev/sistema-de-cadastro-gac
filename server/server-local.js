@@ -1,0 +1,20 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '.env') });
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const app = express();
+app.use(cors({ origin: '*', methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'], credentials: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use((req,res,next)=>{ console.log(`[${new Date().toISOString()}] 📥 ${req.method} ${req.path}`); const originalJson = res.json; res.json = function(data){ console.log(`[${new Date().toISOString()}] 📤 Response JSON - ${res.statusCode}`); return originalJson.call(this,data); }; next(); });
+import handler from '../api/[...slug].js';
+app.all('*', async (req,res)=>{ try { let pathname = req.path; if (pathname.startsWith('/api/')) pathname = pathname.slice(5); else if (pathname.startsWith('/api')) pathname = pathname.slice(4); if (pathname.startsWith('/')) pathname = pathname.slice(1); const slug = pathname.split('/').filter(p=>p.length>0); const vercelReq = { method: req.method, url: req.originalUrl, headers: req.headers, body: req.body, query: { slug: slug.length>0 ? slug : [] }, cookies: req.cookies||{} }; const statusCode={code:200}; const vercelRes = { status(code){ statusCode.code=code; res.status(code); return this; }, json(data){ if(this.headersSent) return this; this.headersSent=true; res.json(data); return this; }, setHeader(k,v){ res.setHeader(k,v); return this; }, send(d){ if(this.headersSent) return this; this.headersSent=true; res.send(d); return this; }, write(c){ res.write(c); return this; }, on(e,c){ res.on(e,c); return this; }, end(){ res.end(); return this; }, headersSent:false, finished:false };
+      await handler(vercelReq, vercelRes);
+    } catch (error) { console.error(error); res.status(500).json({ erro: 'Erro interno do servidor', mensagem: error.message }); }
+});
+app.use((req,res)=>{ res.status(404).json({ erro: 'Rota não encontrada', path: req.path }); });
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, ()=>{ console.log(`✅ API Local rodando em http://localhost:${PORT}`); });
