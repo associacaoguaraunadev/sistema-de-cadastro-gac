@@ -361,6 +361,11 @@ async function rotear(req, res, slug) {
     return autenticacaoListar(req, res);
   }
 
+  // Alias público usado pelo frontend para listagem de usuários
+  if (rota === 'usuarios' && req.method === 'GET') {
+    return autenticacaoListar(req, res);
+  }
+
   if (rota === 'autenticacao/validar-token' && req.method === 'POST') {
     return autenticacaoValidarToken(req, res);
   }
@@ -469,6 +474,11 @@ async function rotear(req, res, slug) {
   if (rota === 'pessoas' && req.method === 'POST') {
     console.log('🎯 ROTEAMENTO: Chamando pessoasCriar');
     return pessoasCriar(req, res);
+  }
+
+  // Compatibilidade: aceitar /pessoas/listar como alias para listar (alguns testes usam essa rota)
+  if (rota === 'pessoas/listar' && req.method === 'GET') {
+    return pessoasListar(req, res);
   }
 
   // Rota de verificação de dependências antes de deletar (DEVE VIR ANTES da rota genérica)
@@ -664,6 +674,42 @@ async function rotear(req, res, slug) {
   if (rota === 'guarauna/aceite/matricula' && req.method === 'POST') {
     return guaraunaAceiteCriar(req, res);
   }
+
+  // Mapear rotas administrativas esperadas pelo frontend/tests para o módulo Guaraúna
+  if (rota === 'guarauna/tokens' && req.method === 'GET') {
+    // Versão segura para listar tokens via rota guarauna (fallback gracioso se prisma não inicializado)
+    const prisma = getPrisma();
+    try {
+      const tokens = await prisma.tokenGeracao.findMany({ orderBy: { dataCriacao: 'desc' } });
+      return res.status(200).json({ tokens });
+    } catch (erro) {
+      log(`Erro ao listar tokens Guaraúna: ${erro.message}`, 'warn');
+      return res.status(200).json({ tokens: [] });
+    }
+  }
+
+  if (rota === 'guarauna/beneficios' && req.method === 'GET') {
+    // Retorna ambos catálogos de benefícios (GAC + Governo)
+    const prisma = getPrisma();
+    try {
+      const gac = await prisma.beneficioGAC.findMany({ orderBy: { tipo: 'asc' } });
+      const gov = await prisma.beneficioGoverno.findMany({ orderBy: { nome: 'asc' } });
+      return res.status(200).json({ beneficiosGAC: gac.map(b => b.tipo), beneficiosGoverno: gov.map(b => b.nome) });
+    } catch (erro) {
+      log(`Erro ao listar benefícios Guaraúna: ${erro.message}`, 'error');
+      return res.status(500).json({ erro: 'Erro ao listar benefícios' });
+    }
+  }
+
+  if (rota === 'guarauna/metricas' && req.method === 'GET') {
+    // Alias para o dashboard de métricas
+    return guaraunaDashboard(req, res);
+  }
+
+  if (rota === 'guarauna/transferencia' && req.method === 'GET') {
+    // Reutiliza listagem de usuários (autenticada) para alimentar a UI de transferência
+    return autenticacaoListar(req, res);
+  }
   
   // ROTAS PÚBLICAS - ACEITES (não requerem autenticação)
   if (rota.match(/^aceite\/evento\/[^/]+$/) && req.method === 'GET') {
@@ -803,7 +849,7 @@ async function autenticacaoEntrar(req, res) {
 async function autenticacaoRegistrar(req, res) {
   const prisma = getPrisma();
   try {
-    const { email, senha, nome, codigoConvite } = req.body;
+    const { email, senha, nome, codigoConvite } = req.body || {};
     log(`📝 Registrando novo usuário: ${email}`);
 
     // Validação
@@ -953,7 +999,7 @@ async function autenticacaoRedefinirSenha(req, res) {
 async function recuperacaoSenhaSolicitar(req, res) {
   const prisma = getPrisma();
   try {
-    const { email } = req.body;
+    const { email } = req.body || {};
 
     if (!email) {
       return res.status(400).json({ erro: 'Email é obrigatório' });
@@ -1016,7 +1062,7 @@ async function recuperacaoSenhaSolicitar(req, res) {
 async function recuperacaoSenhaValidarToken(req, res) {
   const prisma = getPrisma();
   try {
-    const { email, token } = req.body;
+    const { email, token } = req.body || {};
 
     if (!email || !token) {
       return res.status(400).json({ erro: 'Email e token são obrigatórios' });
@@ -1062,7 +1108,7 @@ async function recuperacaoSenhaValidarToken(req, res) {
 async function recuperacaoSenhaRedefinir(req, res) {
   const prisma = getPrisma();
   try {
-    const { email, token, novaSenha } = req.body;
+    const { email, token, novaSenha } = req.body || {};
 
     if (!email || !token || !novaSenha) {
       return res.status(400).json({ erro: 'Email, token e nova senha são obrigatórios' });
@@ -1289,7 +1335,7 @@ async function usuariosAlterarFuncao(req, res) {
     }
 
     const { id } = req.params;
-    const { funcao } = req.body;
+    const { funcao } = req.body || {};
     const idUsuario = parseInt(id);
 
     if (!idUsuario || isNaN(idUsuario)) {
@@ -1344,7 +1390,7 @@ async function usuariosAlterarFuncao(req, res) {
 async function validarTokenGeracao(req, res) {
   const prisma = getPrisma();
   try {
-    const { token, codigo } = req.body;
+    const { token, codigo } = req.body || {};
     const codigoAtual = token || codigo;
     
     log(`🔑 Validando TOKEN: ${codigoAtual?.substring(0, 20)}...`);
@@ -1383,7 +1429,7 @@ async function atualizarComunidadeEmLote(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { nomeAntigo, nomeNovo } = req.body;
+    const { nomeAntigo, nomeNovo } = req.body || {};
 
     if (!nomeAntigo || !nomeNovo) {
       return res.status(400).json({ 
@@ -1604,7 +1650,7 @@ async function pessoasTransferir(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem transferir pessoas' });
     }
 
-    const { pessoaIds, usuarioDestinoId } = req.body;
+    const { pessoaIds, usuarioDestinoId } = req.body || {};
 
     // Validações
     if (!pessoaIds || !Array.isArray(pessoaIds) || pessoaIds.length === 0) {
@@ -1725,7 +1771,7 @@ async function beneficiosGACAdicionar(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem adicionar benefícios' });
     }
 
-    const { tipo } = req.body;
+    const { tipo } = req.body || {};
 
     if (!tipo || !tipo.trim()) {
       return res.status(400).json({ erro: 'Tipo do benefício é obrigatório' });
@@ -1758,7 +1804,7 @@ async function beneficiosGACRenomear(req, res, tipo) {
     }
 
     const tipoAntigo = decodeURIComponent(tipo);
-    const { novoTipo } = req.body;
+    const { novoTipo } = req.body || {};
 
     if (!novoTipo || !novoTipo.trim()) {
       return res.status(400).json({ erro: 'Novo tipo é obrigatório' });
@@ -1918,7 +1964,7 @@ async function beneficiosGovernoAdicionar(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem adicionar benefícios' });
     }
 
-    const { nome } = req.body;
+    const { nome } = req.body || {};
 
     if (!nome || !nome.trim()) {
       return res.status(400).json({ erro: 'Nome do benefício é obrigatório' });
@@ -1951,7 +1997,7 @@ async function beneficiosGovernoRenomear(req, res, nome) {
     }
 
     const nomeAntigo = decodeURIComponent(nome);
-    const { novoNome } = req.body;
+    const { novoNome } = req.body || {};
 
     if (!novoNome || !novoNome.trim()) {
       return res.status(400).json({ erro: 'Novo nome é obrigatório' });
@@ -2382,7 +2428,7 @@ async function pessoasCriar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { nome, cpf, dataNascimento } = req.body;
+    const { nome, cpf, dataNascimento } = req.body || {};
     
     // Validação: nome e CPF obrigatórios
     if (!nome || !cpf) {
@@ -2818,7 +2864,7 @@ async function pessoasDeletarEmMassa(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem deletar em massa' });
     }
 
-    const { ids, forcarExclusao } = req.body;
+    const { ids, forcarExclusao } = req.body || {};
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ erro: 'Lista de IDs é obrigatória' });
@@ -3014,7 +3060,7 @@ async function guaraunaAlunosCriar(req, res) {
       observacoes,
       // Responsável a vincular (opcional)
       responsavelId, parentesco
-    } = req.body;
+    } = req.body || {};
 
     // Função para limpar CPF (remover formatação)
     const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
@@ -3199,7 +3245,7 @@ async function guaraunaAlunosAtualizar(req, res, id) {
       nome, cpf, dataNascimento, telefone, email, comunidade, endereco, rg, observacoes,
       // Dados do aluno
       graduacaoAtual, ubs, numeroSUS, doencas, alergias, medicamentos, necessidadesEspeciais, ativo 
-    } = req.body;
+    } = req.body || {};
 
     // Função para limpar CPF (remover formatação)
     const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
@@ -3334,7 +3380,7 @@ async function guaraunaResponsaveisCriar(req, res) {
       profissao, localTrabalho, estaEmpregado,
       // Parentesco e alunos a vincular
       parentesco, alunoIds
-    } = req.body;
+    } = req.body || {};
 
     // Garantir que estaEmpregado seja booleano
     let valorEmpregado = estaEmpregado;
@@ -3524,7 +3570,7 @@ async function guaraunaResponsaveisAtualizar(req, res, id) {
       profissao, localTrabalho, estaEmpregado, ativo,
       // Parentesco e alunos a vincular
       parentesco, alunoIds, pessoaId
-    } = req.body;
+    } = req.body || {};
 
     // Garantir que estaEmpregado seja booleano
     let valorEmpregado = estaEmpregado;
@@ -3680,7 +3726,7 @@ async function guaraunaVincularAlunoResponsavel(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { alunoId, responsavelId, parentesco, principal } = req.body;
+    const { alunoId, responsavelId, parentesco, principal } = req.body || {};
 
     // Se for principal, remover flag de outros
     if (principal) {
@@ -3773,7 +3819,7 @@ async function guaraunaEducadoresCriar(req, res) {
       apelido, especialidade, graduacao, formacao,
       // Comunidades
       comunidades, comunidadeIds
-    } = req.body;
+    } = req.body || {};
 
     // Função para limpar CPF (remover formatação)
     const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
@@ -3909,7 +3955,7 @@ async function guaraunaEducadoresAtualizar(req, res, id) {
       apelido, especialidade, graduacao, formacao, ativo,
       // Comunidades
       comunidades, comunidadeIds
-    } = req.body;
+    } = req.body || {};
 
     // Função para limpar CPF (remover formatação)
     const limparCPF = (cpf) => cpf ? cpf.replace(/\D/g, '') : null;
@@ -4077,7 +4123,7 @@ async function guaraunaTurmasCriar(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { nome, comunidade, comunidadeId, educadorId, diaSemana, diasSemana, horarioInicio, horarioFim, ano, faixaEtariaMin, faixaEtariaMax, capacidade, alunoIds } = req.body;
+    const { nome, comunidade, comunidadeId, educadorId, diaSemana, diasSemana, horarioInicio, horarioFim, ano, faixaEtariaMin, faixaEtariaMax, capacidade, alunoIds } = req.body || {};
 
     log(`📝 Criar turma - body recebido: comunidade=${comunidade}, comunidadeId=${comunidadeId}, ano=${ano}, alunoIds=${JSON.stringify(alunoIds)}`);
 
@@ -4216,7 +4262,7 @@ async function guaraunaTurmasAtualizar(req, res, id) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { nome, comunidade, comunidadeId, educadorId, diaSemana, diasSemana, horarioInicio, horarioFim, ano, faixaEtariaMin, faixaEtariaMax, capacidade, ativa, alunoIds } = req.body;
+    const { nome, comunidade, comunidadeId, educadorId, diaSemana, diasSemana, horarioInicio, horarioFim, ano, faixaEtariaMin, faixaEtariaMax, capacidade, ativa, alunoIds } = req.body || {};
 
     log(`📝 Atualizar turma ${id} - alunoIds recebidos: ${JSON.stringify(alunoIds)}`);
 
@@ -4354,7 +4400,7 @@ async function guaraunaMatricularAlunoTurma(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { alunoId, turmaId } = req.body;
+    const { alunoId, turmaId } = req.body || {};
 
     // Verificar capacidade da turma
     const turma = await prisma.turma.findUnique({
@@ -4482,7 +4528,7 @@ async function guaraunaMatriculasCriar(req, res) {
 
     const { alunoId, ano, tipo, tamanhoCamiseta, tamanhoCalca, tamanhoCalcado, composicaoFamiliar,
       nomeEscola, horarioEstudo, horaEntrada, horaSaida, situacaoComportamentoEscolar, status, motivoDesistencia
-    } = req.body;
+    } = req.body || {};
 
     // Validar que o status não seja ATIVA (sistema não permite criar como ATIVA diretamente)
     if (status && String(status).toUpperCase() === 'ATIVA') {
@@ -4579,7 +4625,7 @@ async function guaraunaMatriculasAtualizar(req, res, id) {
     }
 
     const { tamanhoCamiseta, tamanhoBermuda, tamanhoCalca, tamanhoCalcado, composicaoFamiliar, status, motivoDesistencia,
-      nomeEscola, horarioEstudo, horaEntrada, horaSaida, situacaoComportamentoEscolar } = req.body;
+      nomeEscola, horarioEstudo, horaEntrada, horaSaida, situacaoComportamentoEscolar } = req.body || {};
 
     // Impedir que cliente force o status para ATIVA
     if (status && String(status).toUpperCase() === 'ATIVA') {
@@ -4660,7 +4706,7 @@ async function guaraunaModelosTermoCriar(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem criar modelos de termo' });
     }
 
-    const { titulo, tipo, conteudoHTML } = req.body;
+    const { titulo, tipo, conteudoHTML } = req.body || {};
 
     const modelo = await prisma.modeloTermo.create({
       data: {
@@ -4714,7 +4760,7 @@ async function guaraunaModelosTermoAtualizar(req, res, id) {
       return res.status(403).json({ erro: 'Apenas administradores podem atualizar modelos' });
     }
 
-    const { titulo, tipo, conteudoHTML, ativo } = req.body;
+    const { titulo, tipo, conteudoHTML, ativo } = req.body || {};
 
     const modelo = await prisma.modeloTermo.update({
       where: { id },
@@ -4800,7 +4846,7 @@ async function guaraunaEventosCriar(req, res) {
       return res.status(403).json({ erro: 'Apenas administradores podem criar eventos' });
     }
 
-    const { modeloTermoId, titulo, descricao, dataEvento, localEvento, dataLimiteAceite } = req.body;
+    const { modeloTermoId, titulo, descricao, dataEvento, localEvento, dataLimiteAceite } = req.body || {};
 
     const evento = await prisma.eventoTermo.create({
       data: {
@@ -4864,7 +4910,7 @@ async function guaraunaEventosAtualizar(req, res, id) {
       return res.status(403).json({ erro: 'Apenas administradores podem atualizar eventos' });
     }
 
-    const { titulo, descricao, dataEvento, localEvento, dataLimiteAceite, ativo } = req.body;
+    const { titulo, descricao, dataEvento, localEvento, dataLimiteAceite, ativo } = req.body || {};
 
     const evento = await prisma.eventoTermo.update({
       where: { id },
@@ -4976,7 +5022,7 @@ async function aceiteEventoObterPublico(req, res, codigo) {
 async function aceiteEventoRegistrar(req, res, codigo) {
   const prisma = getPrisma();
   try {
-    const { alunoId, responsavelId, aceite } = req.body;
+    const { alunoId, responsavelId, aceite } = req.body || {};
 
     if (!aceite) {
       return res.status(400).json({ erro: 'É necessário aceitar o termo' });
@@ -5091,7 +5137,7 @@ async function aceiteMatriculaObterPublico(req, res, codigo) {
 async function aceiteMatriculaRegistrar(req, res, codigo) {
   const prisma = getPrisma();
   try {
-    const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem } = req.body;
+    const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem } = req.body || {};
 
     const aceiteExistente = await prisma.aceiteDigital.findUnique({ where: { codigo } });
 
@@ -5209,7 +5255,7 @@ async function guaraunaDashboard(req, res) {
 
   // Fim do guaraunaDashboard
 
-  const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem, respostasQuestionario } = req.body;
+  const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem, respostasQuestionario } = req.body || {};
 
         const aceiteExistente = await prisma.aceiteDigital.findUnique({ where: { codigo } });
 
@@ -5382,7 +5428,7 @@ async function guaraunaAceiteCriar(req, res) {
     if (!usuario) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
-    const { matriculaId, responsavelId, gerarVarios = false, tipos = null } = req.body;
+    const { matriculaId, responsavelId, gerarVarios = false, tipos = null } = req.body || {};
 
     if (!matriculaId || !responsavelId) {
       return res.status(400).json({ erro: 'matriculaId e responsavelId são obrigatórios' });
@@ -5469,5 +5515,55 @@ async function guaraunaAceiteCriar(req, res) {
   } catch (erro) {
     log(`Erro ao criar aceite: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao criar aceite', detalhes: erro.message });
+  }
+}
+
+// Default handler export (Vercel / server-local) — normalize incoming request and delegate to `rotear`
+export default async function handler(req, res) {
+  try {
+    // Ensure query exists
+    req.query = req.query || {};
+
+    // If Vercel provides slug in query, use it
+    let slug = [];
+    if (req.query.slug && Array.isArray(req.query.slug)) {
+      slug = req.query.slug;
+    } else if (req.query.slug && typeof req.query.slug === 'string') {
+      slug = [req.query.slug];
+    } else if (req.url && req.url.length > 1) {
+      try {
+        const baseUrl = `http://${req.headers.host || 'localhost'}`;
+        const urlObj = new URL(req.url, baseUrl);
+        let pathname = urlObj.pathname;
+        if (pathname.startsWith('/api/')) pathname = pathname.slice(5);
+        else if (pathname.startsWith('/api')) pathname = pathname.slice(4);
+        if (pathname.startsWith('/')) pathname = pathname.slice(1);
+        slug = pathname.split('/').filter(p => p.length > 0);
+      } catch (err) {
+        slug = [];
+      }
+    }
+
+    // Clean query parts
+    slug = slug.map(s => (String(s).split('?')[0])).filter(s => s.length > 0);
+
+    // Populate req.query from URL search if missing
+    if ((!req.query || Object.keys(req.query).length === 0) && req.url) {
+      try {
+        const baseUrl = `http://${req.headers.host || 'localhost'}`;
+        const urlObj = new URL(req.url, baseUrl);
+        const searchParams = new URLSearchParams(urlObj.search);
+        searchParams.forEach((value, key) => {
+          req.query[key] = value;
+        });
+      } catch (err) {
+        // ignore
+      }
+    }
+
+    return await rotear(req, res, slug);
+  } catch (erro) {
+    log(`Erro no handler default: ${erro.message}`, 'error');
+    try { res.status(500).json({ erro: 'Erro interno do servidor', detalhes: erro.message }); } catch (e) { /* swallow */ }
   }
 }

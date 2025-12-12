@@ -18,7 +18,7 @@ import {
  */
 export async function solicitarRecuperacaoSenha(req, res) {
   try {
-    const { email } = req.body;
+    const { email } = req.body || {};
 
     if (!email) {
       return res.status(400).json({ erro: 'Email é obrigatório' });
@@ -54,7 +54,7 @@ export async function solicitarRecuperacaoSenha(req, res) {
  */
 export async function validarToken(req, res) {
   try {
-    const { email, token } = req.body;
+    const { email, token } = req.body || {};
 
     if (!email || !token) {
       return res.status(400).json({
@@ -89,7 +89,7 @@ export async function validarToken(req, res) {
  */
 export async function redefinirSenhaHandler(req, res) {
   try {
-    const { email, token, novaSenha } = req.body;
+    const { email, token, novaSenha } = req.body || {};
 
     if (!email || !token || !novaSenha) {
       return res.status(400).json({

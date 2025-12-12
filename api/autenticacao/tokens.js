@@ -39,7 +39,7 @@ export async function gerarTokenGeracao(req, res) {
       });
     }
 
-    const { email } = req.body;
+    const { email } = req.body || {};
 
     // Validar entrada
     if (!email || typeof email !== 'string' || !email.includes('@')) {

@@ -2,10 +2,20 @@
  * Serviço de Envio de Email - Brevo (ex-Sendinblue)
  */
 
-import * as brevo from '@getbrevo/brevo';
+let brevo = null;
+let apiInstance = null;
 
-const apiInstance = new brevo.TransactionalEmailsApi();
-apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+try {
+  /* Dynamic import so local dev without the package doesn't crash the server. */
+  // eslint-disable-next-line no-undef
+  brevo = await import('@getbrevo/brevo');
+  apiInstance = new brevo.TransactionalEmailsApi();
+  apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+} catch (err) {
+  console.warn('⚠️ Brevo client not available: emails will be logged instead.', err?.message || err);
+  brevo = null;
+  apiInstance = null;
+}
 
 export async function enviarEmailRecuperacao(email, token) {
   try {
