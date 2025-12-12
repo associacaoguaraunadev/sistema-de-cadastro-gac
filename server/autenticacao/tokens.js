@@ -13,9 +13,14 @@ let prisma;
 
 function getPrisma() {
   if (!prisma) {
-    prisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn']
-    });
+    try {
+      prisma = new PrismaClient({
+        log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn']
+      });
+    } catch (err) {
+      console.error('❌ Falha ao inicializar Prisma Client. Certifique-se de rodar `npx prisma generate` durante o build/deploy e incluir o client gerado no bundle. Detalhe:', err && (err.stack || err.message) || err);
+      throw err;
+    }
   }
   return prisma;
 }
