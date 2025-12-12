@@ -253,12 +253,16 @@ export async function enviarEmailRecuperacao(email, token) {
  */
 export async function enviarEmailBoasVindas(email, nome) {
   try {
-    if (!process.env.BREVO_API_KEY) {
-      console.warn('⚠️ BREVO_API_KEY não configurada.');
-      return { sucesso: false, motivo: 'API key não configurada' };
+    if (!process.env.BREVO_API_KEY || !brevo || !apiInstance) {
+      console.warn('⚠️ BREVO_API_KEY não configurada ou cliente Brevo indisponível. Email não será enviado.');
+      console.log(`📧 [DEV] Boas-vindas para ${email}`);
+      return { sucesso: false, motivo: 'API key não configurada ou cliente ausente' };
     }
 
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    const SendSmtpEmail = brevo.SendSmtpEmail;
+    if (!SendSmtpEmail) throw new Error('Brevo SDK: SendSmtpEmail não encontrado');
+
+    const sendSmtpEmail = new SendSmtpEmail();
 
     sendSmtpEmail.subject = 'Bem-vindo ao GAC!';
     sendSmtpEmail.to = [{ email, name }];
@@ -311,13 +315,16 @@ export default {
 
 export async function enviarEmailAceiteDigital(email, nome, codigo, link) {
   try {
-    if (!process.env.BREVO_API_KEY) {
-      console.warn('⚠️ BREVO_API_KEY não configurada. Email de aceite não será enviado.');
+    if (!process.env.BREVO_API_KEY || !brevo || !apiInstance) {
+      console.warn('⚠️ BREVO_API_KEY não configurada ou cliente Brevo indisponível. Email de aceite não será enviado.');
       console.log(`📧 [DEV] Link de aceite para ${email}: ${link}`);
-      return { sucesso: false, motivo: 'API key não configurada', link };
+      return { sucesso: false, motivo: 'API key não configurada ou cliente ausente', link };
     }
 
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    const SendSmtpEmail = brevo.SendSmtpEmail;
+    if (!SendSmtpEmail) throw new Error('Brevo SDK: SendSmtpEmail não encontrado');
+
+    const sendSmtpEmail = new SendSmtpEmail();
     sendSmtpEmail.subject = 'Aceite Digital de Matrícula - GAC';
     sendSmtpEmail.to = [{ email, name: nome || email.split('@')[0] }];
 
