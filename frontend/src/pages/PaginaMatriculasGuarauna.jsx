@@ -226,13 +226,17 @@ const PaginaMatriculasGuarauna = () => {
         ? `${API_URL}/guarauna/matriculas/${matriculaEditando.id}`
         : `${API_URL}/guarauna/matriculas`;
 
+      // Map frontend-only status label 'cancelada' to backend 'desistente'
+      const payload = { ...formData };
+      if (payload.status === 'cancelada') payload.status = 'desistente';
+
       const response = await fetch(url, {
         method: matriculaEditando ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
@@ -302,6 +306,40 @@ const PaginaMatriculasGuarauna = () => {
       adicionarToast('Erro ao atualizar status', 'erro');
     }
   };
+
+    // Confirmar motivo de desistência e encerrar matrícula
+    const confirmarDesistencia = async () => {
+      const matricula = matriculaEditando || modalConfirmacao.matricula || modalVisualizacao.matricula;
+      if (!matricula) {
+        setModalDesistencia({ aberto: false, texto: '' });
+        return;
+      }
+      setSalvando(true);
+      try {
+        const payload = { ...matricula, status: 'desistente', motivoDesistencia: modalDesistencia.texto };
+        const res = await fetch(`${API_URL}/guarauna/matriculas/${matricula.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          adicionarToast('Matrícula encerrada com sucesso', 'sucesso');
+          setModalDesistencia({ aberto: false, texto: '' });
+          setModalAberto(false);
+          setModalConfirmacao({ aberto: false, matricula: null });
+          setModalVisualizacao({ aberto: false, matricula: null });
+          carregarMatriculas();
+        } else {
+          const d = await res.json().catch(() => ({}));
+          adicionarToast(d.erro || 'Erro ao encerrar matrícula', 'erro');
+        }
+      } catch (err) {
+        console.error('Erro ao confirmar desistência:', err);
+        adicionarToast('Erro ao encerrar matrícula', 'erro');
+      } finally {
+        setSalvando(false);
+      }
+    };
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -447,89 +485,15 @@ const PaginaMatriculasGuarauna = () => {
             value={comunidadeFiltro}
             onChange={(e) => {
               setComunidadeFiltro(e.target.value);
-              // Antes de enviar, verificar fluxo especial: alteração de ATIVA -> CANCELADA
-              try {
-                // Se estivermos editando e o status mudou de 'ativa' para 'cancelada', abrir modal de motivo
-                if (matriculaEditando && String(matriculaEditando.status).toLowerCase() === 'ativa' && formData.status === 'cancelada') {
-                  // abrir modal de motivo
-                  setModalDesistencia({ aberto: true, texto: '' });
-                  return;
-                }
-
-                setSalvando(true);
-                const url = matriculaEditando 
-                  ? `${API_URL}/guarauna/matriculas/${matriculaEditando.id}`
-                  : `${API_URL}/guarauna/matriculas`;
-
-                // Mapear label frontend 'cancelada' para valor do backend 'desistente'
-                const payload = { ...formData };
-                if (payload.status === 'cancelada') payload.status = 'desistente';
-
-                const response = await fetch(url, {
-                  method: matriculaEditando ? 'PUT' : 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
-                  body: JSON.stringify(payload)
-                });
-
-                if (response.ok) {
-                  adicionarToast(
-                    matriculaEditando ? 'Matrícula atualizada com sucesso!' : 'Matrícula criada com sucesso!',
-                    'sucesso'
-                  );
-                  fecharModal();
-                  carregarMatriculas();
-                } else {
-                  const erro = await response.json();
-                  adicionarToast(erro.erro || 'Erro ao salvar matrícula', 'erro');
-                }
-              } catch (error) {
-                console.error('Erro ao salvar matrícula:', error);
-                adicionarToast('Erro ao salvar matrícula', 'erro');
-              } finally {
-                setSalvando(false);
-              }
-        {/* Tabela */}
-
-            // Confirmar e enviar motivo de desistência quando aplicável
-            const confirmarDesistencia = async () => {
-              if (!matriculaEditando) return;
-              const motivo = modalDesistencia.texto || '';
-              setSalvando(true);
-              try {
-                const url = `${API_URL}/guarauna/matriculas/${matriculaEditando.id}`;
-                const payload = { ...formData };
-                // Mapear cancelada -> desistente
-                if (payload.status === 'cancelada') payload.status = 'desistente';
-                payload.motivoDesistencia = motivo;
-
-                const response = await fetch(url, {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                  },
-                  body: JSON.stringify(payload)
-                });
-
-                if (response.ok) {
-                  adicionarToast('Matrícula atualizada com motivo de desistência', 'sucesso');
-                  setModalDesistencia({ aberto: false, texto: '' });
-                  fecharModal();
-                  carregarMatriculas();
-                } else {
-                  const erro = await response.json();
-                  adicionarToast(erro.erro || 'Erro ao salvar motivo de desistência', 'erro');
-                }
-              } catch (err) {
-                console.error('Erro ao confirmar desistência:', err);
-                adicionarToast('Erro ao salvar motivo de desistência', 'erro');
-              } finally {
-                setSalvando(false);
-              }
-            };
+              setPaginaAtual(1);
+            }}
+          >
+            <option value="">Todas as comunidades</option>
+            {comunidades.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          </div>
         <div className="matriculas-tabela-wrapper">
           {carregando ? (
             <div className="carregando-container">
