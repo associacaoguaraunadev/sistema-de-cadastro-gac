@@ -8,14 +8,24 @@
  * 4. Adicione BREVO_API_KEY no .env
  */
 
-import * as brevo from '@getbrevo/brevo';
+let brevo = null;
+let apiInstance = null;
 
-// Configurar API do Brevo
-const apiInstance = new brevo.TransactionalEmailsApi();
-apiInstance.setApiKey(
-  brevo.TransactionalEmailsApiApiKeys.apiKey,
-  process.env.BREVO_API_KEY
-);
+// Tentar importar o cliente Brevo dinamicamente. Se falhar, usamos fallback que apenas loga os emails.
+try {
+  // top-level await suportado em Node 18+ ESM
+  brevo = await import('@getbrevo/brevo');
+  if (brevo) {
+    apiInstance = new brevo.TransactionalEmailsApi();
+    if (brevo.TransactionalEmailsApiApiKeys) {
+      apiInstance.setApiKey(brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+    }
+  }
+} catch (e) {
+  console.warn('⚠️ Brevo client not available: emails will be logged instead. ' + (e && e.message));
+  brevo = null;
+  apiInstance = null;
+}
 
 /**
  * Envia email de recuperação de senha
@@ -24,17 +34,22 @@ apiInstance.setApiKey(
  * @returns {Promise<Object>} Resultado do envio
  */
 export async function enviarEmailRecuperacao(email, token) {
-  try {
-    if (!process.env.BREVO_API_KEY) {
-      console.warn('⚠️ BREVO_API_KEY não configurada. Email não será enviado.');
-      console.log(`📧 [DEV] Código de recuperação para ${email}: ${token}`);
-      return { sucesso: false, motivo: 'API key não configurada' };
-    }
+    try {
+      if (!process.env.BREVO_API_KEY || !brevo || !apiInstance) {
+        console.warn('⚠️ BREVO_API_KEY não configurada ou cliente Brevo indisponível. Email não será enviado.');
+        console.log(`📧 [DEV] Código de recuperação para ${email}: ${token}`);
+        return { sucesso: false, motivo: 'API key não configurada ou cliente ausente' };
+      }
 
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
+      const SendSmtpEmail = brevo.SendSmtpEmail;
+      if (!SendSmtpEmail) {
+        throw new Error('Brevo SDK: SendSmtpEmail não encontrado');
+      }
 
-    sendSmtpEmail.subject = 'Código de Recuperação de Senha - GAC';
-    sendSmtpEmail.to = [{ email, name: email.split('@')[0] }];
+      const sendSmtpEmail = new SendSmtpEmail();
+
+      sendSmtpEmail.subject = 'Código de Recuperação de Senha - GAC';
+      sendSmtpEmail.to = [{ email, name: email.split('@')[0] }];
     sendSmtpEmail.htmlContent = `
       <!DOCTYPE html>
       <html lang="pt-BR">
@@ -222,14 +237,12 @@ export async function enviarEmailRecuperacao(email, token) {
       email
     };
 
-  } catch (erro) {
-    console.error('❌ Erro ao enviar email de recuperação:', erro.message);
-    
-    // Em caso de erro, ainda logar o código para debug
-    console.log(`📧 [FALLBACK] Código de recuperação para ${email}: ${token}`);
-    
-    throw new Error(`Falha ao enviar email: ${erro.message}`);
-  }
+    } catch (erro) {
+      console.error('❌ Erro ao enviar email de recuperação:', erro && (erro.stack || erro.message) || erro);
+      // Em caso de erro, ainda logar o código para debug
+      console.log(`📧 [FALLBACK] Código de recuperação para ${email}: ${token}`);
+      throw new Error(`Falha ao enviar email: ${erro && (erro.message || erro)}`);
+    }
 }
 
 /**
