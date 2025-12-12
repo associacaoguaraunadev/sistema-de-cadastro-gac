@@ -51,27 +51,26 @@ export async function gerarTokenGeracao(req, res) {
 
     const prismaClient = getPrisma();
 
-    // Verificar se o email já tem um usuário ou token pendente
-    const usuarioExistente = await prismaClient.usuario.findUnique({
-      where: { email }
-    });
-
-    if (usuarioExistente) {
-      return res.status(409).json({ 
-        erro: 'Email já possui uma conta criada',
-        statusCode: 409
-      });
+    // Verificar se o email já tem um usuário
+    try {
+      const usuarioExistente = await prismaClient.usuario.findUnique({ where: { email } });
+      if (usuarioExistente) {
+        return res.status(409).json({ erro: 'Email já possui uma conta criada', statusCode: 409 });
+      }
+    } catch (e) {
+      console.error('Erro ao verificar usuário existente (tokens):', e.stack || e.message || e);
+      return res.status(500).json({ erro: 'Erro ao verificar existência de usuário' });
     }
 
-    const tokenPendente = await prismaClient.tokenGeracao.findUnique({
-      where: { email }
-    });
-
-    if (tokenPendente && !tokenPendente.usado && tokenPendente.dataExpiracao > new Date()) {
-      return res.status(409).json({ 
-        erro: 'Email já possui um token pendente',
-        statusCode: 409
-      });
+    // Verificar se já existe token pendente para esse email (findFirst por segurança)
+    try {
+      const tokenPendente = await prismaClient.tokenGeracao.findFirst({ where: { email } });
+      if (tokenPendente && !tokenPendente.usado && new Date(tokenPendente.dataExpiracao) > new Date()) {
+        return res.status(409).json({ erro: 'Email já possui um token pendente', statusCode: 409 });
+      }
+    } catch (e) {
+      console.error('Erro ao verificar token pendente (tokens):', e.stack || e.message || e);
+      return res.status(500).json({ erro: 'Erro ao verificar tokens existentes' });
     }
 
     // Gerar token único com prefixo para identificação
@@ -80,33 +79,31 @@ export async function gerarTokenGeracao(req, res) {
     const dataExpiracao = new Date();
     dataExpiracao.setDate(dataExpiracao.getDate() + 7); // 7 dias de validade
 
-    // Salvar token no banco
-    const novoToken = await prismaClient.tokenGeracao.upsert({
-      where: { email },
-      update: {
-        token,
-        usado: false,
-        dataCriacao: new Date(),
-        dataExpiracao
-      },
-      create: {
-        email,
-        token,
-        usado: false,
-        dataCriacao: new Date(),
-        dataExpiracao
-      }
-    });
+    // Salvar token no banco com upsert (email é unique no schema)
+    try {
+      const novoToken = await prismaClient.tokenGeracao.upsert({
+        where: { email },
+        update: {
+          token,
+          usado: false,
+          dataCriacao: new Date(),
+          dataExpiracao
+        },
+        create: {
+          email,
+          token,
+          usado: false,
+          dataCriacao: new Date(),
+          dataExpiracao
+        }
+      });
 
-    console.log(`✅ Token gerado para ${email}`);
-
-    return res.status(201).json({
-      sucesso: true,
-      mensagem: 'Token gerado com sucesso',
-      token: novoToken.token,
-      email: novoToken.email,
-      dataExpiracao: novoToken.dataExpiracao
-    });
+      console.log(`✅ Token gerado para ${email}`);
+      return res.status(201).json({ sucesso: true, mensagem: 'Token gerado com sucesso', token: novoToken.token, email: novoToken.email, dataExpiracao: novoToken.dataExpiracao });
+    } catch (e) {
+      console.error('Erro ao salvar token (tokens):', e.stack || e.message || e);
+      return res.status(500).json({ erro: 'Erro ao salvar token' });
+    }
   } catch (erro) {
     console.error('❌ Erro ao gerar token:', erro);
     return res.status(500).json({
