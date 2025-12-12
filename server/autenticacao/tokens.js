@@ -9,6 +9,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { verificarToken } from '../middleware/autenticacao.js';
+import { fileURLToPath } from 'url';
 
 let prisma;
 
@@ -16,25 +17,39 @@ async function getPrisma() {
   if (prisma) return prisma;
 
   // Quick check: is generated client present on disk?
-  try {
-    const clientPath = path.join(process.cwd(), 'node_modules', '@prisma', 'client', 'index.js');
-    if (!fs.existsSync(clientPath)) {
-      const msg = 'Prisma Client não encontrado em node_modules. Execute `npx prisma generate` durante o build/deploy e inclua o client gerado no bundle.';
-      console.error('❌ Falha ao inicializar Prisma Client. Certifique-se de rodar `npx prisma generate` durante o build/deploy e incluir o client gerado no bundle.');
-      throw new Error(msg);
-    }
-  } catch (chkErr) {
-    console.error('❌ Erro ao verificar presença do Prisma Client:', chkErr && (chkErr.stack || chkErr.message) || chkErr);
-  }
-
+  // Try default dynamic import first (resolves via Node module resolution)
   try {
     const mod = await import('@prisma/client');
     const { PrismaClient } = mod;
     prisma = new PrismaClient({ log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn'] });
     return prisma;
-  } catch (err) {
-    console.error('❌ Falha ao inicializar Prisma Client. Certifique-se de rodar `npx prisma generate` durante o build/deploy e incluir o client gerado no bundle. Detalhe:', err && (err.stack || err.message) || err);
-    throw err;
+  } catch (err1) {
+    // If default import failed, attempt to locate client under the `api` package (common in monorepos)
+    try {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const apiClientPath = path.join(process.cwd(), 'api', 'node_modules', '@prisma', 'client', 'index.js');
+      const altClientPath = path.join(__dirname, '..', '..', 'api', 'node_modules', '@prisma', 'client', 'index.js');
+      const candidates = [apiClientPath, altClientPath];
+      for (const cand of candidates) {
+        if (fs.existsSync(cand)) {
+          try {
+            const fileUrl = `file://${path.resolve(cand)}`;
+            const mod2 = await import(fileUrl);
+            const { PrismaClient } = mod2;
+            prisma = new PrismaClient({ log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn'] });
+            return prisma;
+          } catch (errImport) {
+            console.warn('⚠️ Falha ao importar Prisma client a partir de caminho absoluto:', cand, errImport && (errImport.message || errImport));
+          }
+        }
+      }
+    } catch (chkErr) {
+      console.warn('⚠️ Erro ao tentar importar client do diretório api:', chkErr && (chkErr.message || chkErr));
+    }
+
+    console.error('❌ Falha ao inicializar Prisma Client. Certifique-se de rodar `npx prisma generate` durante o build/deploy e incluir o client gerado no bundle. Detalhe:', err1 && (err1.stack || err1.message) || err1);
+    throw err1;
   }
 }
 
