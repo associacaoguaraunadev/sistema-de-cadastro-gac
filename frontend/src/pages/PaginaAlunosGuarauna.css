@@ -450,7 +450,10 @@
   font-size: 11px;
   color: #e65100;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
+  max-width: 320px;
+  max-height: 160px;
+  overflow: auto;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease;
@@ -472,6 +475,21 @@
   opacity: 1;
   pointer-events: auto;
 }
+
+/* Preview modal styles */
+.modal-preview-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 10050;
+  padding: 20px;
+}
+.modal-conteudo.modal-preview{ max-width: 880px; }
+.saude-preview-list{ display:flex; flex-direction:column; gap:8px; }
+.saude-preview-item{ background:#fff7ed; padding:12px; border-radius:6px; color:#7a2e00; font-weight:600; }
 
 @media (max-width: 768px) {
   .card-aluno {

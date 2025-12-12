@@ -18,6 +18,7 @@ import {
   Phone,
   Award,
   Heart,
+  Eye,
   Edit2,
   Trash2,
   X,
@@ -134,6 +135,9 @@ const PaginaAlunosGuarauna = () => {
   // Modal de confirmação
   const [modalDeletar, setModalDeletar] = useState(false);
   const [alunoSelecionado, setAlunoSelecionado] = useState(null);
+  // Preview de saúde
+  const [modalPreviewSaude, setModalPreviewSaude] = useState(false);
+  const [previewSaudeAluno, setPreviewSaudeAluno] = useState(null);
 
   // Busca de pessoa existente
   const [buscaPessoa, setBuscaPessoa] = useState('');
@@ -630,12 +634,21 @@ const PaginaAlunosGuarauna = () => {
                     
                     <div className="card-aluno-footer">
                       {temAlerta && (
-                        <div className="saude-tooltip">
-                          <Heart size={16} className="saude-tooltip-icon" />
-                          <div className="saude-tooltip-content">
-                            {dadosSaude.join(' • ')}
-                          </div>
-                        </div>
+                              <div className="saude-tooltip">
+                                <Heart size={16} className="saude-tooltip-icon" />
+                                <div className="saude-tooltip-content">
+                                  {dadosSaude.join('\n')}
+                                </div>
+                              </div>
+                            )}
+                            {temAlerta && (
+                              <button
+                                className="btn-card-acao visualizar"
+                                title="Visualizar informações de saúde"
+                                onClick={() => { setPreviewSaudeAluno({ nome, dadosSaude }); setModalPreviewSaude(true); }}
+                              >
+                                <Eye size={14} />
+                              </button>
                       )}
                       <button 
                         className="btn-card-acao editar"
@@ -977,6 +990,27 @@ const PaginaAlunosGuarauna = () => {
                   </>
                 )}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Preview de Saúde */}
+      {modalPreviewSaude && (
+        <div className="modal-preview-overlay" onClick={() => setModalPreviewSaude(false)}>
+          <div className="modal-conteudo modal-grande modal-preview" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Informações de Saúde - {previewSaudeAluno?.nome || ''}</h2>
+              <button className="btn-fechar" onClick={() => setModalPreviewSaude(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="saude-preview-list">
+                {(previewSaudeAluno?.dadosSaude || []).map((linha, i) => (
+                  <div key={i} className="saude-preview-item">{linha}</div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
