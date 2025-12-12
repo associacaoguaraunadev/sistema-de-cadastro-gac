@@ -468,6 +468,36 @@ async function rotear(req, res, slug) {
     }
   }
 
+  // DEBUG: verificar presença do Prisma Client gerado
+  if (rota === 'debug/prisma' && req.method === 'GET') {
+    try {
+      const clientPath1 = path.join(process.cwd(), 'api', 'node_modules', '@prisma', 'client');
+      const clientPath2 = path.join(process.cwd(), 'node_modules', '@prisma', 'client');
+      const prismaGenPath = path.join(process.cwd(), 'node_modules', '.prisma', 'client');
+      const exists = fs.existsSync(clientPath1) || fs.existsSync(clientPath2);
+      const prismaExists = fs.existsSync(prismaGenPath);
+      const prismaFiles = prismaExists ? fs.readdirSync(prismaGenPath) : [];
+      return res.status(200).json({ exists, clientPath1, clientPath2, prismaExists, prismaGenPath, prismaFiles });
+    } catch (err) {
+      return res.status(500).json({ erro: err.message });
+    }
+  }
+
+  // DEBUG: tentar importar dinamicamente @prisma/client (verificar erro de inicialização)
+  if (rota === 'debug/prisma/import' && req.method === 'GET') {
+    try {
+      try {
+        const mod = await import('@prisma/client');
+        const { PrismaClient } = mod;
+        return res.status(200).json({ importOk: true, note: 'import succeeded (module resolved)'});
+      } catch (impErr) {
+        return res.status(500).json({ importOk: false, error: impErr && (impErr.stack || impErr.message) || String(impErr) });
+      }
+    } catch (err) {
+      return res.status(500).json({ erro: err.message });
+    }
+  }
+
   // AUTENTICAÇÃO
   if (rota === 'autenticacao/entrar' && req.method === 'POST') {
     return autenticacaoEntrar(req, res);
