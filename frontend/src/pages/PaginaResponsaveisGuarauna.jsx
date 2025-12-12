@@ -803,12 +803,26 @@ const PaginaResponsaveisGuarauna = () => {
       console.log("Responsável para edição:", responsavelParaEditar);
       
       // Mapear IDs dos alunos - garantir que são strings (UUIDs)
-      const alunosIds = responsavelParaEditar.alunos?.map(rel => {
-        const id = rel.alunoId || rel.aluno?.id || rel.id;
-        return id ? String(id) : null;
-      }).filter(id => id !== null && id !== undefined) || [];
-      
-      // Log dos alunos vinculados para diagnóstico
+      // Extração robusta de IDs mesmo se backend retornar formatos diferentes
+      const extractAlunoId = (rel) => {
+        if (!rel) return null;
+        // Caso 1: relação clássica { alunoId }
+        if (rel.alunoId) return String(rel.alunoId);
+        // Caso 2: relação com objeto aluno { aluno: { id } }
+        if (rel.aluno && (rel.aluno.id || rel.aluno.id === 0)) return String(rel.aluno.id);
+        // Caso 3: backend pode retornar diretamente o objeto aluno na lista
+        if (rel.id && rel.pessoa) return String(rel.id);
+        // Caso 4: nested pessoa id
+        if (rel.aluno && rel.aluno.pessoa && rel.aluno.pessoa.id) return String(rel.aluno.pessoa.id);
+        // Caso 5: campo alternativo
+        if (rel.aluno_id) return String(rel.aluno_id);
+        return null;
+      };
+
+      const alunosIds = (responsavelParaEditar.alunos || []).map(rel => extractAlunoId(rel)).filter(Boolean);
+
+      // Log dos alunos vinculados para diagnóstico (mostra raw e extraído)
+      console.log("Raw alunos retornados:", responsavelParaEditar.alunos);
       console.log("IDs de alunos vinculados:", alunosIds);
       
       // Obter valores brutos (sem formatação)
