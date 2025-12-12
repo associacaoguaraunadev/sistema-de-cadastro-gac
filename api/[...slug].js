@@ -35,7 +35,26 @@ async function getEmailService() {
     }
   }
 }
-import { solicitarRecuperacao } from './servicos/recuperacaoSenha.js';
+// Recuperação de senha: carregamento dinâmico do serviço para evitar ERR_MODULE_NOT_FOUND
+let _recSvc = null;
+async function getRecuperacaoService() {
+  if (_recSvc) return _recSvc;
+  try {
+    _recSvc = await import('./servicos/recuperacaoSenha.js');
+    return _recSvc;
+  } catch (e1) {
+    try {
+      _recSvc = await import('../server/servicos/recuperacaoSenha.js');
+      return _recSvc;
+    } catch (e2) {
+      console.warn('⚠️ Serviço de recuperação não encontrado via imports dinâmicos.', e1?.message, e2?.message);
+      _recSvc = {
+        solicitarRecuperacao: async (email) => { throw new Error('servico recuperacao ausente'); }
+      };
+      return _recSvc;
+    }
+  }
+}
 
 // Pool de conexão Prisma - CRUCIAL para serverless
 let prisma;
@@ -5174,7 +5193,7 @@ async function aceiteMatriculaObterPublico(req, res, codigo) {
 async function aceiteMatriculaRegistrar(req, res, codigo) {
   const prisma = getPrisma();
   try {
-    const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem } = req.body || {};
+    const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem, respostasQuestionario } = req.body || {};
 
     const aceiteExistente = await prisma.aceiteDigital.findUnique({ where: { codigo } });
 
@@ -5191,30 +5210,61 @@ async function aceiteMatriculaRegistrar(req, res, codigo) {
       .update(`${aceiteExistente.matriculaId}-${responsavelId}-${Date.now()}`)
       .digest('hex');
 
+    // Atualiza o aceite com quem aceitou e metadados, marcando aceitoEm
     const aceiteAtualizado = await prisma.aceiteDigital.update({
       where: { codigo },
       data: {
         responsavelId,
-        termoLGPD,
-        termoResponsabilidade,
-        termoImagem,
+        termoLGPD: termoLGPD ?? aceiteExistente.termoLGPD,
+        termoResponsabilidade: termoResponsabilidade ?? aceiteExistente.termoResponsabilidade,
+        termoImagem: termoImagem ?? aceiteExistente.termoImagem,
         dispositivoInfo: req.headers['user-agent'],
         ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
-        hashVerificacao
+        hashVerificacao,
+        aceitoEm: new Date()
       }
     });
 
-    // Atualizar status da matrícula
-    await prisma.matricula.update({
-      where: { id: aceiteExistente.matriculaId },
-      data: { status: 'ATIVA', dataMatricula: new Date() }
-    });
+    // Se for aceite de MATRÍCULA ou REMATRÍCULA, ativar matrícula e gravar dataMatricula
+    if (aceiteAtualizado.tipo === 'MATRICULA' || aceiteAtualizado.tipo === 'REMATRICULA') {
+      await prisma.matricula.update({
+        where: { id: aceiteAtualizado.matriculaId },
+        data: { status: 'ATIVA', dataMatricula: new Date() }
+      });
+    }
 
-    log(`✅ Aceite de matrícula registrado`);
+    // Se vier respostas do questionário, gravar no Aluno (ou Matricula) conforme implementação
+    if (respostasQuestionario && aceiteAtualizado.tipo === 'QUESTIONARIO_SAUDE') {
+      try {
+        const matricula = await prisma.matricula.findUnique({ where: { id: aceiteAtualizado.matriculaId } });
+        if (matricula && matricula.alunoId) {
+          await prisma.alunoGuarauna.update({
+            where: { id: matricula.alunoId },
+            data: {
+              observacoes: JSON.stringify(respostasQuestionario)
+            }
+          });
+        }
+      } catch (errQ) {
+        log(`⚠️ Falha ao persistir respostas do questionário: ${errQ.message}`, 'warn');
+      }
+    }
+
+    // Tornar o link antigo inacessível imediatamente: sobrescrever o código público
+    try {
+      const cryptoMod = await import('crypto');
+      const novoCodigo = typeof cryptoMod.randomUUID === 'function' ? cryptoMod.randomUUID() : cryptoMod.randomBytes(16).toString('hex');
+      await prisma.aceiteDigital.update({ where: { id: aceiteAtualizado.id }, data: { codigo: novoCodigo } });
+    } catch (errInvalidate) {
+      log(`⚠️ Falha ao invalidar código antigo: ${errInvalidate.message}`, 'warn');
+    }
+
+    log(`✅ Aceite de matrícula do tipo ${aceiteAtualizado.tipo} registrado`);
 
     res.json({
       mensagem: 'Aceite registrado com sucesso',
-      hash: hashVerificacao
+      hash: hashVerificacao,
+      tipo: aceiteAtualizado.tipo
     });
   } catch (erro) {
     log(`Erro ao registrar aceite matrícula: ${erro.message}`, 'error');
@@ -5292,150 +5342,6 @@ async function guaraunaDashboard(req, res) {
 
   // Fim do guaraunaDashboard
 
-  const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem, respostasQuestionario } = req.body || {};
-
-        const aceiteExistente = await prisma.aceiteDigital.findUnique({ where: { codigo } });
-
-        if (!aceiteExistente) {
-          return res.status(404).json({ erro: 'Link de aceite não encontrado' });
-        }
-
-        // Se já foi aceito anteriormente (responsavelId preenchido e aceitoEm existe), bloquear
-        if (aceiteExistente.responsavelId && aceiteExistente.aceitoEm) {
-          return res.status(400).json({ erro: 'Este aceite já foi realizado' });
-        }
-
-        const cryptoMod = await import('crypto');
-        const hashVerificacao = cryptoMod.createHash('sha256').update(`${aceiteExistente.matriculaId}-${responsavelId}-${Date.now()}`).digest('hex');
-
-        // Atualiza o registro do aceite com quem aceitou e metadados
-        const aceiteAtualizado = await prisma.aceiteDigital.update({
-          where: { codigo },
-          data: {
-            responsavelId,
-            termoLGPD: termoLGPD ?? aceiteExistente.termoLGPD,
-            termoResponsabilidade: termoResponsabilidade ?? aceiteExistente.termoResponsabilidade,
-            termoImagem: termoImagem ?? aceiteExistente.termoImagem,
-            dispositivoInfo: req.headers['user-agent'],
-            ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
-            hashVerificacao,
-            aceitoEm: new Date()
-          }
-        });
-
-        // Se for aceite de MATRÍCULA ou REMATRÍCULA, ativar matrícula e gravar dataMatricula
-        if (aceiteAtualizado.tipo === 'MATRICULA' || aceiteAtualizado.tipo === 'REMATRICULA') {
-          await prisma.matricula.update({
-            where: { id: aceiteAtualizado.matriculaId },
-            data: { status: 'ATIVA', dataMatricula: new Date() }
-          });
-        }
-
-        // Se vier respostas do questionário, gravar no Aluno (ou Matricula) conforme implementação (aqui opcional)
-        if (respostasQuestionario && aceiteAtualizado.tipo === 'QUESTIONARIO_SAUDE') {
-          try {
-            // Tentamos atualizar o aluno vinculado à matrícula
-            const matricula = await prisma.matricula.findUnique({ where: { id: aceiteAtualizado.matriculaId } });
-            if (matricula && matricula.alunoId) {
-              await prisma.alunoGuarauna.update({
-                where: { id: matricula.alunoId },
-                data: { 
-                  // armazenar as respostas em um campo JSON livre (ex: observacoes) ou campos dedicados
-                  // Ajuste conforme schema real; aqui usamos 'observacoes' como fallback se existir
-                  observacoes: JSON.stringify(respostasQuestionario)
-                }
-              });
-            }
-          } catch (errQ) {
-            log(`⚠️ Falha ao persistir respostas do questionário: ${errQ.message}`, 'warn');
-          }
-        }
-
-        // Tornar o link antigo inacessível imediatamente: sobrescrever o código público
-        try {
-          const novoCodigo = typeof cryptoMod.randomUUID === 'function' ? cryptoMod.randomUUID() : cryptoMod.randomBytes(16).toString('hex');
-          await prisma.aceiteDigital.update({ where: { id: aceiteAtualizado.id }, data: { codigo: novoCodigo } });
-        } catch (errInvalidate) {
-          log(`⚠️ Falha ao invalidar código antigo: ${errInvalidate.message}`, 'warn');
-        }
-
-        log(`✅ Aceite de matrícula do tipo ${aceiteAtualizado.tipo} registrado`);
-
-        res.json({ mensagem: 'Aceite registrado com sucesso', hash: hashVerificacao, tipo: aceiteAtualizado.tipo });
-
-  // Extrair slug de forma segura e robusta
-  let slug = [];
-  
-  // Método 1: req.query.slug (padrão Vercel para [...slug])
-  if (req.query.slug && Array.isArray(req.query.slug)) {
-    slug = req.query.slug;
-    log(`📌 Slug obtido de req.query.slug (array): ${slug.join('/')}`);
-  } else if (req.query.slug && typeof req.query.slug === 'string') {
-    slug = [req.query.slug];
-    log(`📌 Slug obtido de req.query.slug (string): ${slug.join('/')}`);
-  }
-  // Método 2: Extrair do URL se não conseguir por query
-  else if (req.url && req.url.length > 1) {
-    try {
-      // Usar URL API do WHATWG para parsing seguro
-      const baseUrl = `http://${req.headers.host || 'localhost'}`;
-      const urlObj = new URL(req.url, baseUrl);
-      let pathname = urlObj.pathname;
-      
-      // Remover /api/ prefix
-      if (pathname.startsWith('/api/')) {
-        pathname = pathname.slice(5); // Remove "/api/"
-      } else if (pathname.startsWith('/api')) {
-        pathname = pathname.slice(4); // Remove "/api"
-      }
-      
-      // Split e filtrar partes vazias
-      slug = pathname.split('/').filter(p => p.length > 0);
-      log(`📌 Slug obtido do URL pathname: ${slug.join('/')}`);
-    } catch (erro) {
-      log(`Erro ao fazer parse da URL: ${erro.message}`, 'error');
-      log(`URL original: ${req.url}`);
-      slug = [];
-    }
-  }
-
-  // Limpar query strings do slug (em caso de teste local)
-  slug = slug.map(s => {
-    const parts = s.split('?');
-    return parts[0]; // Retorna apenas a parte antes de '?'
-  }).filter(s => s.length > 0);
-
-  // Fazer parse de query strings do URL
-  if (!req.query || Object.keys(req.query).length === 0 || !req.query.pagina) {
-    try {
-      const baseUrl = `http://${req.headers.host || 'localhost'}`;
-      const urlObj = new URL(req.url, baseUrl);
-      req.query = req.query || {};
-      
-      // Pega todos os parâmetros de query
-      const searchParams = new URLSearchParams(urlObj.search);
-      searchParams.forEach((value, key) => {
-        req.query[key] = value;
-      });
-      
-      // Se nenhum parâmetro foi encontrado no URL, tenta manter os existentes
-      if (searchParams.size === 0 && Object.keys(req.query).length > 1) {
-        // Ok, já tinha query
-      }
-    } catch (erro) {
-      req.query = req.query || {};
-    }
-  }
-
-  const rotaStr = slug.join('/');
-  log(`📍 [${req.method}] Rota: "${rotaStr}" | URL: "${req.url}" | Host: ${req.headers.host}`);
-  
-  // DEBUG: Se rota vazia, logar mais detalhes
-  if (!rotaStr || rotaStr === '') {
-    log(`⚠️ ROTA VAZIA! query.slug: ${JSON.stringify(req.query.slug)}`, 'error');
-  }
-  
-  return rotear(req, res, slug);
 }
 
 async function guaraunaMatriculasDeletar(req, res, id) {
@@ -5612,7 +5518,8 @@ async function testarEnvioRecuperacao(req, res) {
     if (!email) return res.status(400).json({ erro: 'Email é obrigatório' });
 
     // Gera e persiste token (reaproveita lógica segura existente)
-    const resultado = await solicitarRecuperacao(email);
+    const recSvc = await getRecuperacaoService();
+    const resultado = await recSvc.solicitarRecuperacao(email);
 
     // Tenta enviar o email de recuperação (não deve travar em produção se falhar)
     try {
