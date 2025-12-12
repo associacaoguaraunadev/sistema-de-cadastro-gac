@@ -261,6 +261,31 @@ function sanitizarPessoa(data) {
   return dataSanitizada;
 }
 
+// Escapa texto simples para evitar XSS quando injetamos valores em modelos HTML
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Renderiza placeholders no formato {{chave}} ou {{obj.campo}} usando um mapa de dados.
+function renderTemplate(html, data) {
+  if (!html) return '';
+  return String(html).replace(/{{\s*([\w\.]+)\s*}}/g, (_, key) => {
+    const parts = key.split('.');
+    let val = data;
+    for (const p of parts) {
+      if (val == null) { val = ''; break; }
+      val = val[p];
+    }
+    return escapeHtml(val == null ? '' : val);
+  });
+}
+
 // Rotas
 async function rotear(req, res, slug) {
   const rota = slug.join('/');
@@ -4561,6 +4586,16 @@ async function guaraunaMatriculasAtualizar(req, res, id) {
       return res.status(400).json({ erro: 'Não é permitido definir o status como ATIVA via API.' });
     }
 
+    // Proibir mudança de ATIVA para CONCLUIDA ou PENDENTE via API
+    if (status) {
+      const novoStatusUpper = String(status).toUpperCase();
+      // buscar matrícula atual
+      const atual = await prisma.matricula.findUnique({ where: { id } });
+      if (atual && String(atual.status).toUpperCase() === 'ATIVA' && (novoStatusUpper === 'CONCLUIDA' || novoStatusUpper === 'PENDENTE')) {
+        return res.status(400).json({ erro: 'Não é permitido alterar o status de ATIVA para CONCLUIDA ou PENDENTE.' });
+      }
+    }
+
     // Normalizar nomes de campos e status
     const dadosAtualizar = {
       tamanhoCamiseta,
@@ -5005,7 +5040,8 @@ async function aceiteMatriculaObterPublico(req, res, codigo) {
           include: {
             aluno: { include: { pessoa: true } }
           }
-        }
+        },
+        responsavel: { include: { pessoa: true } }
       }
     });
 
@@ -5013,9 +5049,38 @@ async function aceiteMatriculaObterPublico(req, res, codigo) {
       return res.status(404).json({ erro: 'Link de aceite não encontrado' });
     }
 
+    // Puxar dados de saúde do aluno (já persistidos em Aluno)
+    const aluno = aceite.matricula?.aluno || null;
+
+    // Tentar carregar um modelo de termo específico para este tipo de aceite
+    const modelo = await prisma.modeloTermoAceite.findFirst({ where: { tipo: aceite.tipo, ativo: true } });
+
+    const pessoaAluno = aluno?.pessoa || null;
+    const pessoaResponsavel = aceite.responsavel?.pessoa || null;
+
+    const placeholderData = {
+      nomeAluno: pessoaAluno?.nome || '',
+      nomeResponsavel: pessoaResponsavel?.nome || '',
+      cidade: pessoaAluno?.cidade || pessoaResponsavel?.cidade || '',
+      data: new Date().toLocaleDateString('pt-BR'),
+      matriculaId: aceite.matriculaId || '',
+      ano: aceite.matricula?.ano || ''
+    };
+
+    const termoHtml = modelo ? renderTemplate(modelo.conteudoHTML, placeholderData) : null;
+
     res.json({
+      aceite: { id: aceite.id, tipo: aceite.tipo, codigo: aceite.codigo, responsavelId: aceite.responsavelId },
       matricula: aceite.matricula,
-      aluno: aceite.matricula.aluno.pessoa.nome
+      aluno: aluno,
+      dadosSaude: aluno ? {
+        doencas: aluno.doencas || null,
+        alergias: aluno.alergias || null,
+        medicamentos: aluno.medicamentos || null,
+        necessidadesEspeciais: aluno.necessidadesEspeciais || null
+      } : null,
+      modeloTermo: modelo ? { id: modelo.id, titulo: modelo.titulo } : null,
+      termoHtml
     });
   } catch (erro) {
     log(`Erro ao obter aceite matrícula: ${erro.message}`, 'error');
@@ -5137,79 +5202,76 @@ async function guaraunaDashboard(req, res) {
       log(`❌ Stack: ${eroPrisma.stack}`, 'error');
       throw eroPrisma;
     }
-  } catch (erro) {
-    log(`❌ Erro ao obter dashboard: ${erro.message}`, 'error');
-    log(`❌ Stack: ${erro.stack}`, 'error');
-    res.status(500).json({ erro: 'Erro ao obter dashboard', detalhes: erro.message });
-  }
-}
+        const { responsavelId, termoLGPD, termoResponsabilidade, termoImagem, respostasQuestionario } = req.body;
 
-// ==================== HANDLER PRINCIPAL ====================
+        const aceiteExistente = await prisma.aceiteDigital.findUnique({ where: { codigo } });
 
-export default async function handler(req, res) {
-  setCors(res, req);
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // PARSE DO BODY - CRUCIAL PARA VERCEL
-  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
-    try {
-      log(`\n🔄 INICIANDO PARSE DO BODY 🔄`);
-      log(`Método: ${req.method}`);
-      log(`Content-Type: ${req.headers['content-type']}`);
-      log(`Content-Length: ${req.headers['content-length']}`);
-      log(`req.body já existe? ${!!req.body}`);
-      log(`typeof req.body: ${typeof req.body}`);
-      
-      // Vercel pode já ter parseado o body
-      if (req.body) {
-        log(`Body já existe`);
-        if (typeof req.body === 'string') {
-          log(`Body é string, parseando...`);
-          req.body = JSON.parse(req.body);
-          log(`✅ Body parseado: ${JSON.stringify(req.body).substring(0, 100)}`);
-        } else if (typeof req.body === 'object') {
-          log(`✅ Body já é objeto: ${JSON.stringify(req.body).substring(0, 100)}`);
+        if (!aceiteExistente) {
+          return res.status(404).json({ erro: 'Link de aceite não encontrado' });
         }
-      } else {
-        // Se não tem body, tentar ler do stream
-        log(`Body não existe, lendo do stream...`);
-        let body = '';
-        await new Promise((resolve, reject) => {
-          req.on('data', chunk => {
-            log(`📥 Chunk recebido: ${chunk.length} bytes`);
-            body += chunk.toString();
-          });
-          req.on('end', () => {
-            log(`📥 Stream finalizado. Total: ${body.length} bytes`);
-            resolve();
-          });
-          req.on('error', (err) => {
-            log(`❌ Erro no stream: ${err.message}`, 'error');
-            reject(err);
-          });
+
+        // Se já foi aceito anteriormente (responsavelId preenchido e aceitoEm existe), bloquear
+        if (aceiteExistente.responsavelId && aceiteExistente.aceitoEm) {
+          return res.status(400).json({ erro: 'Este aceite já foi realizado' });
+        }
+
+        const cryptoMod = await import('crypto');
+        const hashVerificacao = cryptoMod.createHash('sha256').update(`${aceiteExistente.matriculaId}-${responsavelId}-${Date.now()}`).digest('hex');
+
+        // Atualiza o registro do aceite com quem aceitou e metadados
+        const aceiteAtualizado = await prisma.aceiteDigital.update({
+          where: { codigo },
+          data: {
+            responsavelId,
+            termoLGPD: termoLGPD ?? aceiteExistente.termoLGPD,
+            termoResponsabilidade: termoResponsabilidade ?? aceiteExistente.termoResponsabilidade,
+            termoImagem: termoImagem ?? aceiteExistente.termoImagem,
+            dispositivoInfo: req.headers['user-agent'],
+            ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+            hashVerificacao,
+            aceitoEm: new Date()
+          }
         });
-        
-        if (body && body.trim().length > 0) {
-          log(`Body raw: ${body.substring(0, 200)}`);
-          req.body = JSON.parse(body);
-          log(`✅ Body parseado do stream: ${JSON.stringify(req.body).substring(0, 100)}`);
-        } else {
-          log(`⚠️ Body vazio após ler stream`, 'error');
-          req.body = {};
+
+        // Se for aceite de MATRÍCULA ou REMATRÍCULA, ativar matrícula e gravar dataMatricula
+        if (aceiteAtualizado.tipo === 'MATRICULA' || aceiteAtualizado.tipo === 'REMATRICULA') {
+          await prisma.matricula.update({
+            where: { id: aceiteAtualizado.matriculaId },
+            data: { status: 'ATIVA', dataMatricula: new Date() }
+          });
         }
-      }
-      log(`🔄 FIM PARSE DO BODY 🔄\n`);
-    } catch (erro) {
-      log(`❌ Erro ao fazer parse do body: ${erro.message}`, 'error');
-      log(`Stack: ${erro.stack}`, 'error');
-      req.body = {};
-    }
-  } else {
-    req.body = {};
-  }
+
+        // Se vier respostas do questionário, gravar no Aluno (ou Matricula) conforme implementação (aqui opcional)
+        if (respostasQuestionario && aceiteAtualizado.tipo === 'QUESTIONARIO_SAUDE') {
+          try {
+            // Tentamos atualizar o aluno vinculado à matrícula
+            const matricula = await prisma.matricula.findUnique({ where: { id: aceiteAtualizado.matriculaId } });
+            if (matricula && matricula.alunoId) {
+              await prisma.alunoGuarauna.update({
+                where: { id: matricula.alunoId },
+                data: { 
+                  // armazenar as respostas em um campo JSON livre (ex: observacoes) ou campos dedicados
+                  // Ajuste conforme schema real; aqui usamos 'observacoes' como fallback se existir
+                  observacoes: JSON.stringify(respostasQuestionario)
+                }
+              });
+            }
+          } catch (errQ) {
+            log(`⚠️ Falha ao persistir respostas do questionário: ${errQ.message}`, 'warn');
+          }
+        }
+
+        // Tornar o link antigo inacessível imediatamente: sobrescrever o código público
+        try {
+          const novoCodigo = typeof cryptoMod.randomUUID === 'function' ? cryptoMod.randomUUID() : cryptoMod.randomBytes(16).toString('hex');
+          await prisma.aceiteDigital.update({ where: { id: aceiteAtualizado.id }, data: { codigo: novoCodigo } });
+        } catch (errInvalidate) {
+          log(`⚠️ Falha ao invalidar código antigo: ${errInvalidate.message}`, 'warn');
+        }
+
+        log(`✅ Aceite de matrícula do tipo ${aceiteAtualizado.tipo} registrado`);
+
+        res.json({ mensagem: 'Aceite registrado com sucesso', hash: hashVerificacao, tipo: aceiteAtualizado.tipo });
 
   // Extrair slug de forma segura e robusta
   let slug = [];
@@ -5313,8 +5375,7 @@ async function guaraunaAceiteCriar(req, res) {
     if (!usuario) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
-
-    const { matriculaId, responsavelId, termoLGPD = false, termoResponsabilidade = false, termoImagem = false } = req.body;
+    const { matriculaId, responsavelId, gerarVarios = false, tipos = null } = req.body;
 
     if (!matriculaId || !responsavelId) {
       return res.status(400).json({ erro: 'matriculaId e responsavelId são obrigatórios' });
@@ -5331,62 +5392,73 @@ async function guaraunaAceiteCriar(req, res) {
       return res.status(404).json({ erro: 'Responsável não encontrado' });
     }
 
-    // Gerar código público (UUID) e hash de verificação
-    // Usar import dinâmico para compatibilidade com ESM / ambientes sem `require`
+    // Tipos a criar: se gerarVarios=true, criar os 3 termos padrão (LGPD, RESPONSABILIDADE, QUESTIONARIO_SAUDE)
+    let tiposParaCriar = [];
+    if (gerarVarios) {
+      tiposParaCriar = ['LGPD', 'RESPONSABILIDADE', 'QUESTIONARIO_SAUDE'];
+    } else if (Array.isArray(tipos) && tipos.length > 0) {
+      tiposParaCriar = tipos;
+    } else {
+      tiposParaCriar = [ 'MATRICULA' ];
+    }
+
     const cryptoMod = await import('crypto');
-    const codigo = typeof cryptoMod.randomUUID === 'function'
-      ? cryptoMod.randomUUID()
-      : cryptoMod.randomBytes(16).toString('hex');
-    const hashVerificacao = cryptoMod.createHash('sha256').update(`${matriculaId}-${responsavelId}-${Date.now()}`).digest('hex');
+    const baseUrl = process.env.APP_URL || process.env.CORS_ORIGIN || 'http://localhost:5173';
 
-    // Se já existe um aceite para essa matrícula+responsável, retornamos o existente
-    let aceite = null;
-    try {
-      aceite = await prisma.aceiteDigital.findUnique({ where: { matriculaId_responsavelId: { matriculaId, responsavelId } } });
-    } catch (errFind) {
-      // Alguns clientes/versões do Prisma podem nomear a chave única composta de forma diferente.
-      // Tentar buscar pela combinação usando findFirst como fallback.
-      aceite = await prisma.aceiteDigital.findFirst({ where: { matriculaId, responsavelId } });
-    }
+    const resultados = [];
 
-    if (!aceite) {
-      aceite = await prisma.aceiteDigital.create({
-        data: {
-          codigo,
-          matriculaId,
-          responsavelId,
-          termoLGPD,
-          termoResponsabilidade,
-          termoImagem,
-          dispositivoInfo: req.headers['user-agent'],
-          ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
-          hashVerificacao
+    for (const tipo of tiposParaCriar) {
+      // Gerar código/hash
+      const codigo = typeof cryptoMod.randomUUID === 'function' ? cryptoMod.randomUUID() : cryptoMod.randomBytes(16).toString('hex');
+      const hashVerificacao = cryptoMod.createHash('sha256').update(`${matriculaId}-${responsavelId}-${tipo}-${Date.now()}`).digest('hex');
+
+      // Procurar aceite existente por (matriculaId,responsavelId,tipo)
+      let aceite = await prisma.aceiteDigital.findFirst({ where: { matriculaId, responsavelId, tipo } });
+
+      if (!aceite) {
+        try {
+          aceite = await prisma.aceiteDigital.create({
+            data: {
+              codigo,
+              matriculaId,
+              responsavelId,
+              tipo,
+              termoLGPD: tipo === 'LGPD',
+              termoResponsabilidade: tipo === 'RESPONSABILIDADE',
+              termoImagem: false,
+              dispositivoInfo: req.headers['user-agent'],
+              ipAddress: req.headers['x-forwarded-for'] || req.socket?.remoteAddress,
+              hashVerificacao
+            }
+          });
+        } catch (errCreate) {
+          // Fallback: se houver conflito por restrição única antiga, tentar obter o existente
+          log(`⚠️ Falha ao criar aceite (tipo=${tipo}): ${errCreate.message}`, 'warn');
+          aceite = await prisma.aceiteDigital.findFirst({ where: { matriculaId, responsavelId, tipo } });
         }
-      });
-    }
-
-    // Tentar enviar email com link público
-    try {
-      const baseUrl = process.env.APP_URL || process.env.CORS_ORIGIN || 'http://localhost:5173';
-      const linkPublico = `${baseUrl.replace(/\/$/, '')}/aceite/matricula/${codigo}`;
-
-      // Buscar email do responsável (pessoa)
-      const responsavelFull = await prisma.responsavelLegal.findUnique({ where: { id: responsavelId }, include: { pessoa: true } });
-      const emailDest = responsavelFull?.pessoa?.email;
-      const nomeDest = responsavelFull?.pessoa?.nome;
-
-      if (emailDest) {
-        const envio = await enviarEmailAceiteDigital(emailDest, nomeDest, codigo, linkPublico);
-        log(`📧 Tentativa de envio de aceite para ${emailDest}: ${envio.sucesso ? 'OK' : 'FALHOU'}`);
-      } else {
-        log(`⚠️ Responsável ${responsavelId} não possui email; link: ${linkPublico}`);
       }
-    } catch (errEmail) {
-      log(`Erro ao enviar email de aceite: ${errEmail.message}`, 'warn');
+
+      const linkPublico = `${baseUrl.replace(/\/$/, '')}/aceite/matricula/${aceite.codigo}`;
+
+      // Tentar enviar email (opcional)
+      try {
+        const responsavelFull = await prisma.responsavelLegal.findUnique({ where: { id: responsavelId }, include: { pessoa: true } });
+        const emailDest = responsavelFull?.pessoa?.email;
+        const nomeDest = responsavelFull?.pessoa?.nome;
+        if (emailDest) {
+          const envio = await enviarEmailAceiteDigital(emailDest, nomeDest, aceite.codigo, linkPublico);
+          log(`📧 Tentativa de envio do aceite (tipo=${tipo}) para ${emailDest}: ${envio.sucesso ? 'OK' : 'FALHOU'}`);
+        } else {
+          log(`⚠️ Responsável ${responsavelId} não possui email; link: ${linkPublico}`);
+        }
+      } catch (errEmail) {
+        log(`Erro ao enviar email de aceite (tipo=${tipo}): ${errEmail.message}`, 'warn');
+      }
+
+      resultados.push({ aceite, linkPublico });
     }
 
-    log(`✅ Aceite criado (codigo=${codigo}) para matricula ${matriculaId}`);
-    res.status(201).json({ aceite });
+    res.status(201).json({ aceites: resultados });
   } catch (erro) {
     log(`Erro ao criar aceite: ${erro.message}`, 'error');
     res.status(500).json({ erro: 'Erro ao criar aceite', detalhes: erro.message });

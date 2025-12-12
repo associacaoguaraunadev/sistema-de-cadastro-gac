@@ -538,6 +538,40 @@
   text-align: center;
 }
 
+.modal-confirmacao .alert-ativo {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: linear-gradient(90deg, rgba(255,240,240,0.8), rgba(255,250,240,0.6));
+  border: 1px solid rgba(255,200,200,0.7);
+  padding: 12px;
+  border-radius: 10px;
+  color: #7f1d1d;
+  margin: 12px 0;
+  text-align: left;
+}
+
+.modal-confirmacao .alert-ativo .alert-icone {
+  background: rgba(127,29,29,0.08);
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Estilo do modal de motivo de desistência */
+.modal-conteudo textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  resize: vertical;
+}
+
+.modal-conteudo .form-grupo label { margin-bottom: 8px; }
+
 .modal-confirmacao h3 {
   margin: 0 0 16px;
   color: #1a1a2e;

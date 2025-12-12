@@ -22,6 +22,7 @@ import {
   Save,
   Eye,
   Download
+  , AlertTriangle
 } from 'lucide-react';
 import { Link as LinkIcon, Copy } from 'lucide-react';
 import './PaginaMatriculasGuarauna.css';
@@ -53,6 +54,7 @@ const PaginaMatriculasGuarauna = () => {
   const [modalAberto, setModalAberto] = useState(false);
   const [matriculaEditando, setMatriculaEditando] = useState(null);
   const [salvando, setSalvando] = useState(false);
+  const [modalDesistencia, setModalDesistencia] = useState({ aberto: false, texto: '' });
   const [formData, setFormData] = useState({
     alunoId: '',
     ano: new Date().getFullYear(),
@@ -67,7 +69,7 @@ const PaginaMatriculasGuarauna = () => {
   const [modalConfirmacao, setModalConfirmacao] = useState({ aberto: false, matricula: null });
   
   // Modal de gerar link de aceite
-  const [modalAceite, setModalAceite] = useState({ aberto: false, matricula: null, responsaveis: [], responsavelId: '', gerando: false, codigo: null });
+  const [modalAceite, setModalAceite] = useState({ aberto: false, matricula: null, responsaveis: [], responsavelId: '', gerando: false, codigo: null, links: [] });
 
   const anosDisponiveis = [];
   const anoAtual = new Date().getFullYear();
@@ -345,9 +347,18 @@ const PaginaMatriculasGuarauna = () => {
         return;
       }
       const d = await res.json();
-      const codigo = d.codigo || d.aceite?.codigo || (d.aceite && d.aceite.codigo) || d.id || null;
-      setModalAceite(prev => ({ ...prev, gerando: false, codigo }));
-      adicionarToast('Link de aceite gerado', 'sucesso');
+      // Backend may return { aceites: [{aceite, linkPublico}, ...] } or single aceite
+      let resultados = [];
+      if (Array.isArray(d.aceites)) {
+        resultados = d.aceites.map(a => ({ codigo: a.aceite?.codigo || a.aceite?.id, link: a.linkPublico }));
+      } else if (d.aceite) {
+        resultados = [{ codigo: d.aceite.codigo, link: (import.meta.env.VITE_APP_URL || window.location.origin) + '/aceite/matricula/' + d.aceite.codigo }];
+      } else if (d.codigo) {
+        resultados = [{ codigo: d.codigo, link: (import.meta.env.VITE_APP_URL || window.location.origin) + '/aceite/matricula/' + d.codigo }];
+      }
+
+      setModalAceite(prev => ({ ...prev, gerando: false, codigo: resultados[0]?.codigo || null, links: resultados }));
+      adicionarToast('Link(s) de aceite gerado(s)', 'sucesso');
     } catch (err) {
       console.error('Erro ao gerar link de aceite:', err);
       adicionarToast('Erro ao gerar link de aceite', 'erro');
@@ -355,10 +366,34 @@ const PaginaMatriculasGuarauna = () => {
     }
   };
 
-  const copiarLink = async () => {
-    if (!modalAceite.codigo) return;
-    const base = import.meta.env.VITE_APP_URL || window.location.origin;
-    const link = `${base}/aceite/matricula/${modalAceite.codigo}`;
+  const gerarVariosLinks = async () => {
+    if (!modalAceite.matricula || !modalAceite.responsavelId) return;
+    setModalAceite(prev => ({ ...prev, gerando: true }));
+    try {
+      const res = await fetch(`${API_URL}/guarauna/aceite/matricula`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ matriculaId: modalAceite.matricula.id, responsavelId: modalAceite.responsavelId, gerarVarios: true })
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        adicionarToast(d.erro || 'Erro ao criar links de aceite', 'erro');
+        setModalAceite(prev => ({ ...prev, gerando: false }));
+        return;
+      }
+      const d = await res.json();
+      const resultados = Array.isArray(d.aceites) ? d.aceites.map(a => ({ codigo: a.aceite?.codigo || a.aceite?.id, link: a.linkPublico })) : [];
+      setModalAceite(prev => ({ ...prev, gerando: false, codigo: resultados[0]?.codigo || null, links: resultados }));
+      adicionarToast('Links de aceite gerados', 'sucesso');
+    } catch (err) {
+      console.error('Erro ao gerar links de aceite:', err);
+      adicionarToast('Erro ao gerar links de aceite', 'erro');
+      setModalAceite(prev => ({ ...prev, gerando: false }));
+    }
+  };
+
+  const copiarLink = async (link) => {
+    if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
       adicionarToast('Link copiado para a área de transferência', 'sucesso');
@@ -412,43 +447,89 @@ const PaginaMatriculasGuarauna = () => {
             value={comunidadeFiltro}
             onChange={(e) => {
               setComunidadeFiltro(e.target.value);
-              setPaginaAtual(1);
-            }}
-          >
-            <option value="">Todas as comunidades</option>
-            {comunidades.map(c => (
-              <option key={c.id} value={c.id}>{c.nome}</option>
-            ))}
-          </select>
+              // Antes de enviar, verificar fluxo especial: alteração de ATIVA -> CANCELADA
+              try {
+                // Se estivermos editando e o status mudou de 'ativa' para 'cancelada', abrir modal de motivo
+                if (matriculaEditando && String(matriculaEditando.status).toLowerCase() === 'ativa' && formData.status === 'cancelada') {
+                  // abrir modal de motivo
+                  setModalDesistencia({ aberto: true, texto: '' });
+                  return;
+                }
 
-          <select
-            value={anoFiltro}
-            onChange={(e) => {
-              setAnoFiltro(e.target.value);
-              setPaginaAtual(1);
-            }}
-          >
-            <option value="">Todos os anos</option>
-            {anosDisponiveis.map(ano => (
-              <option key={ano} value={ano}>{ano}</option>
-            ))}
-          </select>
+                setSalvando(true);
+                const url = matriculaEditando 
+                  ? `${API_URL}/guarauna/matriculas/${matriculaEditando.id}`
+                  : `${API_URL}/guarauna/matriculas`;
 
-          <select
-            value={statusFiltro}
-            onChange={(e) => {
-              setStatusFiltro(e.target.value);
-              setPaginaAtual(1);
-            }}
-          >
-            <option value="">Todos os status</option>
-            {statusOptions.map(s => (
-              <option key={s.valor} value={s.valor}>{s.label}</option>
-            ))}
-          </select>
-        </div>
+                // Mapear label frontend 'cancelada' para valor do backend 'desistente'
+                const payload = { ...formData };
+                if (payload.status === 'cancelada') payload.status = 'desistente';
 
+                const response = await fetch(url, {
+                  method: matriculaEditando ? 'PUT' : 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                  adicionarToast(
+                    matriculaEditando ? 'Matrícula atualizada com sucesso!' : 'Matrícula criada com sucesso!',
+                    'sucesso'
+                  );
+                  fecharModal();
+                  carregarMatriculas();
+                } else {
+                  const erro = await response.json();
+                  adicionarToast(erro.erro || 'Erro ao salvar matrícula', 'erro');
+                }
+              } catch (error) {
+                console.error('Erro ao salvar matrícula:', error);
+                adicionarToast('Erro ao salvar matrícula', 'erro');
+              } finally {
+                setSalvando(false);
+              }
         {/* Tabela */}
+
+            // Confirmar e enviar motivo de desistência quando aplicável
+            const confirmarDesistencia = async () => {
+              if (!matriculaEditando) return;
+              const motivo = modalDesistencia.texto || '';
+              setSalvando(true);
+              try {
+                const url = `${API_URL}/guarauna/matriculas/${matriculaEditando.id}`;
+                const payload = { ...formData };
+                // Mapear cancelada -> desistente
+                if (payload.status === 'cancelada') payload.status = 'desistente';
+                payload.motivoDesistencia = motivo;
+
+                const response = await fetch(url, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                  adicionarToast('Matrícula atualizada com motivo de desistência', 'sucesso');
+                  setModalDesistencia({ aberto: false, texto: '' });
+                  fecharModal();
+                  carregarMatriculas();
+                } else {
+                  const erro = await response.json();
+                  adicionarToast(erro.erro || 'Erro ao salvar motivo de desistência', 'erro');
+                }
+              } catch (err) {
+                console.error('Erro ao confirmar desistência:', err);
+                adicionarToast('Erro ao salvar motivo de desistência', 'erro');
+              } finally {
+                setSalvando(false);
+              }
+            };
         <div className="matriculas-tabela-wrapper">
           {carregando ? (
             <div className="carregando-container">
@@ -906,22 +987,35 @@ const PaginaMatriculasGuarauna = () => {
       {modalConfirmacao.aberto && (
         <div className="modal-overlay" onClick={() => setModalConfirmacao({ aberto: false, matricula: null })}>
           <div className="modal-confirmacao" onClick={e => e.stopPropagation()}>
-            <h3>Confirmar Exclusão</h3>
-            <p>
-              Deseja realmente excluir a matrícula de <strong>{modalConfirmacao.matricula?.aluno?.pessoa?.nome}</strong> do ano <strong>{modalConfirmacao.matricula?.ano}</strong>?
-            </p>
-            <p className="aviso">Esta ação não pode ser desfeita.</p>
+                <h3>Confirmar Exclusão</h3>
+                <p>
+                  Matrícula de <strong>{modalConfirmacao.matricula?.aluno?.pessoa?.nome}</strong> — Ano <strong>{modalConfirmacao.matricula?.ano}</strong>
+                </p>
+
+                {modalConfirmacao.matricula?.status === 'ativa' ? (
+                  <div className="alert-ativo">
+                    <div className="alert-icone"><AlertTriangle size={28} /></div>
+                    <div>
+                      <strong>Esta matrícula está ATIVA.</strong>
+                      <p>Não exclua um aluno com matrícula ativa enquanto a vigência não terminar. Se o responsável desistiu, altere o status para "Desistência" antes de excluir.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="aviso">Esta ação não pode ser desfeita.</p>
+                  </>
+                )}
             <div className="modal-footer">
-              <button 
-                className="btn-cancelar" 
-                onClick={() => setModalConfirmacao({ aberto: false, matricula: null })}
-              >
-                Cancelar
-              </button>
-              <button className="btn-excluir" onClick={excluirMatricula}>
-                <Trash2 size={16} />
-                Excluir
-              </button>
+                  <button 
+                    className="btn-cancelar" 
+                    onClick={() => setModalConfirmacao({ aberto: false, matricula: null })}
+                  >
+                    Cancelar
+                  </button>
+                  <button className="btn-excluir" onClick={excluirMatricula} disabled={modalConfirmacao.matricula?.status === 'ativa'}>
+                    <Trash2 size={16} />
+                    Excluir
+                  </button>
             </div>
           </div>
         </div>
@@ -955,27 +1049,64 @@ const PaginaMatriculasGuarauna = () => {
                 </select>
               </div>
 
-              {modalAceite.codigo ? (
+              {modalAceite.links && modalAceite.links.length > 0 ? (
                 <div className="link-gerado">
-                  <label>Link público</label>
-                  <div className="link-box">
-                    <a href={`${(import.meta.env.VITE_APP_URL || window.location.origin)}/aceite/matricula/${modalAceite.codigo}`} target="_blank" rel="noreferrer">
-                      {(import.meta.env.VITE_APP_URL || window.location.origin)}/aceite/matricula/{modalAceite.codigo}
-                    </a>
-                    <button className="btn-copiar" onClick={copiarLink} title="Copiar link">
-                      <Copy size={16} />
-                    </button>
-                    <a className="btn-whatsapp" href={`https://wa.me/?text=${encodeURIComponent((import.meta.env.VITE_APP_URL || window.location.origin) + '/aceite/matricula/' + modalAceite.codigo)}`} target="_blank" rel="noreferrer">Abrir no WhatsApp</a>
+                  <label>Links públicos</label>
+                  <div className="links-list">
+                    {modalAceite.links.map((l, idx) => (
+                      <div key={idx} className="link-box">
+                        <a href={l.link} target="_blank" rel="noreferrer">{l.link}</a>
+                        <button className="btn-copiar" onClick={() => copiarLink(l.link)} title="Copiar link"><Copy size={16} /></button>
+                        <a className="btn-whatsapp" href={`https://wa.me/?text=${encodeURIComponent(l.link)}`} target="_blank" rel="noreferrer">WhatsApp</a>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : (
                 <div className="modal-actions">
                   <button className="btn-cancelar" onClick={fecharModalAceite}>Cancelar</button>
-                  <button className="btn-salvar" onClick={gerarLinkAceite} disabled={modalAceite.gerando || !modalAceite.responsavelId}>
-                    {modalAceite.gerando ? 'Gerando...' : 'Gerar Link'}
-                  </button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn-salvar" onClick={gerarLinkAceite} disabled={modalAceite.gerando || !modalAceite.responsavelId}>
+                      {modalAceite.gerando ? 'Gerando...' : 'Gerar Link'}
+                    </button>
+                    <button className="btn-salvar" onClick={gerarVariosLinks} disabled={modalAceite.gerando || !modalAceite.responsavelId}>
+                      {modalAceite.gerando ? 'Gerando...' : 'Gerar 3 Links'}
+                    </button>
+                  </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Motivo de Desistência (quando alterar ATIVA -> CANCELADA) */}
+      {modalDesistencia.aberto && (
+        <div className="modal-overlay" onClick={() => setModalDesistencia({ aberto: false, texto: '' })}>
+          <div className="modal-conteudo" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Motivo da Desistência</h2>
+              <button className="btn-fechar" onClick={() => setModalDesistencia({ aberto: false, texto: '' })}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>Por favor, informe o motivo da desistência antes de encerrar a matrícula.</p>
+              <div className="form-grupo">
+                <label>Motivo da Desistência</label>
+                <textarea
+                  value={modalDesistencia.texto}
+                  onChange={e => setModalDesistencia(prev => ({ ...prev, texto: e.target.value }))}
+                  placeholder="Descreva o motivo da desistência..."
+                  rows={6}
+                />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn-cancelar" onClick={() => setModalDesistencia({ aberto: false, texto: '' })}>Cancelar</button>
+              <button className="btn-salvar" onClick={confirmarDesistencia} disabled={salvando || !modalDesistencia.texto.trim()}>
+                {salvando ? 'Salvando...' : 'Salvar Motivo e Encerrar'}
+              </button>
             </div>
           </div>
         </div>

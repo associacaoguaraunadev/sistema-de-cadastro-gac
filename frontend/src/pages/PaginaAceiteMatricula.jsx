@@ -10,6 +10,9 @@ export default function PaginaAceiteMatricula() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState(null);
   const [matricula, setMatricula] = useState(null);
+  const [aceiteInfo, setAceiteInfo] = useState(null);
+  const [dadosSaude, setDadosSaude] = useState(null);
+  const [termoHtml, setTermoHtml] = useState(null);
   const [aceito, setAceito] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
@@ -29,7 +32,10 @@ export default function PaginaAceiteMatricula() {
         return;
       }
       const d = await res.json();
+      setAceiteInfo(d.aceite || null);
       setMatricula(d.matricula || null);
+      setDadosSaude(d.dadosSaude || null);
+      setTermoHtml(d.termoHtml || null);
     } catch (err) {
       setErro('Erro ao carregar dados');
     } finally {
@@ -41,10 +47,20 @@ export default function PaginaAceiteMatricula() {
     if (!aceito) return;
     setEnviando(true);
     try {
+      // Montar payload dependendo do tipo de aceite
+      const tipo = (aceiteInfo?.tipo || matricula?.tipo || 'MATRICULA').toString().toUpperCase();
+      let payload = {};
+      if (tipo === 'LGPD') payload = { termoLGPD: true };
+      else if (tipo === 'QUESTIONARIO_SAUDE') payload = { respostasQuestionario: {} };
+      else payload = { termoLGPD: true, termoResponsabilidade: true, termoImagem: true };
+
+      // Enviar responsavelId quando disponível no aceiteInfo (evita exigir formulário extra)
+      if (aceiteInfo?.responsavelId) payload.responsavelId = aceiteInfo.responsavelId;
+
       const res = await fetch(`${API_URL}/aceite/matricula/${codigo}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ termoLGPD: true, termoResponsabilidade: true, termoImagem: true })
+        body: JSON.stringify(payload)
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
@@ -100,11 +116,41 @@ export default function PaginaAceiteMatricula() {
               <div className="detalhe">Ano: {matricula?.ano || '—'}</div>
             </div>
           </div>
+          {dadosSaude && (
+            <div className="dados-saude">
+              <h4>Dados de Saúde</h4>
+              <ul>
+                <li><strong>Doenças:</strong> {dadosSaude.doencas || '—'}</li>
+                <li><strong>Alergias:</strong> {dadosSaude.alergias || '—'}</li>
+                <li><strong>Medicamentos:</strong> {dadosSaude.medicamentos || '—'}</li>
+                <li><strong>Necessidades Especiais:</strong> {dadosSaude.necessidadesEspeciais || '—'}</li>
+              </ul>
+            </div>
+          )}
         </section>
 
         <section className="termos">
-          <h3>Termos</h3>
-          <p>Ao confirmar, você aceita os termos de responsabilidade, LGPD e autorização de imagem relacionados a esta matrícula.</p>
+          {/* Renderizar termo transcrito se disponível, caso contrário exibir texto padrão */}
+          {termoHtml ? (
+            <div className="termo-render" dangerouslySetInnerHTML={{ __html: termoHtml }} />
+          ) : (() => {
+            const tipo = String(matricula?.tipo || '').toLowerCase();
+            if (tipo === 'rematricula' || tipo === 'REMATRICULA') {
+              return (
+                <>
+                  <h3>Termo de Rematrícula</h3>
+                  <p>Você está confirmando a rematrícula. Ao aceitar, você confirma que os dados do aluno permanecem corretos para o próximo período e autoriza a continuidade das atividades.</p>
+                </>
+              );
+            }
+            // padrão: matrícula
+            return (
+              <>
+                <h3>Termo de Matrícula</h3>
+                <p>Ao confirmar, você aceita os termos de responsabilidade, LGPD e autorização de imagem relacionados a esta matrícula.</p>
+              </>
+            );
+          })()}
 
           <label className="checkbox">
             <input type="checkbox" checked={aceito} onChange={e => setAceito(e.target.checked)} />
@@ -112,7 +158,7 @@ export default function PaginaAceiteMatricula() {
           </label>
 
           <button className="botao-confirmar" onClick={registrar} disabled={!aceito || enviando}>
-            {enviando ? 'Registrando...' : 'Confirmar Matrícula'}
+            {enviando ? 'Registrando...' : (String(matricula?.tipo || '').toLowerCase() === 'rematricula' ? 'Confirmar Rematrícula' : 'Confirmar Matrícula')}
           </button>
         </section>
       </div>

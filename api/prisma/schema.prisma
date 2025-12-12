@@ -333,6 +333,9 @@ model AceiteDigital {
   termoLGPD       Boolean  @default(false)
   termoResponsabilidade Boolean @default(false)
   termoImagem     Boolean  @default(false)
+
+  // Tipo do aceite (MATRICULA, REMATRICULA, LGPD, RESPONSABILIDADE, QUESTIONARIO_SAUDE)
+  tipo            AceiteTipo @default(MATRICULA)
   
   // Dados do aceite
   dispositivoInfo String?
@@ -341,10 +344,35 @@ model AceiteDigital {
   
   aceitoEm        DateTime @default(now())
   
-  @@unique([matriculaId, responsavelId])
+  @@unique([matriculaId, responsavelId, tipo])
   @@index([matriculaId])
   @@index([responsavelId])
   @@index([codigo])
+}
+
+enum AceiteTipo {
+  MATRICULA
+  REMATRICULA
+  LGPD
+  RESPONSABILIDADE
+  QUESTIONARIO_SAUDE
+}
+
+// Modelos de termo para aceites (Matrícula, LGPD, Questionário de Saúde, etc.)
+model ModeloTermoAceite {
+  id             String     @id @default(uuid())
+  tipo           AceiteTipo
+  titulo         String?
+  conteudoHTML   String
+  ativo          Boolean    @default(true)
+
+  criadoPorId    Int?
+
+  criadoEm       DateTime   @default(now())
+  atualizadoEm   DateTime   @updatedAt
+
+  @@index([tipo])
+  @@index([ativo])
 }
 
 // ============================================
