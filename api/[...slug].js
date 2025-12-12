@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
 import Pusher from 'pusher';
 import { gerarTokenGeracao, listarTokens, revogarToken } from '../server/autenticacao/tokens.js';
 
@@ -134,14 +136,30 @@ async function getRecuperacaoService() {
 
 // Pool de conexão Prisma - CRUCIAL para serverless
 let prisma;
-
 function getPrisma() {
-  if (!prisma) {
-    prisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn']
-    });
+  if (prisma) return prisma;
+
+  try {
+    // Quick presence check for generated client files to provide clearer guidance
+    try {
+      const genPath = path.join(process.cwd(), 'node_modules', '.prisma', 'client');
+      if (!fs.existsSync(genPath)) {
+        const msg = 'Prisma Client não encontrado (gerado). Execute `npx prisma generate` durante o build/deploy.';
+        console.error('❌ Falha ao localizar Prisma Client gerado:', genPath);
+        throw new Error(msg);
+      }
+    } catch (chkErr) {
+      // don't block if check itself errors; continue to attempt initialization and let Prisma throw meaningful error
+      console.warn('⚠️ Erro ao checar presença do Prisma Client gerado:', chkErr && (chkErr.message || chkErr));
+    }
+
+    prisma = new PrismaClient({ log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn'] });
+    return prisma;
+  } catch (err) {
+    console.error('❌ Falha ao inicializar Prisma Client. Certifique-se de rodar `npx prisma generate` durante o build/deploy e incluir o client gerado no bundle. Detalhe:', err && (err.stack || err.message) || err);
+    // Normalize error message so route handlers can detect and return 503
+    throw new Error((err && (err.message || '') || String(err)) + ' -- prisma-generate-required');
   }
-  return prisma;
 }
 
 // 🚀 PUSHER - Sistema Real-Time para Serverless (suporta 100 conexões simultâneas)

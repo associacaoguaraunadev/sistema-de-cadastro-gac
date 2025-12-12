@@ -21,7 +21,8 @@
     "test:beneficios": "node test-beneficios-types.js",
     "diagnostico": "node diagnostico-completo.js",
     "verificar-credenciais": "node verificar-credenciais.js",
-    "vercel-build": "echo '🔨 Build Local Test' && npm run build"
+    "vercel-build": "echo '🔨 Build Local Test' && npm run build",
+    "postinstall": "npm --prefix api run build"
   },
   "dependencies": {
     "@getbrevo/brevo": "^3.0.1",
