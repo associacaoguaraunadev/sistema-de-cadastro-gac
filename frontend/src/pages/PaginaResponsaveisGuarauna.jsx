@@ -745,6 +745,9 @@ const PaginaResponsaveisGuarauna = () => {
     setBuscaPessoa('');
     setPessoasSugeridas([]);
     setDropdownAberto(false);
+    // Resetar filtros relacionados ao modal para garantir que todos os alunos apareçam
+    setComunidadeFiltroAlunos('');
+    setBuscaAluno('');
   };
 
   // Carregar detalhes do responsável para edição
@@ -862,6 +865,10 @@ const PaginaResponsaveisGuarauna = () => {
         pessoaId: responsavelParaEditar.pessoa?.id || responsavelParaEditar.pessoaId,
         estaEmpregado: estaEmpregado // Usando o valor já normalizado
       });
+
+      // Garantir que filtros de busca não escondam os alunos vinculados
+      setComunidadeFiltroAlunos('');
+      setBuscaAluno('');
       
       // Desativar o skeleton loader após os dados serem carregados
       setCarregandoFormulario(false);
