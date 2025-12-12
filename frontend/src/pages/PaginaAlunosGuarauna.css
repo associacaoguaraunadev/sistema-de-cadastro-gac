@@ -491,6 +491,34 @@
 .saude-preview-list{ display:flex; flex-direction:column; gap:8px; }
 .saude-preview-item{ background:#fff7ed; padding:12px; border-radius:6px; color:#7a2e00; font-weight:600; }
 
+/* Full aluno preview grid inside modal */
+.preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+  max-height: 70vh;
+  overflow: auto;
+  padding: 6px 2px;
+}
+.preview-row {
+  background: #061f0d;
+  border: 1px solid #11311e;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1f7927;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.preview-row strong { width: 150px; color: #374151; font-weight:700; }
+.preview-divider { grid-column: 1 / -1; height: 1px; background: #eef2f7; margin: 6px 0; border-radius: 1px; }
+
+@media (max-width: 720px) {
+  .preview-grid { grid-template-columns: 1fr; }
+  .preview-row strong { width: 120px; }
+}
+
 @media (max-width: 768px) {
   .card-aluno {
     flex-wrap: wrap;

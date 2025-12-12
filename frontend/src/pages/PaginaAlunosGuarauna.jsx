@@ -634,22 +634,20 @@ const PaginaAlunosGuarauna = () => {
                     
                     <div className="card-aluno-footer">
                       {temAlerta && (
-                              <div className="saude-tooltip">
-                                <Heart size={16} className="saude-tooltip-icon" />
-                                <div className="saude-tooltip-content">
-                                  {dadosSaude.join('\n')}
-                                </div>
-                              </div>
-                            )}
-                            {temAlerta && (
-                              <button
-                                className="btn-card-acao visualizar"
-                                title="Visualizar informações de saúde"
-                                onClick={() => { setPreviewSaudeAluno({ nome, dadosSaude }); setModalPreviewSaude(true); }}
-                              >
-                                <Eye size={14} />
-                              </button>
+                        <div className="saude-tooltip">
+                          <Heart size={16} className="saude-tooltip-icon" />
+                          <div className="saude-tooltip-content">
+                            Possui informações importantes de saúde!
+                          </div>
+                        </div>
                       )}
+                      <button
+                        className="btn-card-acao visualizar"
+                        title="Visualizar aluno"
+                        onClick={() => { setPreviewSaudeAluno(aluno); setModalPreviewSaude(true); }}
+                      >
+                        <Eye size={14} />
+                      </button>
                       <button 
                         className="btn-card-acao editar"
                         onClick={() => abrirModal(aluno)}
@@ -1000,17 +998,41 @@ const PaginaAlunosGuarauna = () => {
         <div className="modal-preview-overlay" onClick={() => setModalPreviewSaude(false)}>
           <div className="modal-conteudo modal-grande modal-preview" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Informações de Saúde - {previewSaudeAluno?.nome || ''}</h2>
+              <h2>Preview do Aluno - {previewSaudeAluno?.pessoa?.nome || previewSaudeAluno?.nome || ''}</h2>
               <button className="btn-fechar" onClick={() => setModalPreviewSaude(false)}>
                 <X size={20} />
               </button>
             </div>
             <div className="modal-body">
-              <div className="saude-preview-list">
-                {(previewSaudeAluno?.dadosSaude || []).map((linha, i) => (
-                  <div key={i} className="saude-preview-item">{linha}</div>
-                ))}
-              </div>
+              {previewSaudeAluno && (
+                <div className="preview-grid">
+                  <div className="preview-row"><strong>Nome:</strong> {previewSaudeAluno.pessoa?.nome || previewSaudeAluno.nome || '-'}</div>
+                  <div className="preview-row"><strong>Idade:</strong> {calcularIdade(previewSaudeAluno.pessoa?.dataNascimento || previewSaudeAluno.dataNascimento) || '-'}</div>
+                  <div className="preview-row"><strong>CPF:</strong> {previewSaudeAluno.pessoa?.cpf || previewSaudeAluno.cpf || '-'}</div>
+                  <div className="preview-row"><strong>RG:</strong> {previewSaudeAluno.pessoa?.rg || previewSaudeAluno.rg || '-'}</div>
+                  <div className="preview-row"><strong>Telefone:</strong> {previewSaudeAluno.pessoa?.telefone || previewSaudeAluno.telefone || '-'}</div>
+                  <div className="preview-row"><strong>Email:</strong> {previewSaudeAluno.pessoa?.email || previewSaudeAluno.email || '-'}</div>
+                  <div className="preview-row"><strong>Comunidade:</strong> {previewSaudeAluno.pessoa?.comunidade || previewSaudeAluno.comunidade || '-'}</div>
+                  <div className="preview-row"><strong>Endereço:</strong> {previewSaudeAluno.pessoa?.endereco || previewSaudeAluno.endereco || '-'}</div>
+                  <div className="preview-row"><strong>Graduação Atual:</strong> {previewSaudeAluno.graduacaoAtual || '-'}</div>
+                  <div className="preview-row"><strong>UBS:</strong> {previewSaudeAluno.ubs || '-'}</div>
+                  <div className="preview-row"><strong>Nº SUS:</strong> {previewSaudeAluno.numeroSUS || '-'}</div>
+                  <div className="preview-divider" />
+                  <div className="preview-row"><strong>Doenças:</strong> {previewSaudeAluno.doencas || '-'}</div>
+                  <div className="preview-row"><strong>Alergias:</strong> {previewSaudeAluno.alergias || '-'}</div>
+                  <div className="preview-row"><strong>Medicamentos:</strong> {previewSaudeAluno.medicamentos || '-'}</div>
+                  <div className="preview-row"><strong>Necessidades Especiais:</strong> {previewSaudeAluno.necessidadesEspeciais || '-'}</div>
+                  <div className="preview-row"><strong>Observações:</strong> {previewSaudeAluno.pessoa?.observacoes || previewSaudeAluno.observacoes || '-'}</div>
+                  <div className="preview-divider" />
+                  <div className="preview-row"><strong>Responsáveis:</strong>
+                    <ul>
+                      {(previewSaudeAluno.responsaveis || []).map((r, i) => (
+                        <li key={i}>{r.nome || r.pessoa?.nome || '—' } {r.principal ? '(Principal)' : ''}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
