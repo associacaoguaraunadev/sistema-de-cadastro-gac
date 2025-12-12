@@ -13,8 +13,10 @@ let prisma;
 
 function getPrisma() {
   if (!prisma) {
+    const dbUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
     prisma = new PrismaClient({
-      log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn']
+      log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn'],
+      datasources: { db: { url: dbUrl } }
     });
   }
   return prisma;

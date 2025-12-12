@@ -717,16 +717,6 @@ const PaginaEducadoresGuarauna = () => {
                     ))}
                   </select>
                 </div>
-
-                <div className="form-grupo">
-                  <label>Formação</label>
-                  <input
-                    type="text"
-                    value={formData.formacao}
-                    onChange={(e) => setFormData({ ...formData, formacao: e.target.value })}
-                    placeholder="Ex: Educação Física, Pedagogia"
-                  />
-                </div>
               </div>
 
               <div className="form-grupo comunidades-selecao-container">

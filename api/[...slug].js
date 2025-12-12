@@ -153,7 +153,11 @@ function getPrisma() {
       console.warn('⚠️ Erro ao checar presença do Prisma Client gerado:', chkErr && (chkErr.message || chkErr));
     }
 
-    prisma = new PrismaClient({ log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn'] });
+    const dbUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+    prisma = new PrismaClient({
+      log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn'],
+      datasources: { db: { url: dbUrl } }
+    });
     return prisma;
   } catch (err) {
     console.error('❌ Falha ao inicializar Prisma Client. Certifique-se de rodar `npx prisma generate` durante o build/deploy e incluir o client gerado no bundle. Detalhe:', err && (err.stack || err.message) || err);

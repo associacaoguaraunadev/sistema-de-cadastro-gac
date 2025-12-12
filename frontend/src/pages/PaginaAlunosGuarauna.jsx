@@ -997,39 +997,41 @@ const PaginaAlunosGuarauna = () => {
       {modalPreviewSaude && (
         <div className="modal-preview-overlay" onClick={() => setModalPreviewSaude(false)}>
           <div className="modal-conteudo modal-grande modal-preview" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Preview do Aluno - {previewSaudeAluno?.pessoa?.nome || previewSaudeAluno?.nome || ''}</h2>
-              <button className="btn-fechar" onClick={() => setModalPreviewSaude(false)}>
-                <X size={20} />
+            <div className="modal-header modal-header-preview">
+              <h2 className="preview-title">{previewSaudeAluno?.pessoa?.nome || previewSaudeAluno?.nome || 'Aluno'}</h2>
+              <button className="btn-fechar btn-fechar-preview" onClick={() => setModalPreviewSaude(false)}>
+                <X size={18} />
               </button>
             </div>
             <div className="modal-body">
               {previewSaudeAluno && (
                 <div className="preview-grid">
-                  <div className="preview-row"><strong>Nome:</strong> {previewSaudeAluno.pessoa?.nome || previewSaudeAluno.nome || '-'}</div>
-                  <div className="preview-row"><strong>Idade:</strong> {calcularIdade(previewSaudeAluno.pessoa?.dataNascimento || previewSaudeAluno.dataNascimento) || '-'}</div>
-                  <div className="preview-row"><strong>CPF:</strong> {previewSaudeAluno.pessoa?.cpf || previewSaudeAluno.cpf || '-'}</div>
-                  <div className="preview-row"><strong>RG:</strong> {previewSaudeAluno.pessoa?.rg || previewSaudeAluno.rg || '-'}</div>
-                  <div className="preview-row"><strong>Telefone:</strong> {previewSaudeAluno.pessoa?.telefone || previewSaudeAluno.telefone || '-'}</div>
-                  <div className="preview-row"><strong>Email:</strong> {previewSaudeAluno.pessoa?.email || previewSaudeAluno.email || '-'}</div>
-                  <div className="preview-row"><strong>Comunidade:</strong> {previewSaudeAluno.pessoa?.comunidade || previewSaudeAluno.comunidade || '-'}</div>
-                  <div className="preview-row"><strong>Endereço:</strong> {previewSaudeAluno.pessoa?.endereco || previewSaudeAluno.endereco || '-'}</div>
-                  <div className="preview-row"><strong>Graduação Atual:</strong> {previewSaudeAluno.graduacaoAtual || '-'}</div>
-                  <div className="preview-row"><strong>UBS:</strong> {previewSaudeAluno.ubs || '-'}</div>
-                  <div className="preview-row"><strong>Nº SUS:</strong> {previewSaudeAluno.numeroSUS || '-'}</div>
+                  <div className="preview-row"><strong>Nome:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.nome || previewSaudeAluno.nome || '-'}</div></div>
+                  <div className="preview-row"><strong>Idade:</strong><div className="preview-value">{calcularIdade(previewSaudeAluno.pessoa?.dataNascimento || previewSaudeAluno.dataNascimento) || '-'}</div></div>
+                  <div className="preview-row"><strong>CPF:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.cpf || previewSaudeAluno.cpf || '-'}</div></div>
+                  <div className="preview-row"><strong>RG:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.rg || previewSaudeAluno.rg || '-'}</div></div>
+                  <div className="preview-row"><strong>Telefone:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.telefone || previewSaudeAluno.telefone || '-'}</div></div>
+                  <div className="preview-row"><strong>Email:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.email || previewSaudeAluno.email || '-'}</div></div>
+                  <div className="preview-row"><strong>Comunidade:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.comunidade || previewSaudeAluno.comunidade || '-'}</div></div>
+                  <div className="preview-row"><strong>Endereço:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.endereco || previewSaudeAluno.endereco || '-'}</div></div>
+                  <div className="preview-row"><strong>Graduação Atual:</strong><div className="preview-value">{previewSaudeAluno.graduacaoAtual || '-'}</div></div>
+                  <div className="preview-row"><strong>UBS:</strong><div className="preview-value">{previewSaudeAluno.ubs || '-'}</div></div>
+                  <div className="preview-row"><strong>Nº SUS:</strong><div className="preview-value">{previewSaudeAluno.numeroSUS || '-'}</div></div>
                   <div className="preview-divider" />
-                  <div className="preview-row"><strong>Doenças:</strong> {previewSaudeAluno.doencas || '-'}</div>
-                  <div className="preview-row"><strong>Alergias:</strong> {previewSaudeAluno.alergias || '-'}</div>
-                  <div className="preview-row"><strong>Medicamentos:</strong> {previewSaudeAluno.medicamentos || '-'}</div>
-                  <div className="preview-row"><strong>Necessidades Especiais:</strong> {previewSaudeAluno.necessidadesEspeciais || '-'}</div>
-                  <div className="preview-row"><strong>Observações:</strong> {previewSaudeAluno.pessoa?.observacoes || previewSaudeAluno.observacoes || '-'}</div>
+                  <div className="preview-row"><strong>Doenças:</strong><div className="preview-value">{previewSaudeAluno.doencas || '-'}</div></div>
+                  <div className="preview-row"><strong>Alergias:</strong><div className="preview-value">{previewSaudeAluno.alergias || '-'}</div></div>
+                  <div className="preview-row"><strong>Medicamentos:</strong><div className="preview-value">{previewSaudeAluno.medicamentos || '-'}</div></div>
+                  <div className="preview-row"><strong>Necessidades Especiais:</strong><div className="preview-value">{previewSaudeAluno.necessidadesEspeciais || '-'}</div></div>
+                  <div className="preview-row"><strong>Observações:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.observacoes || previewSaudeAluno.observacoes || '-'}</div></div>
                   <div className="preview-divider" />
                   <div className="preview-row"><strong>Responsáveis:</strong>
-                    <ul>
-                      {(previewSaudeAluno.responsaveis || []).map((r, i) => (
-                        <li key={i}>{r.nome || r.pessoa?.nome || '—' } {r.principal ? '(Principal)' : ''}</li>
-                      ))}
-                    </ul>
+                    <div className="preview-value responsaveis-list">
+                      <ul>
+                        {(previewSaudeAluno.responsaveis || []).map((r, i) => (
+                          <li key={i} className="responsavel-item">{r.nome || r.pessoa?.nome || '—' } {r.principal ? '(Principal)' : ''}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               )}

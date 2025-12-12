@@ -283,8 +283,7 @@ model Matricula {
   horaSaida       String?  // Ex: 12:00
   situacaoComportamentoEscolar String?
   
-  // Composição familiar (versionada por ano)
-  composicaoFamiliar Json? // [{nome, idade, parentesco, escolaridade, ocupacao, renda}]
+  // Composição familiar é armazenada no registro do aluno (`AlunoGuarauna`)
   
   // Status
   status          StatusMatricula @default(PENDENTE)

@@ -18,8 +18,19 @@ BEGIN
       JOIN pg_class c ON a.attrelid = c.oid
       WHERE c.relname = 'AceiteDigital' AND a.attname = 'tipo' AND t.typname = 'AceiteTipo'
     ) THEN
-      -- Try to alter using safe cast via USING clause (text -> enum)
+      -- Remove any default first to avoid casting issues
+      BEGIN
+        EXECUTE 'ALTER TABLE "AceiteDigital" ALTER COLUMN "tipo" DROP DEFAULT';
+      EXCEPTION WHEN undefined_table OR undefined_column THEN
+        -- ignore if not present
+        NULL;
+      END;
+
+      -- Alter column using safe cast (text -> enum)
       EXECUTE 'ALTER TABLE "AceiteDigital" ALTER COLUMN "tipo" TYPE "AceiteTipo" USING ("tipo"::text::"AceiteTipo")';
+
+      -- Restore sensible default
+      EXECUTE 'ALTER TABLE "AceiteDigital" ALTER COLUMN "tipo" SET DEFAULT ''MATRICULA''';
     END IF;
   END IF;
 END$$;
