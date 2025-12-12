@@ -10,7 +10,30 @@ import {
   validarTokenRecuperacao,
   redefinirSenha
 } from '../servicos/recuperacaoSenha.js';
-import { enviarEmailRecuperacao } from '../servicos/email.js';
+
+// Carregamento dinâmico do serviço de email para evitar falhas de import estático
+let _emailSvc = null;
+async function getEmailSvc() {
+  if (_emailSvc) return _emailSvc;
+  try {
+    _emailSvc = await import('../servicos/email.js');
+    return _emailSvc;
+  } catch (e1) {
+    try {
+      _emailSvc = await import('../../server/servicos/email.js');
+      return _emailSvc;
+    } catch (e2) {
+      console.warn('⚠️ Serviço de email não disponível, usando fallback de log.', e1?.message, e2?.message);
+      _emailSvc = {
+        enviarEmailRecuperacao: async (email, token) => {
+          console.log(`📧 [FALLBACK-EMAIL] Código de recuperação para ${email}: ${token}`);
+          return { sucesso: false, motivo: 'fallback' };
+        }
+      };
+      return _emailSvc;
+    }
+  }
+}
 
 /**
  * Solicita recuperação de senha
@@ -29,7 +52,8 @@ export async function solicitarRecuperacaoSenha(req, res) {
 
     // Tentar enviar email (não falhar a rota se envio falhar)
     try {
-      const envio = await enviarEmailRecuperacao(resultado.email, resultado.token);
+      const emailSvc = await getEmailSvc();
+      const envio = await emailSvc.enviarEmailRecuperacao(resultado.email, resultado.token);
       if (!envio || envio.sucesso === false) {
         console.warn(`Falha no envio de email de recuperação (não bloqueante): ${envio && envio.motivo ? envio.motivo : 'sem motivo'}`);
       }

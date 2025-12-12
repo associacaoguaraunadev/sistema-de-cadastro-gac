@@ -4,7 +4,37 @@ import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import Pusher from 'pusher';
 import { gerarTokenGeracao, listarTokens, revogarToken } from '../server/autenticacao/tokens.js';
-import { enviarEmailRecuperacao, enviarEmailAceiteDigital } from './servicos/email.js';
+
+// Carregamento dinâmico do serviço de email para evitar erro de import estático em ambientes
+// onde o bundle pode ter caminhos diferentes. Tenta `./servicos/email.js` (padrão) e em
+// seguida `../server/servicos/email.js` (fallback histórico). Se ambos falharem, usa
+// um fallback que apenas loga os envios.
+let _emailService = null;
+async function getEmailService() {
+  if (_emailService) return _emailService;
+  try {
+    _emailService = await import('./servicos/email.js');
+    return _emailService;
+  } catch (e1) {
+    try {
+      _emailService = await import('../server/servicos/email.js');
+      return _emailService;
+    } catch (e2) {
+      console.warn('⚠️ Serviço de email não encontrado via imports dinâmicos. Usando fallback de log.', e1?.message, e2?.message);
+      _emailService = {
+        enviarEmailRecuperacao: async (email, token) => {
+          console.log(`📧 [FALLBACK-EMAIL] enviarEmailRecuperacao -> ${email} token=${token}`);
+          return { sucesso: false, motivo: 'fallback' };
+        },
+        enviarEmailAceiteDigital: async (email, nome, codigo, link) => {
+          console.log(`📧 [FALLBACK-EMAIL] enviarEmailAceiteDigital -> ${email} link=${link}`);
+          return { sucesso: false, motivo: 'fallback', link };
+        }
+      };
+      return _emailService;
+    }
+  }
+}
 import { solicitarRecuperacao } from './servicos/recuperacaoSenha.js';
 
 // Pool de conexão Prisma - CRUCIAL para serverless
@@ -1037,12 +1067,13 @@ async function recuperacaoSenhaSolicitar(req, res) {
 
     log(`✅ Token de recuperação gerado para ${email} (expira em 30min)`);
     
-    // Enviar email com o código
+    // Enviar email com o código (uso de carregamento dinâmico do serviço)
     try {
-      await enviarEmailRecuperacao(email, token);
+      const emailSvc = await getEmailService();
+      await emailSvc.enviarEmailRecuperacao(email, token);
       log(`✅ Email enviado para ${email}`);
     } catch (erroEmail) {
-      log(`⚠️ Falha ao enviar email: ${erroEmail.message}`, 'error');
+      log(`⚠️ Falha ao enviar email: ${erroEmail && (erroEmail.message || erroEmail)}`, 'error');
       // Continua mesmo se email falhar - token está salvo no banco
     }
     
@@ -5585,7 +5616,8 @@ async function testarEnvioRecuperacao(req, res) {
 
     // Tenta enviar o email de recuperação (não deve travar em produção se falhar)
     try {
-      const envio = await enviarEmailRecuperacao(resultado.email, resultado.token);
+      const emailSvc = await getEmailService();
+      const envio = await emailSvc.enviarEmailRecuperacao(resultado.email, resultado.token);
       return res.status(200).json({ sucesso: true, envio, debug: resultado });
     } catch (e) {
       // Retorna sucesso parcial com debug para investigação
