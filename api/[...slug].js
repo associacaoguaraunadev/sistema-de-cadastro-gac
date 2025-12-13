@@ -153,7 +153,15 @@ function getPrisma() {
       console.warn('⚠️ Erro ao checar presença do Prisma Client gerado:', chkErr && (chkErr.message || chkErr));
     }
 
-    const dbUrl = process.env.DIRECT_URL || process.env.DATABASE_URL;
+    // Prefer DATABASE_URL (pgbouncer / pooler) which is usually reachable from serverless
+    // Fall back to DIRECT_URL only if DATABASE_URL is not provided.
+    const dbUrl = process.env.DATABASE_URL || process.env.DIRECT_URL;
+    if (!dbUrl) {
+      throw new Error('DATABASE_URL or DIRECT_URL must be defined in environment variables');
+    }
+    if (process.env.DIRECT_URL && dbUrl === process.env.DIRECT_URL) {
+      console.warn('⚠️ Usando DIRECT_URL (conexão direta ao banco). Em ambientes serverless isso pode falhar. Prefira DATABASE_URL (pgbouncer).');
+    }
     prisma = new PrismaClient({
       log: process.env.NODE_ENV === 'production' ? [] : ['error', 'warn'],
       datasources: { db: { url: dbUrl } }
