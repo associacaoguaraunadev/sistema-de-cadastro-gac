@@ -129,7 +129,8 @@ const PaginaAlunosGuarauna = () => {
     alergias: '',
     medicamentos: '',
     necessidadesEspeciais: '',
-    observacoes: ''
+    observacoes: '',
+    composicaoFamiliar: []
   });
   
   // Modal de confirmação
@@ -1010,6 +1011,8 @@ const PaginaAlunosGuarauna = () => {
                   <div className="preview-row"><strong>Idade:</strong><div className="preview-value">{calcularIdade(previewSaudeAluno.pessoa?.dataNascimento || previewSaudeAluno.dataNascimento) || '-'}</div></div>
                   <div className="preview-row"><strong>CPF:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.cpf || previewSaudeAluno.cpf || '-'}</div></div>
                   <div className="preview-row"><strong>RG:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.rg || previewSaudeAluno.rg || '-'}</div></div>
+                  <div className="preview-row"><strong>NIS:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.nis || previewSaudeAluno.nis || '-'}</div></div>
+                  <div className="preview-row"><strong>Cor / Raça:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.cor || previewSaudeAluno.cor || '-'}</div></div>
                   <div className="preview-row"><strong>Telefone:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.telefone || previewSaudeAluno.telefone || '-'}</div></div>
                   <div className="preview-row"><strong>Email:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.email || previewSaudeAluno.email || '-'}</div></div>
                   <div className="preview-row"><strong>Comunidade:</strong><div className="preview-value">{previewSaudeAluno.pessoa?.comunidade || previewSaudeAluno.comunidade || '-'}</div></div>

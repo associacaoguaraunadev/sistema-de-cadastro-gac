@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { atualizarPessoa, validarCPF } from '../servicos/api';
 import { useGlobalToast } from '../contexto/ToastContext';
@@ -6,6 +6,7 @@ import { useAuth } from '../contexto/AuthContext';
 import { usePusher } from '../contexto/PusherContext';
 import GerenciadorBeneficiosGAC from './GerenciadorBeneficiosGAC';
 import CampoComunidade from './CampoComunidade';
+import DatePickerGAC from './DatePickerGAC';
 import './ModalEdicao.css';
 
 // Função para formatar moeda
@@ -196,6 +197,28 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
     return `${apenasNumeros.slice(0, 3)}.${apenasNumeros.slice(3, 6)}.${apenasNumeros.slice(6, 9)}-${apenasNumeros.slice(9)}`;
   };
 
+  const formatarRG = (valor) => {
+    if (!valor) return '';
+    valor = valor.toString();
+    let apenasNumeros = valor.replace(/\D/g, '');
+    apenasNumeros = apenasNumeros.slice(0, 13);
+    if (apenasNumeros.length <= 3) return apenasNumeros;
+    if (apenasNumeros.length <= 6) return `${apenasNumeros.slice(0,3)}.${apenasNumeros.slice(3)}`;
+    if (apenasNumeros.length <= 9) return `${apenasNumeros.slice(0,3)}.${apenasNumeros.slice(3,6)}.${apenasNumeros.slice(6)}`;
+    return `${apenasNumeros.slice(0,3)}.${apenasNumeros.slice(3,6)}.${apenasNumeros.slice(6,9)}-${apenasNumeros.slice(9)}`;
+  };
+
+  const formatarNIS = (valor) => {
+    if (!valor) return '';
+    valor = valor.toString();
+    let nums = valor.replace(/\D/g, '').slice(0, 11); // NIS 11 dígitos
+    if (nums.length <= 3) return nums;
+    if (nums.length <= 5) return nums.slice(0,3) + '.' + nums.slice(3);
+    if (nums.length <= 7) return nums.slice(0,3) + '.' + nums.slice(3,5) + '.' + nums.slice(5);
+    if (nums.length <= 10) return nums.slice(0,3) + '.' + nums.slice(3,5) + '.' + nums.slice(5,7) + '.' + nums.slice(7);
+    return nums.slice(0,3) + '.' + nums.slice(3,5) + '.' + nums.slice(5,7) + '.' + nums.slice(7,10) + '-' + nums.slice(10);
+  };
+
   const formatarTelefone = (valor) => {
     valor = (valor || '').toString();
     valor = valor.replace(/\D/g, '');
@@ -254,6 +277,10 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       return;
     } else if (name === 'cpf') {
       novoValor = formatarCPF(value);
+    } else if (name === 'rg') {
+      novoValor = formatarRG(value);
+    } else if (name === 'nis') {
+      novoValor = formatarNIS(value);
     } else if (name === 'telefone') {
       novoValor = formatarTelefone(value);
     } else if (name === 'cep') {
@@ -499,9 +526,15 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       return;
     }
 
-    // VALIDAR CPF DUPLICADO (excluindo a própria pessoa)
+    // VALIDAR CPF LOCALMENTE E DUPLICADO (excluindo a própria pessoa)
     try {
       const cpfLimpo = (formData.cpf || '').replace(/\D/g, '');
+      // Checagem local rápida: deve ter 11 dígitos
+      if (!cpfLimpo || cpfLimpo.length !== 11) {
+        erroToast('CPF inválido', 'Informe um CPF válido com 11 dígitos antes de salvar.');
+        return;
+      }
+
       await validarCPF(token, cpfLimpo, pessoa.id);
     } catch (erro) {
       if (erro.response?.status === 409) {
@@ -522,6 +555,9 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
       beneficiosGAC: Array.isArray(formData.beneficiosGAC) ? formData.beneficiosGAC : [],
       beneficiosGoverno: Array.isArray(formData.beneficiosGoverno) ? formData.beneficiosGoverno : [],
       cpf: (formData.cpf || '').replace(/\D/g, ''),
+      rg: formData.rg || null,
+      cor: formData.cor || null,
+      nis: formData.nis || null,
       telefone: (formData.telefone || '').replace(/\D/g, ''),
       cep: (formData.cep || '').replace(/\D/g, ''),
       dataNascimento: formData.dataNascimento || null,
@@ -627,7 +663,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
             <div className="form-secao">
               <h3 className="form-secao-titulo">Informações Pessoais</h3>
               
-              <div className="form-grid-2">
+              <div className="form-grid-3">
                 <div className="form-group">
                   <label htmlFor="nome">Nome Completo *</label>
                   <input
@@ -654,20 +690,28 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                   />
                   {obterErrosCampo('cpf') && <span className="form-erro-msg">{obterErrosCampo('cpf')}</span>}
                 </div>
+                <div className="form-group">
+                  <label htmlFor="rg">RG</label>
+                  <input
+                    id="rg"
+                    type="text"
+                    name="rg"
+                    value={formData.rg || ''}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    className="form-input"
+                  />
+                </div>
               </div>
 
               <div className="form-grid-3">
                 <div className="form-group">
                   <label htmlFor="dataNascimento">Data de Nascimento *</label>
-                  <input
-                    id="dataNascimento"
-                    type="date"
-                    name="dataNascimento"
-                    max={new Date().toISOString().split('T')[0]}
-                    value={formData.dataNascimento ? formData.dataNascimento.split('T')[0] : ''}
-                    onChange={handleChange}
-                    onKeyDown={handleKeyDown}
-                    className={`form-input ${obterErrosCampo('dataNascimento') ? 'form-input-erro' : ''}`}
+                  <DatePickerGAC
+                    value={formData.dataNascimento || ''}
+                    onChange={(iso) => setFormData(prev => ({ ...prev, dataNascimento: iso || '' }))}
+                    placeholder="dd/mm/aaaa"
+                    maxDate={new Date().toISOString().split('T')[0]}
                   />
                   {obterErrosCampo('dataNascimento') && <span className="form-erro-msg">{obterErrosCampo('dataNascimento')}</span>}
                   {formData.dataNascimento && (
@@ -708,7 +752,7 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
             <div className="form-secao">
               <h3 className="form-secao-titulo">Contato</h3>
               
-              <div className="form-grid-2">
+              <div className="form-grid-3">
                 <div className="form-group">
                   <label htmlFor="email">Email <span className="campo-opcional">(Opcional)</span></label>
                   <input
@@ -733,6 +777,37 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                     className={`form-input ${obterErrosCampo('telefone') ? 'form-input-erro' : ''}`}
                   />
                   {obterErrosCampo('telefone') && <span className="form-erro-msg">{obterErrosCampo('telefone')}</span>}
+                </div>
+                <div className="form-group">
+                  <label htmlFor="cor">Cor / Raça</label>
+                  <select
+                    id="cor"
+                    name="cor"
+                    value={formData.cor || ''}
+                    onChange={(e) => { setCamposTocados(prev => ({ ...prev, cor: true })); setFormData(prev => ({ ...prev, cor: e.target.value })); }}
+                    className="form-input"
+                  >
+                    <option value="">Selecione</option>
+                    <option value="preto">Preto</option>
+                    <option value="pardo">Pardo</option>
+                    <option value="branco">Branco</option>
+                    <option value="amarelo">Amarelo</option>
+                    <option value="indigena">Indígena</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label htmlFor="nis">NIS <span className="campo-opcional">(Opcional)</span></label>
+                  <input
+                    id="nis"
+                    type="text"
+                    name="nis"
+                    value={formData.nis || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, nis: e.target.value }))}
+                    className="form-input"
+                  />
                 </div>
               </div>
             </div>
@@ -864,14 +939,6 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
             <div className="beneficio-gac-secao">
               <div className="beneficio-gac-cabecalho">
                 <h3 className="form-secao-titulo">🌿 Benefícios GAC</h3>
-                <button
-                  type="button"
-                  onClick={() => setMostrarGerenciadorBeneficios(true)}
-                  className="beneficio-gac-botao-editar-tipos"
-                  title="Gerenciar tipos de benefícios"
-                >
-                  ⚙️ Editar Tipos
-                </button>
               </div>
               
               {/* Lista de Benefícios Existentes */}
@@ -945,24 +1012,11 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                         }
                       }}
                     >
-                      <input
-                        id="dataInicioBeneficio"
-                        type="date"
-                        value={novoBeneficioGAC.dataInicio}
-                        onChange={(e) => setNovoBeneficioGAC(prev => ({ ...prev, dataInicio: e.target.value }))}
-                        onKeyDown={handleKeyDown}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onSelectStart={(e) => e.preventDefault()}
-                        onFocus={(e) => e.target.blur()}
-                        className="beneficio-gac-data-input"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (e.target.showPicker) {
-                            e.target.showPicker();
-                          }
-                        }}
-                      />
-                      <span className="data-input-icon">📆</span>
+                        <DatePickerGAC
+                          value={novoBeneficioGAC.dataInicio}
+                          onChange={(iso) => setNovoBeneficioGAC(prev => ({ ...prev, dataInicio: iso || '' }))}
+                          placeholder="dd/mm/aaaa"
+                        />
                     </div>
                   </div>
                   <div className="beneficio-gac-form-group">
@@ -979,24 +1033,11 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
                         }
                       }}
                     >
-                      <input
-                        id="dataFinalBeneficio"
-                        type="date"
-                        value={novoBeneficioGAC.dataFinal}
-                        onChange={(e) => setNovoBeneficioGAC(prev => ({ ...prev, dataFinal: e.target.value }))}
-                        onKeyDown={handleKeyDown}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onSelectStart={(e) => e.preventDefault()}
-                        onFocus={(e) => e.target.blur()}
-                        className="beneficio-gac-data-input"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (e.target.showPicker) {
-                            e.target.showPicker();
-                          }
-                        }}
-                      />
-                      <span className="data-input-icon">📆</span>
+                        <DatePickerGAC
+                          value={novoBeneficioGAC.dataFinal}
+                          onChange={(iso) => setNovoBeneficioGAC(prev => ({ ...prev, dataFinal: iso || '' }))}
+                          placeholder="dd/mm/aaaa"
+                        />
                     </div>
                   </div>
                 </div>
@@ -1174,12 +1215,6 @@ const ModalEdicao = ({ pessoa, isOpen, onClose, onAtualizar }) => {
           </button>
         </div>
       </div>
-
-      {/* Modal de gerenciador de benefícios */}
-      <GerenciadorBeneficiosGAC
-        isOpen={mostrarGerenciadorBeneficios}
-        onClose={() => setMostrarGerenciadorBeneficios(false)}
-      />
     </div>
   );
 };

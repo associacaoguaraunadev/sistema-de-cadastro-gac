@@ -59,8 +59,6 @@ model Pessoa {
   // Campos adicionais para Módulo Guaraúna
   rg              String?   // RG para matrícula
   cor             String?   // Cor/raça para matrícula
-  telefoneRecado  String?   // Telefone para recados
-  celular         String?   // Celular pessoal
   nis             String?   // NIS para benefícios
   
   observacoes     String?
@@ -100,6 +98,8 @@ model AlunoGuarauna {
   alergias        String?  // Alergias
   medicamentos    String?  // Medicamentos de uso contínuo
   necessidadesEspeciais String? // Necessidades especiais
+  // Composição familiar armazenada como JSON array
+  composicaoFamiliar Json     @default("[]")
   
   ativo           Boolean  @default(true)
   criadoEm        DateTime @default(now())

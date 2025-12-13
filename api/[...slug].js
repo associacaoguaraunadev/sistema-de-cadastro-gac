@@ -1681,14 +1681,35 @@ async function pessoasValidarCPF(req, res) {
       return res.status(401).json({ erro: 'Token inválido' });
     }
 
-    const { cpf, excluir } = req.query;
+    let { cpf, excluir } = req.query;
+
+    // Fallback: se req.query.cpf estiver undefined, tentar extrair da URL raw
+    if (!cpf) {
+      try {
+        // Tentar extrair querystring diretamente de req.url (mais robusto em ambientes diferentes)
+        const raw = (req.url && req.url.includes('?')) ? req.url.split('?')[1] : null;
+        if (raw) {
+          const params = new URLSearchParams(raw);
+          cpf = params.get('cpf') || cpf;
+          excluir = params.get('excluir') || excluir;
+        } else if (req.originalUrl && req.originalUrl.includes('?')) {
+          const raw2 = req.originalUrl.split('?')[1];
+          const params2 = new URLSearchParams(raw2);
+          cpf = params2.get('cpf') || cpf;
+          excluir = params2.get('excluir') || excluir;
+        }
+        log(`🔎 Fallback extraído da URL/raw query: cpf=${cpf}, excluir=${excluir}`);
+      } catch (e) {
+        log(`⚠️ Falha ao extrair querystring manualmente: ${e.message}`, 'warn');
+      }
+    }
 
     if (!cpf) {
       return res.status(400).json({ erro: 'CPF é obrigatório' });
     }
 
     // Limpar CPF (apenas números)
-    const cpfLimpo = cpf.replace(/\D/g, '');
+    const cpfLimpo = String(cpf).replace(/\D/g, '');
     log(`📋 CPF limpo: ${cpfLimpo}, Excluir ID: ${excluir || 'nenhum'}`);
 
     // Verificar se já existe pessoa com esse CPF
@@ -2666,6 +2687,30 @@ async function pessoasCriar(req, res) {
       });
     }
 
+    // Validação opcional: RG (formato: XX.XXX.XXX-X)
+    if (req.body.rg) {
+      const rgRaw = String(req.body.rg || '');
+      const rgRegex = /^\d{2}\.\d{3}\.\d{3}-\d{1}$/;
+      if (!rgRegex.test(rgRaw)) {
+        return res.status(400).json({
+          erro: 'RG em formato inválido',
+          campos: { rg: 'Formato válido: XX.XXX.XXX-X' }
+        });
+      }
+    }
+
+    // Validação opcional: NIS (formato: XXX.XX.XX.XXX-X)
+    if (req.body.nis) {
+      const nisRaw = String(req.body.nis || '');
+      const nisRegex = /^\d{3}\.\d{2}\.\d{2}\.\d{3}-\d{1}$/;
+      if (!nisRegex.test(nisRaw)) {
+        return res.status(400).json({
+          erro: 'NIS em formato inválido',
+          campos: { nis: 'Formato válido: XXX.XX.XX.XXX-X' }
+        });
+      }
+    }
+
     const dataSanitizada = sanitizarPessoa(req.body);
 
     const pessoa = await prisma.pessoa.create({
@@ -2784,6 +2829,30 @@ async function pessoasAtualizar(req, res, id) {
           }
         });
       }
+    
+    // Validação opcional em atualização: RG (formato: XX.XXX.XXX-X)
+    if (req.body.rg) {
+      const rgRaw = String(req.body.rg || '');
+      const rgRegex = /^\d{2}\.\d{3}\.\d{3}-\d{1}$/;
+      if (!rgRegex.test(rgRaw)) {
+        return res.status(400).json({
+          erro: 'RG em formato inválido',
+          campos: { rg: 'Formato válido: XX.XXX.XXX-X' }
+        });
+      }
+    }
+
+    // Validação opcional em atualização: NIS (formato: XXX.XX.XX.XXX-X)
+    if (req.body.nis) {
+      const nisRaw = String(req.body.nis || '');
+      const nisRegex = /^\d{3}\.\d{2}\.\d{2}\.\d{3}-\d{1}$/;
+      if (!nisRegex.test(nisRaw)) {
+        return res.status(400).json({
+          erro: 'NIS em formato inválido',
+          campos: { nis: 'Formato válido: XXX.XX.XX.XXX-X' }
+        });
+      }
+    }
     }
 
     const dataSanitizada = sanitizarPessoa(req.body);
@@ -3028,8 +3097,9 @@ async function pessoasVerificarExclusao(req, res, id) {
       ...verificacao
     });
   } catch (erro) {
-    log(`Erro ao verificar exclusão: ${erro.message}`, 'error');
-    res.status(500).json({ erro: 'Erro ao verificar dependências' });
+    log(`Erro ao verificar exclusão: ${erro.message}\n${erro.stack}`, 'error');
+    // Retornar também a mensagem de erro no body para facilitar depuração local
+    res.status(500).json({ erro: 'Erro ao verificar dependências', detalhe: erro.message });
   }
 }
 
@@ -3241,6 +3311,7 @@ async function guaraunaAlunosCriar(req, res) {
       nome, cpf, dataNascimento, telefone, email, comunidade, endereco, rg,
       // Dados do aluno
       graduacaoAtual, ubs, numeroSUS, doencas, alergias, medicamentos, necessidadesEspeciais,
+      composicaoFamiliar,
       observacoes,
       // Responsável a vincular (opcional)
       responsavelId, parentesco
@@ -3342,7 +3413,8 @@ async function guaraunaAlunosCriar(req, res) {
         doencas,
         alergias,
         medicamentos,
-        necessidadesEspeciais
+        necessidadesEspeciais,
+        composicaoFamiliar: composicaoFamiliar || []
       },
       include: {
         pessoa: true,
@@ -3428,7 +3500,7 @@ async function guaraunaAlunosAtualizar(req, res, id) {
       // Dados da pessoa
       nome, cpf, dataNascimento, telefone, email, comunidade, endereco, rg, observacoes,
       // Dados do aluno
-      graduacaoAtual, ubs, numeroSUS, doencas, alergias, medicamentos, necessidadesEspeciais, ativo 
+      graduacaoAtual, ubs, numeroSUS, doencas, alergias, medicamentos, necessidadesEspeciais, composicaoFamiliar, ativo 
     } = req.body || {};
 
     // Função para limpar CPF (remover formatação)
@@ -3478,6 +3550,7 @@ async function guaraunaAlunosAtualizar(req, res, id) {
         ...(alergias !== undefined && { alergias }),
         ...(medicamentos !== undefined && { medicamentos }),
         ...(necessidadesEspeciais !== undefined && { necessidadesEspeciais }),
+        ...(composicaoFamiliar !== undefined && { composicaoFamiliar }),
         ...(ativo !== undefined && { ativo })
       },
       include: { 
@@ -4746,7 +4819,6 @@ async function guaraunaMatriculasCriar(req, res) {
         horaEntrada,
         horaSaida,
         situacaoComportamentoEscolar,
-        composicaoFamiliar,
         // Normalizar status enum se fornecido e permitido
         ...(statusToSave ? { status: statusToSave } : {}),
         motivoDesistencia
@@ -4755,6 +4827,15 @@ async function guaraunaMatriculasCriar(req, res) {
         aluno: { include: { pessoa: true } }
       }
     });
+
+    // Se foi enviada composicaoFamiliar no payload, atualiza o aluno (campo agora está em AlunoGuarauna)
+    if (composicaoFamiliar !== undefined) {
+      try {
+        await prisma.alunoGuarauna.update({ where: { id: alunoId }, data: { composicaoFamiliar: composicaoFamiliar || [] } });
+      } catch (upErr) {
+        log(`Aviso: falha ao atualizar composicaoFamiliar do aluno ${alunoId}: ${upErr.message}`, 'warn');
+      }
+    }
 
     log(`✅ Matrícula criada: ${matricula.aluno.pessoa.nome} - ${ano}`);
     res.status(201).json(matricula);
@@ -4831,7 +4912,6 @@ async function guaraunaMatriculasAtualizar(req, res, id) {
       tamanhoCamiseta,
       tamanhoCalca: tamanhoCalca || tamanhoBermuda,
       tamanhoCalcado,
-      composicaoFamiliar,
       motivoDesistencia,
       nomeEscola,
       horarioEstudo,
@@ -4843,7 +4923,20 @@ async function guaraunaMatriculasAtualizar(req, res, id) {
     // Se status foi enviado e não é ATIVA (já filtrado), aplicar normalização
     if (status) dadosAtualizar.status = String(status).toUpperCase();
 
-    // Atualizar
+    // Se composicaoFamiliar foi enviada, atualiza campo no aluno (agora armazenado em AlunoGuarauna)
+    if (composicaoFamiliar !== undefined) {
+      try {
+        // buscar matrícula para obter alunoId
+        const atual = await prisma.matricula.findUnique({ where: { id } });
+        if (atual) {
+          await prisma.alunoGuarauna.update({ where: { id: atual.alunoId }, data: { composicaoFamiliar: composicaoFamiliar || [] } });
+        }
+      } catch (upErr) {
+        log(`Aviso: falha ao atualizar composicaoFamiliar via matrícula ${id}: ${upErr.message}`, 'warn');
+      }
+    }
+
+    // Atualizar matrícula
     const matricula = await prisma.matricula.update({ where: { id }, data: dadosAtualizar });
 
     res.json(matricula);

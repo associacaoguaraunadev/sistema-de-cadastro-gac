@@ -853,6 +853,27 @@
   text-overflow: ellipsis;
 }
 
+/* Badge de idade (menor) */
+.idade-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 12px;
+  color: #fff;
+}
+
+.idade-badge.menor {
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%); /* laranja -> vermelho */
+}
+
+.pessoa-dropdown-item-nome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -1100,6 +1121,10 @@
 /* Dropdown de Pessoa Melhorado */
 .pessoa-dropdown-container {
   position: relative;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
 }
 
 .pessoa-dropdown-trigger {
@@ -1107,27 +1132,27 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: white;
-  border: 2px solid #86efac;
+  background: #eef7ff; /* levemente azulado */
+  border: 2px solid #cfe8ff; /* borda azul clara */
   border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
 }
 
 .pessoa-dropdown-trigger:hover {
-  border-color: #22c55e;
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15);
+  border-color: #7fbffb;
+  box-shadow: 0 6px 18px rgba(59,130,246,0.08);
 }
 
 .pessoa-dropdown-trigger.aberto {
-  border-color: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  border-color: #7fbffb;
+  box-shadow: 0 8px 24px rgba(59,130,246,0.08);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
 }
 
 .pessoa-dropdown-trigger svg:first-child {
-  color: #22c55e;
+  color: #3b82f6; /* ícone azul */
 }
 
 .pessoa-dropdown-trigger span {
@@ -1151,10 +1176,10 @@
   left: 0;
   right: 0;
   background: white;
-  border: 2px solid #22c55e;
+  border: 2px solid #cfe8ff; /* borda azul suave */
   border-top: none;
   border-radius: 0 0 12px 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   z-index: 100;
   max-height: 320px;
   display: flex;
@@ -1166,8 +1191,8 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border-bottom: 1px solid #eef6ff;
+  background: #f4f9ff; /* leve azul no fundo da área de busca */
 }
 
 .pessoa-dropdown-busca svg {
@@ -1176,14 +1201,23 @@
 
 .pessoa-dropdown-busca input {
   flex: 1;
-  border: none;
-  background: transparent;
-  font-size: 0.9rem;
+  border: 1px solid #e6eaf0;
+  background: white;
+  font-size: 0.95rem;
   outline: none;
+  padding: 10px 12px;
+  border-radius: 8px;
+  box-shadow: none;
 }
 
 .pessoa-dropdown-busca input::placeholder {
   color: #9ca3af;
+}
+
+.pessoa-dropdown-busca input:focus {
+  outline: none;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34,197,94,0.08);
 }
 
 .pessoa-dropdown-lista {
@@ -1242,6 +1276,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
+}
+
+.pessoa-comunidade {
+  color: #64748b;
+}
+
+.pessoa-cpf {
+  margin-left: 6px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.pessoa-idade {
+  margin-left: 6px;
+  color: #64748b;
 }
 
 .pessoa-selecionada {

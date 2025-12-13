@@ -39,6 +39,13 @@ const calcularIdade = (dataNascimento) => {
   return Math.max(0, idade);
 };
 
+// Formata idade como "1 ano" / "2 anos" ou retorna null se sem data
+const formatarIdadeTexto = (dataNascimento) => {
+  const idade = calcularIdade(dataNascimento);
+  if (idade === null) return null;
+  return `${idade} ${idade === 1 ? 'ano' : 'anos'}`;
+};
+
 // Funções de formatação
 const formatarCPF = (valor) => {
   if (!valor) return '';
@@ -190,10 +197,20 @@ const FormularioResponsavel = ({
                       >
                         <User size={16} />
                         <div className="pessoa-dropdown-item-info">
-                          <div className="pessoa-dropdown-item-nome">{pessoa.nome}</div>
+                          <div className="pessoa-dropdown-item-nome">
+                            {pessoa.nome}
+                            {calcularIdade(pessoa.dataNascimento) !== null && calcularIdade(pessoa.dataNascimento) < 18 && (
+                              <span className="idade-badge menor">Menor</span>
+                            )}
+                          </div>
                           <div className="pessoa-dropdown-item-detalhes">
-                            {pessoa.comunidade || 'Sem comunidade'}
-                            {pessoa.cpf && ` • CPF: ${pessoa.cpf}`}
+                            <span className="pessoa-comunidade">{pessoa.comunidade || 'Sem comunidade'}</span>
+                            {pessoa.cpf && (
+                              <span className="pessoa-cpf"> • CPF: {formatarCPF(pessoa.cpf)}</span>
+                            )}
+                            {formatarIdadeTexto(pessoa.dataNascimento) && (
+                              <span className="pessoa-idade"> • {formatarIdadeTexto(pessoa.dataNascimento)}</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -214,6 +231,10 @@ const FormularioResponsavel = ({
             <div className="pessoa-selecionada-detalhes">
               {pessoaSelecionada.comunidade && `${pessoaSelecionada.comunidade}`}
               {pessoaSelecionada.cpf && ` • CPF: ${pessoaSelecionada.cpf}`}
+              {formatarIdadeTexto(pessoaSelecionada.dataNascimento) && ` • ${formatarIdadeTexto(pessoaSelecionada.dataNascimento)}`}
+              {calcularIdade(pessoaSelecionada.dataNascimento) !== null && calcularIdade(pessoaSelecionada.dataNascimento) < 18 && (
+                <span className="idade-badge menor" style={{ marginLeft: '8px' }}>Menor</span>
+              )}
             </div>
           </div>
           <button type="button" className="btn-limpar-pessoa" onClick={limparPessoaSelecionada}>
@@ -693,7 +714,19 @@ const PaginaResponsaveisGuarauna = () => {
         });
         if (response.ok) {
           const data = await response.json();
-          setPessoasSugeridas(data.pessoas || data || []);
+          const todas = data.pessoas || data || [];
+          // Filtrar menores e deduplicar por CPF/id
+          const resultado = (Array.isArray(todas) ? todas : []).reduce((acc, p) => {
+            const idade = calcularIdade(p.dataNascimento);
+            if (idade !== null && idade < 18) return acc;
+            const cpfLimpo = (p.cpf || '').toString().replace(/\D/g, '');
+            const chave = cpfLimpo || String(p.id || '');
+            if (acc._seen.has(chave)) return acc;
+            acc._seen.add(chave);
+            acc.result.push(p);
+            return acc;
+          }, { _seen: new Set(), result: [] }).result;
+          setPessoasSugeridas(resultado);
         }
       } catch (error) {
         console.error('Erro ao buscar pessoas:', error);
@@ -806,6 +839,7 @@ const PaginaResponsaveisGuarauna = () => {
     }
     
     // Carregar todas as pessoas para o dropdown
+    // Carregar e processar lista de pessoas (filtrar menores e deduplicar por CPF/id)
     try {
       const response = await fetch(`${API_URL}/pessoas?limite=1000`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -813,7 +847,19 @@ const PaginaResponsaveisGuarauna = () => {
       if (response.ok) {
         const data = await response.json();
         const pessoas = data.pessoas || data || [];
-        setTodasPessoas(pessoas);
+        const processadas = (pessoas || []).reduce((acc, p) => {
+          // chave de deduplicação: CPF limpo quando disponível, senão id
+          const cpfLimpo = (p.cpf || '').toString().replace(/\D/g, '');
+          const chave = cpfLimpo || String(p.id || '');
+          if (acc._seen.has(chave)) return acc;
+          acc._seen.add(chave);
+          const idade = calcularIdade(p.dataNascimento);
+          // não incluir menores de 18 (manter se sem data de nascimento)
+          if (idade !== null && idade < 18) return acc;
+          acc.result.push(p);
+          return acc;
+        }, { _seen: new Set(), result: [] }).result;
+        setTodasPessoas(processadas);
       }
     } catch (error) {
       console.error('Erro ao carregar pessoas:', error);

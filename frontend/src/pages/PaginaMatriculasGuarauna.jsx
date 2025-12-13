@@ -198,7 +198,7 @@ const PaginaMatriculasGuarauna = () => {
         horaEntrada: matricula.horaEntrada || '',
         horaSaida: matricula.horaSaida || '',
         situacaoComportamentoEscolar: matricula.situacaoComportamentoEscolar || '',
-        composicaoFamiliar: Array.isArray(matricula.composicaoFamiliar) ? matricula.composicaoFamiliar : [],
+        composicaoFamiliar: Array.isArray(matricula.composicaoFamiliar) ? matricula.composicaoFamiliar : (Array.isArray(matricula.aluno?.composicaoFamiliar) ? matricula.aluno.composicaoFamiliar : []),
         motivoDesistencia: matricula.motivoDesistencia || ''
       });
     } else {
@@ -628,7 +628,15 @@ const PaginaMatriculasGuarauna = () => {
                 <label>Aluno *</label>
                 <select
                   value={formData.alunoId}
-                  onChange={(e) => setFormData({ ...formData, alunoId: e.target.value })}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    const aluno = alunos.find(a => a.id === id);
+                    setFormData({
+                      ...formData,
+                      alunoId: id,
+                      composicaoFamiliar: Array.isArray(aluno?.composicaoFamiliar) ? aluno.composicaoFamiliar : []
+                    });
+                  }}
                   disabled={!!matriculaEditando}
                 >
                   <option value="">Selecione um aluno</option>
@@ -865,6 +873,21 @@ const PaginaMatriculasGuarauna = () => {
 
               <div className="detalhe-row">
                 <div className="detalhe-item">
+                  <label>RG</label>
+                  <span>{modalVisualizacao.matricula?.aluno?.pessoa?.rg || modalVisualizacao.matricula?.aluno?.rg || '-'}</span>
+                </div>
+                <div className="detalhe-item">
+                  <label>NIS</label>
+                  <span>{modalVisualizacao.matricula?.aluno?.pessoa?.nis || modalVisualizacao.matricula?.aluno?.nis || '-'}</span>
+                </div>
+                <div className="detalhe-item">
+                  <label>Cor / Raça</label>
+                  <span>{modalVisualizacao.matricula?.aluno?.pessoa?.cor || modalVisualizacao.matricula?.aluno?.cor || '-'}</span>
+                </div>
+              </div>
+
+              <div className="detalhe-row">
+                <div className="detalhe-item">
                   <label>Ano</label>
                   <span>{modalVisualizacao.matricula?.ano}</span>
                 </div>
@@ -910,10 +933,10 @@ const PaginaMatriculasGuarauna = () => {
                   <span>{modalVisualizacao.matricula?.tamanhoCalcado || '-'}</span>
                 </div>
               </div>
-              {modalVisualizacao.matricula?.composicaoFamiliar && (
+              {(modalVisualizacao.matricula?.composicaoFamiliar || modalVisualizacao.matricula?.aluno?.composicaoFamiliar) && (
                 <div className="detalhe-item">
                   <label>Composição Familiar</label>
-                  <ComposicaoFamiliarView value={modalVisualizacao.matricula.composicaoFamiliar} />
+                  <ComposicaoFamiliarView value={modalVisualizacao.matricula.composicaoFamiliar || modalVisualizacao.matricula.aluno?.composicaoFamiliar} />
                 </div>
               )}
               {modalVisualizacao.matricula?.motivoDesistencia && (

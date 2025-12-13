@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { criarPessoa, validarCPF } from '../servicos/api';
+import DatePickerGAC from './DatePickerGAC';
 import { useGlobalToast } from '../contexto/ToastContext';
 import { useAuth } from '../contexto/AuthContext';
 import GerenciadorBeneficiosGAC from './GerenciadorBeneficiosGAC';
@@ -33,7 +34,10 @@ const extrairValorMoeda = (valor) => {
 const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
   const [formData, setFormData] = useState({
     nome: '',
+    rg: '',
     cpf: '',
+    cor: '',
+    nis: '',
     email: '',
     telefone: '',
     endereco: '',
@@ -55,6 +59,7 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
   const [camposTocados, setCamposTocados] = useState({});
 
   const [comunidadeCustomizada, setComunidadeCustomizada] = useState('');
+  
   const [comunidadesCustomizadas, setComunidadesCustomizadas] = useState(() => {
     const salvas = localStorage.getItem('comunidadesCustomizadas');
     return salvas ? JSON.parse(salvas) : [];
@@ -101,14 +106,46 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
       return nums.join('').replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3-') + '00';
     };
     
+    const gerarRG = () => {
+      const a = Math.floor(Math.random() * 90) + 10; // 2 dígitos
+      const b = Math.floor(Math.random() * 900) + 100; // 3 dígitos
+      const c = Math.floor(Math.random() * 900) + 100; // 3 dígitos
+      const d = Math.floor(Math.random() * 9); // 1 dígito
+      return `${String(a).padStart(2,'0')}.${String(b).padStart(3,'0')}.${String(c).padStart(3,'0')}-${d}`;
+    };
+
+    const gerarNIS = () => {
+      const p1 = Math.floor(Math.random() * 900) + 100; // 3
+      const p2 = Math.floor(Math.random() * 90) + 10;   // 2
+      const p3 = Math.floor(Math.random() * 90) + 10;   // 2
+      const p4 = Math.floor(Math.random() * 900) + 100; // 3
+      const p5 = Math.floor(Math.random() * 9);         // 1
+      return `${String(p1)}.${String(p2)}.${String(p3)}.${String(p4)}-${p5}`;
+    };
+    
     // Gerar telefone aleatório
     const gerarTelefone = () => {
       return `(11) 9${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
     };
     
+    // Decidir aleatoriamente se gera uma criança ou um adulto
+    const isCrianca = Math.random() < 0.5; // ~50% chance
+    const idade = isCrianca ? Math.floor(Math.random() * 13) : Math.floor(Math.random() * 63) + 18; // 0-12 ou 18-80
+
+    // Calcular data de nascimento a partir da idade e escolher mês/dia aleatórios
+    const hoje = new Date();
+    const mes = Math.floor(Math.random() * 12); // 0-11
+    const dia = Math.floor(Math.random() * 28) + 1; // 1-28 para evitar problemas com meses
+    const ano = hoje.getFullYear() - idade;
+    const dataNasc = new Date(ano, mes, dia);
+    const isoDataNasc = dataNasc.toISOString().slice(0, 10); // YYYY-MM-DD
+
     const dadosTeste = {
       nome: nomes[Math.floor(Math.random() * nomes.length)],
+      rg: gerarRG(),
       cpf: gerarCPF(),
+      cor: ['preto','pardo','branco','amarelo','indigena'][Math.floor(Math.random()*5)],
+      nis: gerarNIS(),
       email: `teste${Math.floor(Math.random() * 1000)}@gmail.com`,
       telefone: gerarTelefone(),
       endereco: enderecos[Math.floor(Math.random() * enderecos.length)],
@@ -116,7 +153,8 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
       cidade: cidades[Math.floor(Math.random() * cidades.length)],
       estado: estados[Math.floor(Math.random() * estados.length)],
       cep: `${Math.floor(Math.random() * 99999).toString().padStart(5, '0')}-${Math.floor(Math.random() * 999).toString().padStart(3, '0')}`,
-      idade: Math.floor(Math.random() * 80) + 1,
+      idade,
+      dataNascimento: isoDataNasc,
       comunidade: comunidades[Math.floor(Math.random() * comunidades.length)],
       rendaFamiliar: formatarMoeda((Math.floor(Math.random() * 5000) + 500).toString()),
       numeroMembros: Math.floor(Math.random() * 8) + 1,
@@ -207,6 +245,27 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
     return apenasNumeros.slice(0, 3) + '.' + apenasNumeros.slice(3, 6) + '.' + apenasNumeros.slice(6, 9) + '-' + apenasNumeros.slice(9);
   };
 
+  const formatarRG = (valor) => {
+    if (!valor) return '';
+    valor = valor.toString();
+    let nums = valor.replace(/\D/g, '').slice(0, 9); // RG tem 9 dígitos: 2.3.3.1
+    if (nums.length <= 2) return nums;
+    if (nums.length <= 5) return nums.slice(0, 2) + '.' + nums.slice(2);
+    if (nums.length <= 8) return nums.slice(0, 2) + '.' + nums.slice(2, 5) + '.' + nums.slice(5);
+    return nums.slice(0, 2) + '.' + nums.slice(2, 5) + '.' + nums.slice(5, 8) + '-' + nums.slice(8);
+  };
+
+  const formatarNIS = (valor) => {
+    if (!valor) return '';
+    valor = valor.toString();
+    let nums = valor.replace(/\D/g, '').slice(0, 11); // NIS tem 11 dígitos: 3.2.2.3.1
+    if (nums.length <= 3) return nums;
+    if (nums.length <= 5) return nums.slice(0,3) + '.' + nums.slice(3);
+    if (nums.length <= 7) return nums.slice(0,3) + '.' + nums.slice(3,5) + '.' + nums.slice(5);
+    if (nums.length <= 10) return nums.slice(0,3) + '.' + nums.slice(3,5) + '.' + nums.slice(5,7) + '.' + nums.slice(7);
+    return nums.slice(0,3) + '.' + nums.slice(3,5) + '.' + nums.slice(5,7) + '.' + nums.slice(7,10) + '-' + nums.slice(10);
+  };
+
   const formatarTelefone = (valor) => {
     if (!valor) return '';
     
@@ -247,6 +306,10 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
     
     if (name === 'cpf') {
       setFormData(prev => ({ ...prev, [name]: formatarCPF(value) }));
+    } else if (name === 'rg') {
+      setFormData(prev => ({ ...prev, [name]: formatarRG(value) }));
+    } else if (name === 'nis') {
+      setFormData(prev => ({ ...prev, [name]: formatarNIS(value) }));
     } else if (name === 'telefone') {
       setFormData(prev => ({ ...prev, [name]: formatarTelefone(value) }));
     } else if (name === 'cep') {
@@ -387,9 +450,15 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
       return;
     }
 
-    // VALIDAR CPF DUPLICADO
+    // VALIDAR CPF LOCALMENTE E DUPLICADO
     try {
       const cpfLimpo = (formData.cpf || '').replace(/\D/g, '');
+      // Checagem local rápida: deve ter 11 dígitos
+      if (!cpfLimpo || cpfLimpo.length !== 11) {
+        erroToast('CPF inválido', 'Informe um CPF válido com 11 dígitos antes de salvar.');
+        return;
+      }
+
       await validarCPF(token, cpfLimpo);
     } catch (erro) {
       if (erro.response?.status === 409) {
@@ -410,6 +479,9 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
       beneficiosGAC: Array.isArray(formData.beneficiosGAC) ? formData.beneficiosGAC : [],
       beneficiosGoverno: Array.isArray(formData.beneficiosGoverno) ? formData.beneficiosGoverno : [],
       cpf: (formData.cpf || '').replace(/\D/g, ''),
+      rg: formData.rg || null,
+      cor: formData.cor || null,
+      nis: formData.nis || null,
       telefone: (formData.telefone || '').replace(/\D/g, ''),
       cep: (formData.cep || '').replace(/\D/g, ''),
       dataNascimento: formData.dataNascimento || null,
@@ -430,7 +502,10 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
       // Limpar formulário
       setFormData({
         nome: '',
+        rg: '',
         cpf: '',
+        cor: '',
+        nis: '',
         email: '',
         telefone: '',
         endereco: '',
@@ -584,7 +659,7 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
             <div className="form-secao">
               <h3 className="form-secao-titulo">Informações Pessoais</h3>
               
-              <div className="form-grid-2">
+              <div className="form-grid-3">
                 <div className="form-group">
                   <label htmlFor="nome">Nome Completo *</label>
                   <input
@@ -613,20 +688,29 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
                   />
                   {obterErrosCampo('cpf') && <span className="form-erro-msg">{obterErrosCampo('cpf')}</span>}
                 </div>
+                <div className="form-group">
+                  <label htmlFor="rg">RG</label>
+                  <input
+                    id="rg"
+                    type="text"
+                    name="rg"
+                    value={formData.rg || ''}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    className="form-input"
+                    placeholder="00.000.000-0"
+                  />
+                </div>
               </div>
 
               <div className="form-grid-3">
                 <div className="form-group">
                   <label htmlFor="dataNascimento">Data de Nascimento *</label>
-                  <input
-                    id="dataNascimento"
-                    type="date"
-                    name="dataNascimento"
-                    max={new Date().toISOString().split('T')[0]}
+                  <DatePickerGAC
                     value={formData.dataNascimento || ''}
-                    onChange={handleChange}
-                    onKeyDown={handleKeyDown}
-                    className={`form-input ${obterErrosCampo('dataNascimento') ? 'form-input-erro' : ''}`}
+                    onChange={(iso) => setFormData(prev => ({ ...prev, dataNascimento: iso || '' }))}
+                    placeholder="dd/mm/aaaa"
+                    maxDate={new Date().toISOString().split('T')[0]}
                   />
                   {obterErrosCampo('dataNascimento') && <span className="form-erro-msg">{obterErrosCampo('dataNascimento')}</span>}
                   {formData.dataNascimento && (
@@ -685,7 +769,7 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
             <div className="form-secao">
               <h3 className="form-secao-titulo">Contato</h3>
               
-              <div className="form-grid-2">
+              <div className="form-grid-3">
                 <div className="form-group">
                   <label htmlFor="email">Email <span className="campo-opcional">(Opcional)</span></label>
                   <input
@@ -711,6 +795,38 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
                     placeholder="(00) 00000-0000"
                   />
                   {obterErrosCampo('telefone') && <span className="form-erro-msg">{obterErrosCampo('telefone')}</span>}
+                </div>
+                <div className="form-group">
+                  <label htmlFor="cor">Cor / Raça</label>
+                  <select
+                    id="cor"
+                    name="cor"
+                    value={formData.cor || ''}
+                    onChange={handleChange}
+                    className="form-input"
+                  >
+                    <option value="">Selecione</option>
+                    <option value="preto">Preto</option>
+                    <option value="pardo">Pardo</option>
+                    <option value="branco">Branco</option>
+                    <option value="amarelo">Amarelo</option>
+                    <option value="indigena">Indígena</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label htmlFor="nis">NIS <span className="campo-opcional">(Opcional)</span></label>
+                  <input
+                    id="nis"
+                    type="text"
+                    name="nis"
+                    value={formData.nis || ''}
+                    onChange={handleChange}
+                    className="form-input"
+                    placeholder="NIS"
+                  />
                 </div>
               </div>
             </div>
@@ -882,38 +998,11 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
                         }
                       }}
                     >
-                      <input
-                        id="dataInicioBeneficio"
-                        type="date"
-                        value={novoBeneficioGAC.dataInicio}
-                        onChange={(e) => setNovoBeneficioGAC(prev => ({ ...prev, dataInicio: e.target.value }))}
-                        onKeyDown={handleKeyDown}
-                        placeholder="dd/mm/aaaa"
-                        className="beneficio-gac-data-input"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (e.target.showPicker) {
-                            e.target.showPicker();
-                          }
-                        }}
-                        onSelectStart={(e) => e.preventDefault()}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          setTimeout(() => {
-                            if (e.target.showPicker) {
-                              e.target.showPicker();
-                            }
-                          }, 0);
-                        }}
-                        onFocus={(e) => {
-                          setTimeout(() => {
-                            if (e.target.showPicker) {
-                              e.target.showPicker();
-                            }
-                          }, 0);
-                        }}
-                      />
-                      <span className="data-input-icon">📆</span>
+                        <DatePickerGAC
+                          value={novoBeneficioGAC.dataInicio}
+                          onChange={(iso) => setNovoBeneficioGAC(prev => ({ ...prev, dataInicio: iso || '' }))}
+                          placeholder="dd/mm/aaaa"
+                        />
                     </div>
                   </div>
                   <div className="beneficio-gac-form-group">
@@ -930,38 +1019,11 @@ const ModalCadastro = ({ isOpen, onClose, onCadastrar }) => {
                         }
                       }}
                     >
-                      <input
-                        id="dataFinalBeneficio"
-                        type="date"
-                        value={novoBeneficioGAC.dataFinal}
-                        onChange={(e) => setNovoBeneficioGAC(prev => ({ ...prev, dataFinal: e.target.value }))}
-                        onKeyDown={handleKeyDown}
-                        placeholder="dd/mm/aaaa"
-                        className="beneficio-gac-data-input"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (e.target.showPicker) {
-                            e.target.showPicker();
-                          }
-                        }}
-                        onSelectStart={(e) => e.preventDefault()}
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          setTimeout(() => {
-                            if (e.target.showPicker) {
-                              e.target.showPicker();
-                            }
-                          }, 0);
-                        }}
-                        onFocus={(e) => {
-                          setTimeout(() => {
-                            if (e.target.showPicker) {
-                              e.target.showPicker();
-                            }
-                          }, 0);
-                        }}
-                      />
-                      <span className="data-input-icon">📆</span>
+                        <DatePickerGAC
+                          value={novoBeneficioGAC.dataFinal}
+                          onChange={(iso) => setNovoBeneficioGAC(prev => ({ ...prev, dataFinal: iso || '' }))}
+                          placeholder="dd/mm/aaaa"
+                        />
                     </div>
                   </div>
                 </div>

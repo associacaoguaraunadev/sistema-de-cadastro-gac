@@ -313,7 +313,25 @@ const ModalPreview = ({ pessoa, idade, isOpen, onClose, onPessoaDeletada }) => {
                 {pessoaAtualizada.rg && (
                   <div className="campo-preview">
                     <div className="campo-label">RG</div>
-                    <div className="campo-valor">{pessoaAtualizada.rg}</div>
+                    <div className="campo-valor">{pessoaAtualizada.rg || pessoaAtualizada.pessoa?.rg}</div>
+                  </div>
+                )}
+
+                {(
+                  pessoaAtualizada.nis || pessoaAtualizada.pessoa?.nis
+                ) && (
+                  <div className="campo-preview">
+                    <div className="campo-label">NIS</div>
+                    <div className="campo-valor">{pessoaAtualizada.nis || pessoaAtualizada.pessoa?.nis}</div>
+                  </div>
+                )}
+
+                {(
+                  pessoaAtualizada.cor || pessoaAtualizada.pessoa?.cor
+                ) && (
+                  <div className="campo-preview">
+                    <div className="campo-label">Cor / Raça</div>
+                    <div className="campo-valor">{pessoaAtualizada.cor || pessoaAtualizada.pessoa?.cor}</div>
                   </div>
                 )}
 

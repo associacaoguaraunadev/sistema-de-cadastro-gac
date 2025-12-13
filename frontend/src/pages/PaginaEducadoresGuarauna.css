@@ -464,6 +464,28 @@
   font-weight: 500;
 }
 
+/* Badge de idade (menor) */
+.idade-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 12px;
+  color: #fff;
+}
+
+.idade-badge.menor {
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+}
+
+.pessoa-dropdown-item-nome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;
@@ -620,11 +642,11 @@
 /* Dropdown de Pessoa - Padrão Ouro */
 .pessoa-dropdown-container {
   position: relative;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border: 1px solid #bae6fd;
-  border-radius: 12px;
+  margin-bottom: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .pessoa-dropdown-container > label {
@@ -641,20 +663,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background: white;
-  border: 2px solid #7dd3fc;
+  background: #eef7ff; /* levemente azulado */
+  border: 2px solid #cfe8ff; /* borda azul clara */
   border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.18s;
 }
 
 .pessoa-dropdown-select:hover {
-  border-color: #0ea5e9;
+  border-color: #7fbffb;
 }
 
 .pessoa-dropdown-select.aberto {
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+  border-color: #7fbffb;
+  box-shadow: 0 8px 24px rgba(59,130,246,0.08);
 }
 
 .pessoa-dropdown-placeholder {
@@ -716,13 +738,13 @@
 
 .pessoa-dropdown-menu {
   position: absolute;
-  top: calc(100% - 12px);
-  left: 16px;
-  right: 16px;
+  top: 100%;
+  left: 0;
+  right: 0;
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  border: 2px solid #cfe8ff; /* borda azul suave */
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
   z-index: 100;
   overflow: hidden;
 }
@@ -732,8 +754,8 @@
   align-items: center;
   gap: 10px;
   padding: 12px 16px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-bottom: 1px solid #eef6ff;
+  background: #f4f9ff; /* leve azul */
 }
 
 .pessoa-dropdown-busca > svg {
@@ -789,6 +811,21 @@
   font-size: 0.8rem;
   color: #64748b;
   margin-top: 2px;
+}
+
+.pessoa-comunidade {
+  color: #64748b;
+}
+
+.pessoa-cpf {
+  margin-left: 6px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.pessoa-idade {
+  margin-left: 6px;
+  color: #64748b;
 }
 
 .pessoa-dropdown-vazio,

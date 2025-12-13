@@ -48,6 +48,26 @@ const formatarTelefone = (valor) => {
   return `(${numeros.slice(0,2)}) ${numeros.slice(2,7)}-${numeros.slice(7,11)}`;
 };
 
+// Função para calcular idade
+const calcularIdade = (dataNascimento) => {
+  if (!dataNascimento) return null;
+  const nascimento = new Date(dataNascimento);
+  const hoje = new Date();
+  let idade = hoje.getFullYear() - nascimento.getFullYear();
+  const mes = hoje.getMonth() - nascimento.getMonth();
+  if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+    idade--;
+  }
+  return Math.max(0, idade);
+};
+
+// Formata idade como "1 ano" / "2 anos"
+const formatarIdadeTexto = (dataNascimento) => {
+  const idade = calcularIdade(dataNascimento);
+  if (idade === null) return null;
+  return `${idade} ${idade === 1 ? 'ano' : 'anos'}`;
+};
+
 const PaginaEducadoresGuarauna = () => {
   const { token } = useAuth();
   const { adicionarToast } = useGlobalToast();
@@ -89,6 +109,7 @@ const PaginaEducadoresGuarauna = () => {
   // Busca de pessoa existente
   const [buscaPessoa, setBuscaPessoa] = useState('');
   const [pessoasSugeridas, setPessoasSugeridas] = useState([]);
+  const [todasPessoas, setTodasPessoas] = useState([]);
   const [pessoaSelecionada, setPessoaSelecionada] = useState(null);
   
   // Dropdown de pessoa
@@ -184,7 +205,19 @@ const PaginaEducadoresGuarauna = () => {
         });
         if (response.ok) {
           const data = await response.json();
-          setPessoasSugeridas(data.pessoas || data || []);
+          const todas = data.pessoas || data || [];
+          // Filtrar menores e deduplicar por CPF/id
+          const resultado = (Array.isArray(todas) ? todas : []).reduce((acc, p) => {
+            const idade = calcularIdade(p.dataNascimento);
+            if (idade !== null && idade < 18) return acc;
+            const cpfLimpo = (p.cpf || '').toString().replace(/\D/g, '');
+            const chave = cpfLimpo || String(p.id || '');
+            if (acc._seen.has(chave)) return acc;
+            acc._seen.add(chave);
+            acc.result.push(p);
+            return acc;
+          }, { _seen: new Set(), result: [] }).result;
+          setPessoasSugeridas(resultado);
         }
       } catch (error) {
         console.error('Erro ao buscar pessoas:', error);
@@ -564,14 +597,52 @@ const PaginaEducadoresGuarauna = () => {
                   <label><UserCheck size={16} /> Vincular a pessoa já cadastrada</label>
                   <div 
                     className={`pessoa-dropdown-select ${dropdownPessoaAberto ? 'aberto' : ''}`}
-                    onClick={() => setDropdownPessoaAberto(!dropdownPessoaAberto)}
+                    onClick={async () => {
+                      const opening = !dropdownPessoaAberto;
+                      setDropdownPessoaAberto(opening);
+                      if (!opening) return;
+                      // ao abrir, carregar todas as pessoas (se ainda não carregadas) e aplicar filtro >= 18
+                      if (todasPessoas.length > 0) {
+                        setPessoasSugeridas(todasPessoas);
+                        return;
+                      }
+                      try {
+                        const resp = await fetch(`${API_URL}/pessoas?limite=100`, {
+                          headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                          if (resp.ok) {
+                          const json = await resp.json();
+                          const pessoas = json.pessoas || json || [];
+                          const processadas = (Array.isArray(pessoas) ? pessoas : []).reduce((acc, p) => {
+                            const idade = calcularIdade(p.dataNascimento);
+                            if (idade !== null && idade < 18) return acc;
+                            const cpfLimpo = (p.cpf || '').toString().replace(/\D/g, '');
+                            const chave = cpfLimpo || String(p.id || '');
+                            if (acc._seen.has(chave)) return acc;
+                            acc._seen.add(chave);
+                            acc.result.push(p);
+                            return acc;
+                          }, { _seen: new Set(), result: [] }).result;
+                          setTodasPessoas(processadas);
+                          setPessoasSugeridas(processadas);
+                        }
+                      } catch (err) {
+                        console.error('Erro ao carregar pessoas ao abrir dropdown:', err);
+                      }
+                    }}
                   >
                     {pessoaSelecionada ? (
                       <div className="pessoa-dropdown-selecionada">
                         <User size={18} />
                         <span className="pessoa-nome">{pessoaSelecionada.nome}</span>
                         {pessoaSelecionada.comunidade && (
-                          <span className="pessoa-comunidade">{pessoaSelecionada.comunidade}</span>
+                              <span className="pessoa-comunidade">{pessoaSelecionada.comunidade}</span>
+                            )}
+                        {formatarIdadeTexto(pessoaSelecionada.dataNascimento) && (
+                          <span style={{ marginLeft: 8, color: '#666' }}>{formatarIdadeTexto(pessoaSelecionada.dataNascimento)}</span>
+                        )}
+                        {calcularIdade(pessoaSelecionada.dataNascimento) !== null && calcularIdade(pessoaSelecionada.dataNascimento) < 18 && (
+                          <span className="idade-badge menor" style={{ marginLeft: 8 }}>Menor</span>
                         )}
                         <button 
                           type="button" 
@@ -611,14 +682,24 @@ const PaginaEducadoresGuarauna = () => {
                               className="pessoa-dropdown-item"
                               onClick={(e) => { e.stopPropagation(); selecionarPessoa(pessoa); setDropdownPessoaAberto(false); }}
                             >
-                              <User size={16} />
-                              <div className="pessoa-dropdown-item-info">
-                                <span className="pessoa-dropdown-item-nome">{pessoa.nome}</span>
-                                <span className="pessoa-dropdown-item-detalhes">
-                                  {pessoa.comunidade || 'Sem comunidade'}
-                                  {pessoa.cpf && ` • CPF: ${pessoa.cpf}`}
-                                </span>
-                              </div>
+                                  <User size={16} />
+                                  <div className="pessoa-dropdown-item-info">
+                                    <div className="pessoa-dropdown-item-nome">
+                                      <span>{pessoa.nome}</span>
+                                      {calcularIdade(pessoa.dataNascimento) !== null && calcularIdade(pessoa.dataNascimento) < 18 && (
+                                        <span className="idade-badge menor">Menor</span>
+                                      )}
+                                    </div>
+                                    <span className="pessoa-dropdown-item-detalhes">
+                                      <span className="pessoa-comunidade">{pessoa.comunidade || 'Sem comunidade'}</span>
+                                      {pessoa.cpf && (
+                                        <span className="pessoa-cpf"> • CPF: {formatarCPF(pessoa.cpf)}</span>
+                                      )}
+                                      {formatarIdadeTexto(pessoa.dataNascimento) && (
+                                        <span className="pessoa-idade"> • {formatarIdadeTexto(pessoa.dataNascimento)}</span>
+                                      )}
+                                    </span>
+                                  </div>
                             </div>
                           ))
                         ) : buscaPessoa.length >= 2 ? (
